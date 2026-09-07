@@ -18,6 +18,21 @@ controls.autoRotateSpeed = 0.3;
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+let pointerStartPos = { x: 0, y: 0 };
+let pointerStartTime = 0;
+let pointerDownObject = null;
+
+window.addEventListener('pointerdown', (e) => {
+  pointerStartPos = { x: e.clientX, y: e.clientY };
+  pointerStartTime = Date.now();
+  const mouseVector = new THREE.Vector2(
+    (e.clientX / window.innerWidth) * 2 - 1,
+    -(e.clientY / window.innerHeight) * 2 + 1
+  );
+  raycaster.setFromCamera(mouseVector, camera);
+  const intersects = raycaster.intersectObjects([milkyWayGroup, blackHoleGroup, darkRoomGroup, angelGroup, pixelManGroup, shipGroup, ...artifactMeshes, ...planetMeshes], true);
+  pointerDownObject = intersects.length > 0 ? intersects[0].object : null;
+});
 
 // Определение устройства
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
