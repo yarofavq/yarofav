@@ -102,90 +102,139 @@ milkyWayGroup.rotation.x = Math.PI / 3;
 milkyWayGroup.rotation.z = Math.PI / 6;
 scene.add(milkyWayGroup);
 
-// REALISTIC BLACK HOLE (Interstellar Lensing + Dual Accretion + Dark Parallax)
+// REALISTIC BLACK HOLE (Camera-Facing Gravitational Lensing Billboard + Accretion Disk)
 const blackHoleGroup = new THREE.Group();
 
+// 1. Физическое ядро горизонта событий (Schawarzschild Event Horizon)
 const bhCoreGeo = new THREE.SphereGeometry(18, 64, 64);
 const bhCoreMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 const bhCore = new THREE.Mesh(bhCoreGeo, bhCoreMat);
 blackHoleGroup.add(bhCore);
 
-const photonCanvas = document.createElement('canvas');
-photonCanvas.width = 512;
-photonCanvas.height = 1;
-const pCtx = photonCanvas.getContext('2d');
-const pGrad = pCtx.createLinearGradient(0, 0, 512, 0);
-pGrad.addColorStop(0.0, '#ffffff');
-pGrad.addColorStop(0.15, '#ffaa33');
-pGrad.addColorStop(0.4, '#ff3300');
-pGrad.addColorStop(0.7, '#660022');
-pGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
-pCtx.fillStyle = pGrad;
-pCtx.fillRect(0, 0, 512, 1);
-const accretionTex = new THREE.CanvasTexture(photonCanvas);
-
-const photonGlowGeo = new THREE.SphereGeometry(18.9, 64, 64);
-const photonGlowMat = new THREE.ShaderMaterial({
-  side: THREE.BackSide,
+// 2. Плоский адаптивный квад гравитационного линзирования (всегда смотрит в камеру)
+const lensingGeo = new THREE.PlaneGeometry(160, 160);
+const lensingMat = new THREE.ShaderMaterial({
   transparent: true,
-  uniforms: { c: { value: 0.35 }, p: { value: 3.5 } },
+  depthWrite: false,
+  blending: THREE.NormalBlending,
   vertexShader: `
-    varying vec3 vNormal;
+    varying vec2 vUv;
     void main() {
-      vNormal = normalize(normalMatrix * normal);
+      vUv = uv;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
   fragmentShader: `
-    varying vec3 vNormal;
+    varying vec2 vUv;
     void main() {
-      float intensity = pow(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 3.0);
-      gl_FragColor = vec4(1.0, 0.65, 0.25, intensity * 1.5);
+      vec2 centered = vUv - 0.5;
+      float dist = length(centered) * 2.0;
+      float rEvent = 0.225;
+      float rPhoton = 0.245;
+      
+      if (dist < rEvent) {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return;
+      }
+      
+      // Тонкое сверхъяркое фотонное кольцо Эйнштейна
+      float photonRing = 0.0;
+      if (dist >= rEvent && dist <= rPhoton) {
+        float t = (dist - rEvent) / (rPhoton - rEvent);
+        photonRing = sin(t * 3.14159265);
+      }
+      
+      // Оптическое гало и преломление
+      float halo = pow(clamp(1.0 - (dist - rPhoton) * 1.5, 0.0, 1.0), 3.5);
+      vec3 ringColor = vec3(1.0, 0.95, 0.8) * photonRing * 2.5;
+      vec3 haloColor = vec3(1.0, 0.5, 0.15) * halo * 0.45;
+      
+      float alpha = clamp(photonRing + halo * 0.4, 0.0, 1.0);
+      gl_FragColor = vec4(ringColor + haloColor, alpha);
     }
-  `,
-  blending: THREE.AdditiveBlending
+  `
 });
-const photonSphere = new THREE.Mesh(photonGlowGeo, photonGlowMat);
-blackHoleGroup.add(photonSphere);
+const lensingBillboard = new THREE.Mesh(lensingGeo, lensingMat);
+blackHoleGroup.add(lensingBillboard);
 
-const diskGeo = new THREE.RingGeometry(20, 85, 128);
+// 3. Реалистичный аккреционный диск с релятивистским градиентом Доплера
+function createAccretionDiskTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  
+  const grad = ctx.createLinearGradient(0, 0, 1024, 0);
+  grad.addColorStop(0.0, 'rgba(255, 255, 255, 0)');
+  grad.addColorStop(0.05, 'rgba(255, 255, 240, 1.0)');
+  grad.addColorStop(0.18, 'rgba(255, 170, 40, 0.95)');
+  grad.addColorStop(0.45, 'rgba(220, 60, 10, 0.8)');
+  grad.addColorStop(0.75, 'rgba(90, 15, 5, 0.4)');
+  grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1024, 128);
+  
+  // Добавление динамических волокон плазмы
+  for (let i = 0; i < 400; i++) {
+    const x = Math.random() * 800 + 40;
+    const y = Math.random() * 128;
+    ctx.fillStyle = Math.random() > 0.4 ? 'rgba(255,200,80,0.15)' : 'rgba(20,0,0,0.3)';
+    ctx.fillRect(x, y, Math.random() * 20 + 5, 2);
+  }
+  return new THREE.CanvasTexture(canvas);
+}
+
+const diskGeo = new THREE.RingGeometry(18.5, 82, 128);
 const diskMat = new THREE.MeshBasicMaterial({
-  map: accretionTex,
+  map: createAccretionDiskTexture(),
   side: THREE.DoubleSide,
   transparent: true,
-  opacity: 0.95,
+  opacity: 0.96,
   blending: THREE.AdditiveBlending
 });
 const mainDisk = new THREE.Mesh(diskGeo, diskMat);
-mainDisk.rotation.x = Math.PI / 2.3;
+mainDisk.rotation.x = Math.PI / 2.35;
 blackHoleGroup.add(mainDisk);
 
-const lensArcGeo = new THREE.RingGeometry(20, 85, 128);
-const lensArc = new THREE.Mesh(lensArcGeo, diskMat);
-lensArc.rotation.y = Math.PI / 6;
-blackHoleGroup.add(lensArc);
+// 4. Мягкие круглые частицы темной материи (без черных квадратов)
+function createDustParticleTexture() {
+  const c = document.createElement('canvas');
+  c.width = 32;
+  c.height = 32;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(5, 5, 5, 0.85)');
+  g.addColorStop(0.5, 'rgba(10, 10, 10, 0.4)');
+  g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(16, 16, 16, 0, Math.PI * 2);
+  ctx.fill();
+  return new THREE.CanvasTexture(c);
+}
 
-const darkPCount = 1800;
+const darkPCount = 1400;
 const darkPGeo = new THREE.BufferGeometry();
 const darkPPos = new Float32Array(darkPCount * 3);
 const darkPData = [];
 
 for (let i = 0; i < darkPCount; i++) {
-  const r = 30 + Math.pow(Math.random(), 2) * 160;
+  const r = 24 + Math.pow(Math.random(), 2.2) * 140;
   const theta = Math.random() * Math.PI * 2;
-  const y = (Math.random() - 0.5) * (r * 0.35);
+  const y = (Math.random() - 0.5) * (r * 0.18);
   darkPPos[i * 3] = Math.cos(theta) * r;
   darkPPos[i * 3 + 1] = y;
   darkPPos[i * 3 + 2] = Math.sin(theta) * r;
-  darkPData.push({ r, theta, speed: (1.2 / Math.sqrt(r)) * 0.03, y });
+  darkPData.push({ r, theta, speed: (1.5 / Math.sqrt(r)) * 0.025, y });
 }
 
 darkPGeo.setAttribute('position', new THREE.BufferAttribute(darkPPos, 3));
 const darkPMat = new THREE.PointsMaterial({
-  color: 0x050505,
-  size: 3.2,
+  map: createDustParticleTexture(),
+  size: 5.5,
   transparent: true,
-  opacity: 0.92
+  opacity: 0.75,
+  depthWrite: false
 });
 const darkParallaxCloud = new THREE.Points(darkPGeo, darkPMat);
 blackHoleGroup.add(darkParallaxCloud);
@@ -1500,7 +1549,7 @@ function animate() {
     p.planet.rotation.y += 0.02;
   });
 
-  if (typeof lensArc !== 'undefined') lensArc.rotation.z -= 0.005;
+  if (typeof lensingBillboard !== 'undefined') lensingBillboard.lookAt(camera.position);
   if (typeof darkParallaxCloud !== 'undefined' && typeof darkPData !== 'undefined') {
     const pos = darkParallaxCloud.geometry.attributes.position.array;
     for (let i = 0; i < darkPData.length; i++) {
