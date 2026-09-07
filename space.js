@@ -19,6 +19,10 @@ controls.autoRotateSpeed = 0.3;
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
+// Определение устройства
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+              || (window.innerWidth <= 768 && 'ontouchstart' in window);
+
 // Light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
@@ -711,6 +715,16 @@ const planetModal = document.getElementById('planet-modal');
 const planetTitle = document.getElementById('planet-title');
 const planetDesc = document.getElementById('planet-desc');
 const closePlanetModalBtn = document.getElementById('close-planet-modal');
+
+// Меняем текст подсказки в зависимости от устройства
+const flyHint = document.getElementById('fly-hint');
+if (flyHint) {
+  if (isMobile) {
+    flyHint.textContent = 'Управление: Вращение пальцем | Зажмите для перемещения';
+  } else {
+    flyHint.textContent = 'Управление: Вращение мышью | Зажмите ЛКМ / Колесико для перемещения';
+  }
+}
 
 const pixelManOverlay = document.createElement('div');
 pixelManOverlay.id = 'pixel-man-overlay';
