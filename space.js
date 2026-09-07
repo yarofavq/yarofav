@@ -16,8 +16,26 @@ controls.maxDistance = 25000;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.3;
 
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+function isPartOfGroup(obj, group) {
+  let current = obj;
+  while (current) {
+    if (current === group) return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+window.addEventListener('pointerdown', (e) => {
+  pointerStartPos = { x: e.clientX, y: e.clientY };
+  pointerStartTime = Date.now();
+  const mouseVector = new THREE.Vector2(
+    (e.clientX / window.innerWidth) * 2 - 1,
+    -(e.clientY / window.innerHeight) * 2 + 1
+  );
+  raycaster.setFromCamera(mouseVector, camera);
+  const intersects = raycaster.intersectObjects([milkyWayGroup, blackHoleGroup, darkRoomGroup, angelGroup, pixelManGroup, shipGroup, ...artifactMeshes, ...planetMeshes], true);
+  pointerDownObject = intersects.length > 0 ? intersects[0].object : null;
+});
 
 // Определение устройства
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -1247,12 +1265,12 @@ function handleInteraction(e) {
     return;
   }
 
-  // Млечный Путь
-  const mwHits = raycaster.intersectObject(mwHitbox);
-  if (mwHits.length > 0) {
-    enterDarkRoom();
-    return;
-  }
+  // Млечный Путь — открываем комнату только если нажатие тоже было на нём
+const mwHits = raycaster.intersectObject(mwHitbox);
+if (mwHits.length > 0 && pointerDownObject && isPartOfGroup(pointerDownObject, milkyWayGroup)) {
+  enterDarkRoom();
+  return;
+}
 
   // Планеты
   const planetHits = raycaster.intersectObjects(planetMeshes);
