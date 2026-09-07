@@ -20,8 +20,7 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 // Определение устройства
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-              || (window.innerWidth <= 768 && 'ontouchstart' in window);
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 // Light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -777,6 +776,22 @@ if (!document.getElementById('crazy-styles')) {
       90% { transform: translate(-12px,10px) rotate(-3deg); }
       100% { transform: translate(0,0) rotate(0deg); }
     }
+    html, body {
+      width: 100vw !important;
+      height: 100vh !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      position: fixed !important;
+    }
+    #bg-canvas {
+      width: 100vw !important;
+      height: 100vh !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      display: block !important;
+    }
     body.crazy-mode {
       animation: crazyShake 0.08s infinite;
     }
@@ -1056,13 +1071,16 @@ function triggerPixelMan() {
       `blur(${Math.random() * 2}px) contrast(1.5) saturate(3) hue-rotate(${hue}deg)`,
       `sepia(0.6) hue-rotate(${hue}deg) contrast(1.4)`
     ];
-    document.body.style.filter = filters[Math.floor(Math.random() * filters.length)];
+    const canvasEl = document.getElementById('bg-canvas');
+    if (canvasEl) canvasEl.style.filter = filters[Math.floor(Math.random() * filters.length)];
   }, 120);
 
   setTimeout(() => {
     clearInterval(crazyInterval);
     document.body.classList.remove('crazy-mode');
     document.body.style.filter = '';
+    const canvasEl = document.getElementById('bg-canvas');
+    if (canvasEl) canvasEl.style.filter = '';
     document.documentElement.style.setProperty('--hue', '0deg');
     pixelManOverlay.style.display = 'none';
     isPixelManTriggered = false;
