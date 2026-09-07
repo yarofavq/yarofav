@@ -92,7 +92,7 @@ const mwMaterial = new THREE.PointsMaterial({
 const milkyWay = new THREE.Points(mwGeometry, mwMaterial);
 milkyWayGroup.add(milkyWay);
 
-const mwHitboxGeo = new THREE.SphereGeometry(1600, 16, 16);
+const mwHitboxGeo = new THREE.SphereGeometry(800, 16, 16);
 const mwHitboxMat = new THREE.MeshBasicMaterial({ visible: false });
 const mwHitbox = new THREE.Mesh(mwHitboxGeo, mwHitboxMat);
 milkyWayGroup.add(mwHitbox);
@@ -326,6 +326,7 @@ darkRoomGroup.add(doorLight);
 darkRoomGroup.position.set(15000, 15000, 15000);
 scene.add(darkRoomGroup);
 let inDarkRoom = false;
+let darkRoomPressLock = false;
 
 // COSMIC ANGEL EASTER EGG
 const angelGroup = new THREE.Group();
@@ -504,6 +505,146 @@ errorMesh.lookAt(0, 0, 0);
 scene.add(errorMesh);
 
 let isErrorTriggered = false;
+
+// ==================== PIXEL DRAGON ====================
+const pixelDragonGroup = new THREE.Group();
+let isDragonTriggered = false;
+let dragonFireCleanup = null;
+
+const dBodyMat = new THREE.MeshBasicMaterial({ map: createPixelTexture('#2e7d32', true) });
+const dBellyMat = new THREE.MeshBasicMaterial({ map: createPixelTexture('#9ccc65') });
+const dSpikeMat = new THREE.MeshBasicMaterial({ color: 0xff5722 });
+const dHornMat = new THREE.MeshBasicMaterial({ color: 0xffd54f });
+const dEyeMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+
+for (let i = 0; i < 7; i++) {
+  const seg = new THREE.Mesh(new THREE.BoxGeometry(7 - i * 0.5, 6 - i * 0.4, 9), dBodyMat);
+  seg.position.z = i * 6.5;
+  pixelDragonGroup.add(seg);
+  const belly = new THREE.Mesh(new THREE.BoxGeometry(5 - i * 0.4, 1.6, 8), dBellyMat);
+  belly.position.set(0, -3 - i * 0.2, i * 6.5 + 0.5);
+  pixelDragonGroup.add(belly);
+  const spike = new THREE.Mesh(new THREE.ConeGeometry(1.3, 3, 4), dSpikeMat);
+  spike.position.set(0, 4 - i * 0.2, i * 6.5);
+  pixelDragonGroup.add(spike);
+}
+
+const dHead = new THREE.Group();
+const dSkull = new THREE.Mesh(new THREE.BoxGeometry(6.5, 5.5, 7), dBodyMat);
+dHead.add(dSkull);
+const dSnout = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.6, 4.5), dBodyMat);
+dSnout.position.set(0, -1, -5);
+dHead.add(dSnout);
+const dEyeL = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 0.4), dEyeMat);
+dEyeL.position.set(-1.7, 0.9, -3.6);
+const dEyeR = dEyeL.clone();
+dEyeR.position.x = 1.7;
+dHead.add(dEyeL, dEyeR);
+const dHornL = new THREE.Mesh(new THREE.ConeGeometry(0.9, 3.6, 4), dHornMat);
+dHornL.position.set(-1.9, 3.8, 0.6);
+dHornL.rotation.z = 0.35;
+const dHornR = dHornL.clone();
+dHornR.position.x = 1.9;
+dHornR.rotation.z = -0.35;
+dHead.add(dHornL, dHornR);
+dHead.position.set(0, 0.6, -6);
+pixelDragonGroup.add(dHead);
+
+const dWingMat = new THREE.MeshBasicMaterial({ color: 0x1b5e20, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
+const dragonWingL = new THREE.Group();
+for (let i = 0; i < 4; i++) {
+  const feather = new THREE.Mesh(new THREE.BoxGeometry(10 - i * 1.4, 0.7, 3.6 - i * 0.5), dWingMat);
+  feather.position.set(-4 - i * 4.4, i * 0.4, -i * 0.9);
+  dragonWingL.add(feather);
+}
+dragonWingL.position.set(-3.5, 3, 8);
+pixelDragonGroup.add(dragonWingL);
+const dragonWingR = dragonWingL.clone();
+dragonWingR.position.x = 3.5;
+dragonWingR.scale.x = -1;
+pixelDragonGroup.add(dragonWingR);
+
+for (let i = 0; i < 4; i++) {
+  const tSeg = new THREE.Mesh(new THREE.BoxGeometry(3.6 - i * 0.7, 3.6 - i * 0.7, 5.5), dBodyMat);
+  tSeg.position.set(0, -0.3 * i, 44 + i * 4.8);
+  pixelDragonGroup.add(tSeg);
+}
+const dTailTip = new THREE.Mesh(new THREE.ConeGeometry(2, 4.5, 4), dSpikeMat);
+dTailTip.position.set(0, -1.2, 63);
+dTailTip.rotation.x = Math.PI / 2;
+pixelDragonGroup.add(dTailTip);
+
+[[-3.4, 12], [3.4, 12], [-2.6, 30], [2.6, 30]].forEach(function (lp) {
+  const leg = new THREE.Mesh(new THREE.BoxGeometry(2.1, 6.5, 2.6), dBodyMat);
+  leg.position.set(lp[0], -5, lp[1]);
+  pixelDragonGroup.add(leg);
+});
+
+const dragonHitbox = new THREE.Mesh(new THREE.SphereGeometry(26, 12, 12), new THREE.MeshBasicMaterial({ visible: false }));
+pixelDragonGroup.add(dragonHitbox);
+
+pixelDragonGroup.position.set(5200, 120, -3800);
+pixelDragonGroup.lookAt(0, 120, 0);
+pixelDragonGroup.rotation.y += Math.PI;
+pixelDragonGroup.scale.set(1.6, 1.6, 1.6);
+scene.add(pixelDragonGroup);
+
+function triggerDragonFire() {
+  if (isDragonTriggered) return;
+  isDragonTriggered = true;
+  card.classList.add('hidden-ui');
+  telescopeOverlay.classList.add('hidden');
+  flyOverlay.classList.add('hidden');
+  controls.autoRotate = false;
+
+  const fireCanvas = document.createElement('canvas');
+  fireCanvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:10001;pointer-events:none;';
+  document.body.appendChild(fireCanvas);
+  fireCanvas.width = window.innerWidth;
+  fireCanvas.height = window.innerHeight;
+  const fctx = fireCanvas.getContext('2d');
+  const W = fireCanvas.width, H = fireCanvas.height;
+  const edgeW = Math.max(120, W * 0.16);
+  const particles = [];
+
+  const fireInterval = setInterval(() => {
+    for (let i = 0; i < 7; i++) {
+      particles.push({ x: Math.random() * edgeW, y: H + 30, vx: 0.4 + Math.random() * 0.8, vy: -(2.5 + Math.random() * 4), life: 1, size: 14 + Math.random() * 30 });
+      particles.push({ x: W - Math.random() * edgeW, y: H + 30, vx: -(0.4 + Math.random() * 0.8), vy: -(2.5 + Math.random() * 4), life: 1, size: 14 + Math.random() * 30 });
+    }
+    fctx.clearRect(0, 0, W, H);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy *= 0.985;
+      p.life -= 0.012 + Math.random() * 0.012;
+      p.size *= 0.988;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      const grad = fctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+      grad.addColorStop(0, 'rgba(255,235,120,' + (p.life * 0.95).toFixed(3) + ')');
+      grad.addColorStop(0.45, 'rgba(255,110,20,' + (p.life * 0.8).toFixed(3) + ')');
+      grad.addColorStop(1, 'rgba(140,10,0,0)');
+      fctx.fillStyle = grad;
+      fctx.beginPath();
+      fctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      fctx.fill();
+    }
+  }, 33);
+
+  dragonFireCleanup = () => {
+    clearInterval(fireInterval);
+    particles.length = 0;
+    fctx.clearRect(0, 0, W, H);
+    if (fireCanvas.parentNode) fireCanvas.remove();
+  };
+
+  setTimeout(() => {
+    if (dragonFireCleanup) { dragonFireCleanup(); dragonFireCleanup = null; }
+    isDragonTriggered = false;
+    resetCamera();
+  }, 5000);
+}
 
 // ==================== НАСТОЯЩИЙ КОСМИЧЕСКИЙ КОРАБЛЬ (не ракета) ====================
 const shipGroup = new THREE.Group();
@@ -1155,7 +1296,10 @@ function resetCamera() {
   isAngelTriggered = false;
   isPixelManTriggered = false;
   isErrorTriggered = false;
+  if (dragonFireCleanup) { dragonFireCleanup(); dragonFireCleanup = null; }
+  isDragonTriggered = false;
   inDarkRoom = false;
+  darkRoomPressLock = false;
   controls.autoRotate = true;
   controls.enableZoom = true;
   camera.position.set(0, 30, 70);
@@ -1182,7 +1326,7 @@ function getPointerPosition(e) {
 }
 
 function handleInteraction(e) {
-  if (isConsuming || isAngelTriggered || isPixelManTriggered || isErrorTriggered) return;
+  if (isConsuming || isAngelTriggered || isPixelManTriggered || isErrorTriggered || isDragonTriggered) return;
 
   // Не реагируем на кнопки и карточку
   if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.card') || e.target.closest('.planet-modal')) {
@@ -1196,6 +1340,11 @@ function handleInteraction(e) {
   raycaster.setFromCamera(mouse, camera);
 
   if (inDarkRoom) {
+    // Первое отпускание после входа по нажатию — глотаем, чтобы не сбросить комнату мгновенно
+    if (darkRoomPressLock) {
+      darkRoomPressLock = false;
+      return;
+    }
     const doorHits = raycaster.intersectObject(whiteDoor);
     if (doorHits.length > 0) resetCamera();
     return;
@@ -1247,10 +1396,17 @@ function handleInteraction(e) {
     return;
   }
 
-  // Млечный Путь
+  const dragonHits = raycaster.intersectObject(dragonHitbox);
+  if (dragonHits.length > 0) {
+    triggerDragonFire();
+    return;
+  }
+
+  // Млечный Путь — вход ТОЛЬКО если нажатие/тап начались на галактике
+  // (обрабатывается в handleMilkyWayPress / handleMilkyWayRelease).
+  // Отжатие здесь галактику больше не открывает.
   const mwHits = raycaster.intersectObject(mwHitbox);
   if (mwHits.length > 0) {
-    enterDarkRoom();
     return;
   }
 
@@ -1278,6 +1434,8 @@ window.addEventListener('touchend', (e) => {
 
 function enterDarkRoom() {
   inDarkRoom = true;
+  darkRoomPressLock = true;
+  mwPressCandidate = null;
   card.classList.add('hidden-ui');
   telescopeOverlay.classList.add('hidden');
   flyOverlay.classList.add('hidden');
@@ -1589,6 +1747,11 @@ function animate() {
   errorMesh.material.opacity = 0.7 + Math.sin(Date.now() * 0.005) * 0.3;
   errorMesh.lookAt(camera.position);
 
+  pixelDragonGroup.position.y = 120 + Math.sin(Date.now() * 0.0008) * 10;
+  dragonWingL.rotation.z = 0.25 + Math.sin(Date.now() * 0.0035) * 0.5;
+  dragonWingR.rotation.z = -0.25 - Math.sin(Date.now() * 0.0035) * 0.5;
+  dHead.rotation.y = Math.sin(Date.now() * 0.0012) * 0.25;
+
   // Корабль летит
   shipAngle += shipBoost ? 0.022 : 0.0035;
   const shipRadius = 480;
@@ -1670,6 +1833,74 @@ function animate() {
 }
 
 animate();
+
+// ==================== МЛЕЧНЫЙ ПУТЬ: ВХОД ТОЛЬКО ПО НАЖАТИЮ НА ГАЛАКТИКУ ====================
+// Валидируется точка НАЖАТИЯ, а не отпускания.
+// ПК: вход мгновенно по нажатию. Телефон: тап (нажал на галактике, палец почти не двигался).
+
+let mwPressCandidate = null; // { x, y, time }
+let lastTouchTime = 0;
+
+function raycastMilkyWay(x, y) {
+  mouse.x = (x / window.innerWidth) * 2 - 1;
+  mouse.y = -(y / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  return raycaster.intersectObject(mwHitbox).length > 0;
+}
+
+function handleMilkyWayPress(e) {
+  if ((e.type === 'mousedown' || e.type === 'pointerdown') && e.button !== 0) return;
+  if (isConsuming || isAngelTriggered || isPixelManTriggered || isErrorTriggered || isDragonTriggered || inDarkRoom) return;
+  const t = e.target;
+  if (t && typeof t.closest === 'function' && (t.closest('button') || t.closest('a') || t.closest('.card') || t.closest('.planet-modal'))) return;
+
+  // Пинч / мульти-тач — это жест камеры, не тап по галактике
+  if (e.touches && e.touches.length > 1) { mwPressCandidate = null; return; }
+
+  const pos = getPointerPosition(e);
+  const isTouch = e.type === 'touchstart' || e.pointerType === 'touch';
+
+  // Валидация ИМЕННО точки нажатия
+  if (!raycastMilkyWay(pos.x, pos.y)) { mwPressCandidate = null; return; }
+
+  if (isTouch) {
+    // Телефон: запоминаем точку нажатия, решение принимаем на touchend (детекция тапа)
+    lastTouchTime = Date.now();
+    mwPressCandidate = { x: pos.x, y: pos.y, time: lastTouchTime };
+  } else {
+    // ПК: мгновенный вход по нажатию
+    // Отбрасываем эмулированные mouse-события после тача
+    if (Date.now() - lastTouchTime < 800) return;
+    mwPressCandidate = null;
+    enterDarkRoom();
+  }
+}
+
+function handleMilkyWayRelease(e) {
+  if (!mwPressCandidate) return;
+  const start = mwPressCandidate;
+  mwPressCandidate = null;
+
+  if (inDarkRoom || isConsuming || isAngelTriggered || isPixelManTriggered || isErrorTriggered || isDragonTriggered) return;
+  if (e.type === 'pointerup' && e.pointerType === 'mouse') return; // мышь обработана на press
+
+  const pos = getPointerPosition(e);
+  const dx = pos.x - start.x;
+  const dy = pos.y - start.y;
+  const moved = Math.sqrt(dx * dx + dy * dy);
+  const dt = Date.now() - start.time;
+
+  // Тап: палец почти не сдвинулся, нажатие короткое, отпустили всё еще на галактике
+  if (moved <= 12 && dt <= 600 && raycastMilkyWay(pos.x, pos.y)) {
+    enterDarkRoom();
+  }
+}
+
+window.addEventListener('pointerdown', handleMilkyWayPress);
+window.addEventListener('mousedown', handleMilkyWayPress);
+window.addEventListener('touchstart', handleMilkyWayPress, { passive: true });
+window.addEventListener('touchend', handleMilkyWayRelease, { passive: true });
+window.addEventListener('pointerup', handleMilkyWayRelease, { passive: true });
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
