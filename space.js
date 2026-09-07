@@ -102,23 +102,93 @@ milkyWayGroup.rotation.x = Math.PI / 3;
 milkyWayGroup.rotation.z = Math.PI / 6;
 scene.add(milkyWayGroup);
 
-// REALISTIC BLACK HOLE
+// REALISTIC BLACK HOLE (Interstellar Lensing + Dual Accretion + Dark Parallax)
 const blackHoleGroup = new THREE.Group();
+
 const bhCoreGeo = new THREE.SphereGeometry(18, 64, 64);
 const bhCoreMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 const bhCore = new THREE.Mesh(bhCoreGeo, bhCoreMat);
 blackHoleGroup.add(bhCore);
 
-const photonSphereGeo = new THREE.SphereGeometry(20.5, 64, 64);
-const photonSphereMat = new THREE.MeshBasicMaterial({ color: 0x88ccff, side: THREE.BackSide, transparent: true, opacity: 0.4 });
-const photonSphere = new THREE.Mesh(photonSphereGeo, photonSphereMat);
+const photonCanvas = document.createElement('canvas');
+photonCanvas.width = 512;
+photonCanvas.height = 1;
+const pCtx = photonCanvas.getContext('2d');
+const pGrad = pCtx.createLinearGradient(0, 0, 512, 0);
+pGrad.addColorStop(0.0, '#ffffff');
+pGrad.addColorStop(0.15, '#ffaa33');
+pGrad.addColorStop(0.4, '#ff3300');
+pGrad.addColorStop(0.7, '#660022');
+pGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+pCtx.fillStyle = pGrad;
+pCtx.fillRect(0, 0, 512, 1);
+const accretionTex = new THREE.CanvasTexture(photonCanvas);
+
+const photonGlowGeo = new THREE.SphereGeometry(18.9, 64, 64);
+const photonGlowMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide,
+  transparent: true,
+  uniforms: { c: { value: 0.35 }, p: { value: 3.5 } },
+  vertexShader: `
+    varying vec3 vNormal;
+    void main() {
+      vNormal = normalize(normalMatrix * normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vNormal;
+    void main() {
+      float intensity = pow(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 3.0);
+      gl_FragColor = vec4(1.0, 0.65, 0.25, intensity * 1.5);
+    }
+  `,
+  blending: THREE.AdditiveBlending
+});
+const photonSphere = new THREE.Mesh(photonGlowGeo, photonGlowMat);
 blackHoleGroup.add(photonSphere);
 
-const diskGeo = new THREE.RingGeometry(21, 65, 128);
-const diskMat = new THREE.MeshBasicMaterial({ color: 0xff4500, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+const diskGeo = new THREE.RingGeometry(20, 85, 128);
+const diskMat = new THREE.MeshBasicMaterial({
+  map: accretionTex,
+  side: THREE.DoubleSide,
+  transparent: true,
+  opacity: 0.95,
+  blending: THREE.AdditiveBlending
+});
 const mainDisk = new THREE.Mesh(diskGeo, diskMat);
 mainDisk.rotation.x = Math.PI / 2.3;
 blackHoleGroup.add(mainDisk);
+
+const lensArcGeo = new THREE.RingGeometry(20, 85, 128);
+const lensArc = new THREE.Mesh(lensArcGeo, diskMat);
+lensArc.rotation.y = Math.PI / 6;
+blackHoleGroup.add(lensArc);
+
+const darkPCount = 1800;
+const darkPGeo = new THREE.BufferGeometry();
+const darkPPos = new Float32Array(darkPCount * 3);
+const darkPData = [];
+
+for (let i = 0; i < darkPCount; i++) {
+  const r = 30 + Math.pow(Math.random(), 2) * 160;
+  const theta = Math.random() * Math.PI * 2;
+  const y = (Math.random() - 0.5) * (r * 0.35);
+  darkPPos[i * 3] = Math.cos(theta) * r;
+  darkPPos[i * 3 + 1] = y;
+  darkPPos[i * 3 + 2] = Math.sin(theta) * r;
+  darkPData.push({ r, theta, speed: (1.2 / Math.sqrt(r)) * 0.03, y });
+}
+
+darkPGeo.setAttribute('position', new THREE.BufferAttribute(darkPPos, 3));
+const darkPMat = new THREE.PointsMaterial({
+  color: 0x050505,
+  size: 3.2,
+  transparent: true,
+  opacity: 0.92
+});
+const darkParallaxCloud = new THREE.Points(darkPGeo, darkPMat);
+blackHoleGroup.add(darkParallaxCloud);
 
 blackHoleGroup.position.set(300, 100, -400);
 scene.add(blackHoleGroup);
@@ -646,6 +716,120 @@ const sunMat = new THREE.MeshBasicMaterial({ color: 0xffbb33 });
 const sun = new THREE.Mesh(sunGeo, sunMat);
 scene.add(sun);
 
+function createCraterMap(colorBase, craterColor, isBump = false) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = isBump ? '#808080' : colorBase;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const count = 350;
+  for (let i = 0; i < count; i++) {
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const r = Math.pow(Math.random(), 3) * 28 + 3;
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+    if (isBump) {
+      grad.addColorStop(0, '#202020');
+      grad.addColorStop(0.7, '#606060');
+      grad.addColorStop(0.85, '#ffffff');
+      grad.addColorStop(1, '#808080');
+    } else {
+      grad.addColorStop(0, craterColor);
+      grad.addColorStop(0.8, colorBase);
+      grad.addColorStop(1, colorBase);
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
+}
+
+function createEarthTextures() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0f2b5c';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#2d6a4f';
+  for (let i = 0; i < 90; i++) {
+    const cx = Math.random() * canvas.width;
+    const cy = Math.random() * canvas.height;
+    const size = Math.random() * 90 + 30;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, size * 1.6, size, Math.random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#b5835a';
+  for (let i = 0; i < 40; i++) {
+    const cx = Math.random() * canvas.width;
+    const cy = canvas.height * 0.4 + (Math.random() - 0.5) * 120;
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.random() * 40 + 10, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const map = new THREE.CanvasTexture(canvas);
+  const roughCanvas = document.createElement('canvas');
+  roughCanvas.width = 1024;
+  roughCanvas.height = 512;
+  const rCtx = roughCanvas.getContext('2d');
+  rCtx.drawImage(canvas, 0, 0);
+  const imgData = rCtx.getImageData(0, 0, 1024, 512);
+  for (let i = 0; i < imgData.data.length; i += 4) {
+    const isWater = (imgData.data[i] === 15 && imgData.data[i + 1] === 43 && imgData.data[i + 2] === 92);
+    const val = isWater ? 35 : 210;
+    imgData.data[i] = val;
+    imgData.data[i + 1] = val;
+    imgData.data[i + 2] = val;
+  }
+  rCtx.putImageData(imgData, 0, 0);
+  const roughnessMap = new THREE.CanvasTexture(roughCanvas);
+  const cloudCanvas = document.createElement('canvas');
+  cloudCanvas.width = 1024;
+  cloudCanvas.height = 512;
+  const cCtx = cloudCanvas.getContext('2d');
+  cCtx.fillStyle = 'rgba(255, 255, 255, 0)';
+  cCtx.fillRect(0, 0, 1024, 512);
+  for (let i = 0; i < 180; i++) {
+    const x = Math.random() * 1024;
+    const y = Math.random() * 512;
+    const r = Math.random() * 45 + 15;
+    const grad = cCtx.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.75)');
+    grad.addColorStop(0.7, 'rgba(255, 255, 255, 0.25)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    cCtx.fillStyle = grad;
+    cCtx.beginPath();
+    cCtx.arc(x, y, r, 0, Math.PI * 2);
+    cCtx.fill();
+  }
+  const cloudMap = new THREE.CanvasTexture(cloudCanvas);
+  return { map, roughnessMap, cloudMap };
+}
+
+function createGasGiantTexture(colors) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  for (let y = 0; y < canvas.height; y++) {
+    const n = Math.sin(y * 0.08) * 0.5 + Math.cos(y * 0.03) * 0.5;
+    const colorIdx = Math.floor(((n + 1) / 2) * (colors.length - 1));
+    ctx.fillStyle = colors[colorIdx];
+    ctx.fillRect(0, y, canvas.width, 1);
+  }
+  return new THREE.CanvasTexture(canvas);
+}
+
+const earthData = createEarthTextures();
+const earthClouds = [];
+
 const planetConfigs = [
   { name: 'Меркурий', radius: 0.5, dist: 9, color: 0x999999, speed: 0.025, desc: 'Самая близкая к Солнцу планета. Температура колеблется от -180°C до +430°C!' },
   { name: 'Венера', radius: 0.9, dist: 14, color: 0xe3bb76, speed: 0.018, desc: 'Самая горячая планета Солнечной системы с плотной атмосферой из углекислого газа.' },
@@ -671,21 +855,90 @@ planetConfigs.forEach(cfg => {
   const orbit = new THREE.Line(orbitGeo, orbitMat);
   scene.add(orbit);
 
-  const pGeo = new THREE.SphereGeometry(cfg.radius, 32, 32);
-  const pMat = new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.6, metalness: 0.1 });
+  const pGeo = new THREE.SphereGeometry(cfg.radius, 64, 64);
+  let pMat;
+  const pName = cfg.name || '';
+  if (pName.includes('Меркурий')) {
+    pMat = new THREE.MeshStandardMaterial({
+      color: 0xaaaaaa,
+      bumpMap: createCraterMap('#888', '#222', true),
+      bumpScale: 0.06,
+      roughness: 0.9,
+      metalness: 0.1
+    });
+  } else if (pName.includes('Марс')) {
+    pMat = new THREE.MeshStandardMaterial({
+      color: 0xd14924,
+      bumpMap: createCraterMap('#d14924', '#551505', true),
+      bumpScale: 0.04,
+      roughness: 0.85,
+      metalness: 0.05
+    });
+  } else if (pName.includes('Земля')) {
+    pMat = new THREE.MeshStandardMaterial({
+      map: earthData.map,
+      roughnessMap: earthData.roughnessMap,
+      metalness: 0.1,
+      roughness: 0.7
+    });
+  } else if (pName.includes('Юпитер')) {
+    pMat = new THREE.MeshStandardMaterial({
+      map: createGasGiantTexture(['#3f2010', '#8b5a2b', '#d2b48c', '#deb887', '#f4a460', '#a0522d']),
+      roughness: 0.5
+    });
+  } else if (pName.includes('Сатурн')) {
+    pMat = new THREE.MeshStandardMaterial({
+      map: createGasGiantTexture(['#cbb17b', '#e6d3a3', '#b39860', '#f1e2b8']),
+      roughness: 0.5
+    });
+  } else {
+    pMat = new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.5, metalness: 0.1 });
+  }
+
   const planet = new THREE.Mesh(pGeo, pMat);
   planet.userData = { name: cfg.name, desc: cfg.desc };
-  
+
+  if (pName.includes('Земля')) {
+    const cloudGeo = new THREE.SphereGeometry(cfg.radius * 1.025, 64, 64);
+    const cloudMat = new THREE.MeshStandardMaterial({
+      map: earthData.cloudMap,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.NormalBlending
+    });
+    const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+    planet.add(cloudMesh);
+    earthClouds.push(cloudMesh);
+  }
+
   const pivot = new THREE.Group();
   scene.add(pivot);
   pivot.add(planet);
   planet.position.x = cfg.dist;
 
   if (cfg.ring) {
-    const ringGeo = new THREE.RingGeometry(cfg.radius + 0.6, cfg.radius + 2.0, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xd69e2e, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+    const ringGeo = new THREE.RingGeometry(cfg.radius + 0.5, cfg.radius + 2.6, 64);
+    const ringCanvas = document.createElement('canvas');
+    ringCanvas.width = 256;
+    ringCanvas.height = 1;
+    const rCtx = ringCanvas.getContext('2d');
+    const rGrad = rCtx.createLinearGradient(0, 0, 256, 0);
+    rGrad.addColorStop(0, 'rgba(180, 150, 100, 0.1)');
+    rGrad.addColorStop(0.3, 'rgba(215, 185, 130, 0.9)');
+    rGrad.addColorStop(0.6, 'rgba(140, 110, 70, 0.3)');
+    rGrad.addColorStop(0.85, 'rgba(200, 175, 120, 0.8)');
+    rGrad.addColorStop(1, 'rgba(150, 120, 80, 0)');
+    rCtx.fillStyle = rGrad;
+    rCtx.fillRect(0, 0, 256, 1);
+    const ringTex = new THREE.CanvasTexture(ringCanvas);
+    const ringMat = new THREE.MeshBasicMaterial({
+      map: ringTex,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85
+    });
     const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI / 2;
+    ring.rotation.x = Math.PI / 2.2;
     planet.add(ring);
   }
 
@@ -1246,6 +1499,20 @@ function animate() {
     p.pivot.rotation.y += p.speed;
     p.planet.rotation.y += 0.02;
   });
+
+  if (typeof lensArc !== 'undefined') lensArc.rotation.z -= 0.005;
+  if (typeof darkParallaxCloud !== 'undefined' && typeof darkPData !== 'undefined') {
+    const pos = darkParallaxCloud.geometry.attributes.position.array;
+    for (let i = 0; i < darkPData.length; i++) {
+      darkPData[i].theta += darkPData[i].speed;
+      pos[i * 3] = Math.cos(darkPData[i].theta) * darkPData[i].r;
+      pos[i * 3 + 2] = Math.sin(darkPData[i].theta) * darkPData[i].r;
+    }
+    darkParallaxCloud.geometry.attributes.position.needsUpdate = true;
+  }
+  if (typeof earthClouds !== 'undefined') {
+    earthClouds.forEach(c => c.rotation.y += 0.002);
+  }
   
   starField.rotation.y -= 0.00005;
   milkyWayGroup.rotation.y += 0.0001;
