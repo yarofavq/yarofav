@@ -2247,6 +2247,14 @@ function audioStart(){
   var elg=ec.createGain();elg.gain.value=60;el.connect(elg);elg.connect(eo.frequency);el.start();
   errAudio.ctx=ec;errAudio.gain=eg;}catch(e){}}
 function sinT(){return "sine";}function triT(){return "triangle";}function sawT(){return "sawtooth";}function lowT(){return "lowpass";}function bandT(){return "bandpass";}
+function audioResume(){
+  try{if(bhAudio.ctx&&bhAudio.ctx.state==="suspended")bhAudio.ctx.resume();}catch(e){}
+  try{if(errAudio.ctx&&errAudio.ctx.state==="suspended")errAudio.ctx.resume();}catch(e){}
+  for(var i=0;i<stAudioList.length;i++){try{if(stAudioList[i].ctx.state==="suspended")stAudioList[i].ctx.resume();}catch(e){}}
+}
+document.addEventListener("click",audioResume);
+document.addEventListener("touchstart",audioResume);
+document.addEventListener("touchend",audioResume);
 document.addEventListener("click",audioStart);document.addEventListener("touchstart",audioStart);
 function animate() {
   requestAnimationFrame(animate);
