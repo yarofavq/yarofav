@@ -6,7 +6,10 @@ var CHANNEL = 'global';
 var NICK_KEY = 'spaceChatNick';
 var client = null;
 var nick = '';
-var online = {};
+var lastSeen = {};
+var subscribed = false;
+var subAttempt = 0;
+var subResultGot = false;
 var reconnectTries = 0;
 var lastSend = 0;
 
@@ -92,18 +95,24 @@ function addMsg(sender, text, cls) {
 }
 function sys(text) { addMsg('', text, 'ch-sys'); }
 function setOnline() {
+  var now = Date.now();
   var n = 0;
-  for (var k in online) n++;
+  for (var k in lastSeen) { if (now - lastSeen[k] < 150000) n++; }
+  if (subscribed && !lastSeen[nick]) n++;
   onlineEl.textContent = 'в сети: ' + n;
 }
 function onState(state) {
   var CS = Photon.Chat.ChatClient.ChatState;
   if (state === CS.ConnectedToFrontEnd) {
     document.getElementById('chat-status').classList.add('on');
-    client.subscribe([CHANNEL], { historyLength: 12, createOptions: { publishSubscribers: true, maxSubscribers: 100 } });
+    subAttempt = 1;
+    trySubscribe();
+    sendbar.classList.add('open');
   } else if (state === CS.Disconnected || state === CS.Error) {
     document.getElementById('chat-status').classList.remove('on');
-    online = {};
+    lastSeen = {};
+    subscribed = false;
+    subAttempt = 0;
     setOnline();
     sendbar.classList.remove('open');
     if (nick && reconnectTries < 6) {
@@ -117,10 +126,24 @@ function onMessages(channelName, messages) {
   for (var i = 0; i < messages.length; i++) {
     var m = messages[i];
     var s = String(m.getSender());
-    online[s] = 1;
+    lastSeen[s] = Date.now();
     addMsg(s, String(m.getContent()), s === nick ? 'ch-me' : '');
   }
   setOnline();
+}
+function trySubscribe() {
+  if (!client || !client.isConnectedToFrontEnd()) return;
+  subResultGot = false;
+  if (subAttempt === 1) client.subscribe([CHANNEL], { historyLength: 12, createOptions: { publishSubscribers: true, maxSubscribers: 100 } });
+  else if (subAttempt === 2) client.subscribe([CHANNEL], { historyLength: 12 });
+  else client.subscribe([CHANNEL]);
+  setTimeout(function () {
+    if (!subResultGot && subAttempt < 3) {
+      subAttempt++;
+      sys('Подписка не подтверждена, повтор (' + subAttempt + '/3)...');
+      trySubscribe();
+    }
+  }, 5000);
 }
 function connect() {
   if (typeof Photon === 'undefined' || !Photon.Chat) { sys('Ошибка: SDK чата не загружен (libs/photon.js)'); return; }
@@ -130,19 +153,28 @@ function connect() {
   client.onError = function (ec, em) { sys('Ошибка чата: ' + em); };
   client.onChatMessages = onMessages;
   client.onSubscribeResult = function (res) {
-    if (res && res[CHANNEL]) {
-      online[nick] = 1;
+    subResultGot = true;
+    try { console.log('Subscribe result:', JSON.stringify(res)); } catch (e) {}
+    if (res && res[CHANNEL] === true) {
+      subscribed = true;
+      lastSeen[nick] = Date.now();
       setOnline();
       sys('Вы в чате. Пиши!');
       nickbar.classList.remove('open');
       sendbar.classList.add('open');
       input.focus();
+      return;
+    }
+    if (subAttempt < 3) {
+      subAttempt++;
+      sys('Повторная подписка (' + subAttempt + '/3)...');
+      trySubscribe();
     } else {
-      sys('Канал недоступен');
+      sys('Канал недоступен. Ответ сервера: ' + JSON.stringify(res));
     }
   };
-  client.onUserSubscribe = function (ch, u) { if (u && !online[u]) { online[u] = 1; setOnline(); } };
-  client.onUserUnsubscribe = function (ch, u) { if (u) { delete online[u]; setOnline(); } };
+  client.onUserSubscribe = function (ch, u) { if (u) { lastSeen[u] = Date.now(); setOnline(); } };
+  client.onUserUnsubscribe = function (ch, u) { if (u) { delete lastSeen[u]; setOnline(); } };
   client.connectToNameServer({ region: 'EU' });
 }
 function sendMsg() {
@@ -151,6 +183,7 @@ function sendMsg() {
   if (t.length > 200) t = t.slice(0, 200);
   if (Date.now() - lastSend < 600) { sys('Слишком часто. Подожди секунду'); return; }
   if (!client || !client.isConnectedToFrontEnd()) { sys('Нет соединения с сервером'); return; }
+  if (!subscribed) { sys('Нет подписки на канал'); return; }
   if (client.publishMessage(CHANNEL, t)) {
     lastSend = Date.now();
     input.value = '';
