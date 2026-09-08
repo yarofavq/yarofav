@@ -154,7 +154,9 @@ function connect() {
   client.onChatMessages = onMessages;
   client.onSubscribeResult = function (res) {
     subResultGot = true;
-    try { console.log('Subscribe result:', JSON.stringify(res)); } catch (e) {}
+    var dump = '';
+    try { dump = JSON.stringify(res); } catch (e) { dump = String(res); }
+    sys('Ответ сервера (ур.' + subAttempt + '): ' + dump);
     if (res && res[CHANNEL] === true) {
       subscribed = true;
       lastSeen[nick] = Date.now();
@@ -170,7 +172,7 @@ function connect() {
       sys('Повторная подписка (' + subAttempt + '/3)...');
       trySubscribe();
     } else {
-      sys('Канал недоступен. Ответ сервера: ' + JSON.stringify(res));
+      sys('Все попытки не удались. Финальный ответ: ' + dump);
     }
   };
   client.onUserSubscribe = function (ch, u) { if (u) { lastSeen[u] = Date.now(); setOnline(); } };
