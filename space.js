@@ -510,6 +510,8 @@ let isErrorTriggered = false;
 const pixelDragonGroup = new THREE.Group();
 let isDragonTriggered = false;
 let dragonFireCleanup = null;
+let dragonHeatCleanup = null;
+let dragonAngle = 0;
 
 const dBodyMat = new THREE.MeshBasicMaterial({ map: createPixelTexture('#2e7d32', true) });
 const dBellyMat = new THREE.MeshBasicMaterial({ map: createPixelTexture('#9ccc65') });
@@ -589,6 +591,100 @@ pixelDragonGroup.rotation.y += Math.PI;
 pixelDragonGroup.scale.set(1.6, 1.6, 1.6);
 scene.add(pixelDragonGroup);
 
+// ==================== ANCIENT STATUES ====================
+const statues = [];
+const statueHitboxes = [];
+let statuesCollected = 0;
+const statuePositions = [[-6000, 200, 5000], [7000, 300, 4500], [-2000, 600, 9500]];
+
+function createStatue(index) {
+  const g = new THREE.Group();
+  const stoneMat = new THREE.MeshBasicMaterial({ map: createPixelTexture('#8d99ae') });
+  const goldMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+
+  const base = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 14), stoneMat);
+  base.position.y = -8;
+  g.add(base);
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(9, 16, 6), stoneMat);
+  torso.position.y = 3;
+  g.add(torso);
+  const headS = new THREE.Mesh(new THREE.BoxGeometry(6, 6, 6), stoneMat);
+  headS.position.y = 15;
+  g.add(headS);
+  const eL = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 0.5), eyeMat);
+  eL.position.set(-1.5, 15.5, 3.1);
+  g.add(eL);
+  const eR = eL.clone();
+  eR.position.x = 1.5;
+  g.add(eR);
+  const crown = new THREE.Mesh(new THREE.ConeGeometry(3.5, 4, 4), goldMat);
+  crown.position.y = 20;
+  g.add(crown);
+  const arms = new THREE.Mesh(new THREE.BoxGeometry(12, 2.5, 3), stoneMat);
+  arms.position.y = 6;
+  g.add(arms);
+
+  const hb = new THREE.Mesh(new THREE.SphereGeometry(16, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+  hb.userData.statueIndex = index;
+  g.add(hb);
+
+  const sp = statuePositions[index];
+  g.position.set(sp[0], sp[1], sp[2]);
+  g.scale.set(1.8, 1.8, 1.8);
+  scene.add(g);
+  statues.push({ group: g, collected: false });
+  statueHitboxes.push(hb);
+}
+
+for (let i = 0; i < 3; i++) createStatue(i);
+
+function collectStatue(i) {
+  if (statues[i].collected) return;
+  statues[i].collected = true;
+  statuesCollected++;
+  const g = statues[i].group;
+  g.scale.set(0.3, 0.3, 0.3);
+  g.children.forEach(c => {
+    if (c.material) {
+      c.material.transparent = true;
+      c.material.opacity = 0.25;
+    }
+  });
+
+  if (statuesCollected >= 3) {
+    triggerStatueBonus();
+  } else {
+    artifactOverlay.textContent = 'Древняя статуя: ' + statuesCollected + '/3';
+    artifactOverlay.style.display = 'block';
+    setTimeout(() => { artifactOverlay.style.display = 'none'; }, 1800);
+  }
+}
+
+function triggerStatueBonus() {
+  card.classList.add('hidden-ui');
+  controls.autoRotate = false;
+  artifactOverlay.textContent = '✦ ТРИ ДРЕВНИЕ СТАТУИ ПРОБУЖДЕНЫ ✦';
+  artifactOverlay.style.display = 'block';
+  artifactOverlay.style.fontSize = '32px';
+  artifactOverlay.style.color = '#ffd700';
+  document.body.classList.add('crazy-mode');
+  let hue = 45;
+  const goldenInterval = setInterval(() => {
+    hue = (hue + 6) % 360;
+    document.body.style.filter = 'saturate(2.2) contrast(1.35) brightness(1.25) hue-rotate(' + hue + 'deg)';
+  }, 60);
+  setTimeout(() => {
+    clearInterval(goldenInterval);
+    document.body.classList.remove('crazy-mode');
+    document.body.style.filter = '';
+    artifactOverlay.style.display = 'none';
+    artifactOverlay.style.fontSize = '26px';
+    artifactOverlay.style.color = '#fff';
+    resetCamera();
+  }, 4500);
+}
+
 function triggerDragonFire() {
   if (isDragonTriggered) return;
   isDragonTriggered = true;
@@ -641,8 +737,28 @@ function triggerDragonFire() {
 
   setTimeout(() => {
     if (dragonFireCleanup) { dragonFireCleanup(); dragonFireCleanup = null; }
-    isDragonTriggered = false;
-    resetCamera();
+
+    const hotOverlay = document.createElement('div');
+    hotOverlay.style.cssText = 'position:fixed;inset:0;z-index:10001;pointer-events:none;background:radial-gradient(ellipse at center, rgba(255,90,0,0) 25%, rgba(255,40,0,0.65) 100%);opacity:0;';
+    document.body.appendChild(hotOverlay);
+    let heat = 0;
+    const heatInterval = setInterval(() => {
+      heat = Math.min(heat + 0.03, 1);
+      hotOverlay.style.opacity = (heat * (0.75 + Math.sin(Date.now() * 0.02) * 0.25)).toFixed(3);
+      document.body.style.filter = 'saturate(' + (1 + heat).toFixed(2) + ') contrast(' + (1 + heat * 0.7).toFixed(2) + ') brightness(' + (1 + heat * 0.15).toFixed(2) + ') hue-rotate(' + (-14 * heat).toFixed(1) + 'deg)';
+    }, 50);
+
+    dragonHeatCleanup = () => {
+      clearInterval(heatInterval);
+      if (hotOverlay.parentNode) hotOverlay.remove();
+      document.body.style.filter = '';
+    };
+
+    setTimeout(() => {
+      if (dragonHeatCleanup) { dragonHeatCleanup(); dragonHeatCleanup = null; }
+      isDragonTriggered = false;
+      resetCamera();
+    }, 2500);
   }, 5000);
 }
 
@@ -1033,6 +1149,7 @@ const planetConfigs = [
 
 const planets = [];
 const planetMeshes = [];
+const planetHitMeshes = [];
 planetConfigs.forEach(cfg => {
   const orbitGeo = new THREE.BufferGeometry();
   const points = [];
@@ -1087,6 +1204,11 @@ planetConfigs.forEach(cfg => {
 
   const planet = new THREE.Mesh(pGeo, pMat);
   planet.userData = { name: cfg.name, desc: cfg.desc };
+
+  const pHitMesh = new THREE.Mesh(new THREE.SphereGeometry(cfg.radius * 3 + 1, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+  pHitMesh.userData = { name: cfg.name, desc: cfg.desc };
+  planet.add(pHitMesh);
+  planetHitMeshes.push(pHitMesh);
 
   if (pName.includes('Земля')) {
     const cloudGeo = new THREE.SphereGeometry(cfg.radius * 1.025, 64, 64);
@@ -1297,6 +1419,7 @@ function resetCamera() {
   isPixelManTriggered = false;
   isErrorTriggered = false;
   if (dragonFireCleanup) { dragonFireCleanup(); dragonFireCleanup = null; }
+  if (dragonHeatCleanup) { dragonHeatCleanup(); dragonHeatCleanup = null; }
   isDragonTriggered = false;
   inDarkRoom = false;
   darkRoomPressLock = false;
@@ -1402,6 +1525,12 @@ function handleInteraction(e) {
     return;
   }
 
+  const statueHits = raycaster.intersectObjects(statueHitboxes);
+  if (statueHits.length > 0) {
+    collectStatue(statueHits[0].object.userData.statueIndex);
+    return;
+  }
+
   // Млечный Путь — вход ТОЛЬКО если нажатие/тап начались на галактике
   // (обрабатывается в handleMilkyWayPress / handleMilkyWayRelease).
   // Отжатие здесь галактику больше не открывает.
@@ -1411,7 +1540,7 @@ function handleInteraction(e) {
   }
 
   // Планеты
-  const planetHits = raycaster.intersectObjects(planetMeshes);
+  const planetHits = raycaster.intersectObjects(planetHitMeshes);
   if (planetHits.length > 0) {
     const hitPlanet = planetHits[0].object;
     planetTitle.textContent = hitPlanet.userData.name;
@@ -1747,10 +1876,22 @@ function animate() {
   errorMesh.material.opacity = 0.7 + Math.sin(Date.now() * 0.005) * 0.3;
   errorMesh.lookAt(camera.position);
 
-  pixelDragonGroup.position.y = 120 + Math.sin(Date.now() * 0.0008) * 10;
+  dragonAngle += 0.0009;
+  const dr = 4600;
+  pixelDragonGroup.position.x = Math.cos(dragonAngle) * dr;
+  pixelDragonGroup.position.z = Math.sin(dragonAngle) * dr;
+  pixelDragonGroup.position.y = 120 + Math.sin(Date.now() * 0.0008) * 40;
+  const dnx = Math.cos(dragonAngle + 0.03) * dr;
+  const dnz = Math.sin(dragonAngle + 0.03) * dr;
+  pixelDragonGroup.lookAt(dnx, pixelDragonGroup.position.y, dnz);
+  pixelDragonGroup.rotation.y += Math.PI;
   dragonWingL.rotation.z = 0.25 + Math.sin(Date.now() * 0.0035) * 0.5;
   dragonWingR.rotation.z = -0.25 - Math.sin(Date.now() * 0.0035) * 0.5;
   dHead.rotation.y = Math.sin(Date.now() * 0.0012) * 0.25;
+
+  statues.forEach(s => {
+    s.group.rotation.y += 0.003;
+  });
 
   // Корабль летит
   shipAngle += shipBoost ? 0.022 : 0.0035;
