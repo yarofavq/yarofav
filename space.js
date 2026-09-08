@@ -2143,3 +2143,16 @@ window.addEventListener('resize', () => {
   s.src = 'clicker.js';
   document.body.appendChild(s);
 })();
+
+// Chat loader: photon.js SDK then chat.js
+(function () {
+  var p = document.createElement('script');
+  p.src = 'libs/photon.js';
+  p.onload = function () {
+    var c = document.createElement('script');
+    c.src = 'chat.js';
+    document.body.appendChild(c);
+  };
+  p.onerror = function () { console.warn('photon.js не найден - чат отключен'); };
+  document.body.appendChild(p);
+})();
