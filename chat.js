@@ -101,7 +101,7 @@ function onState(state) {
   if (state === CS.ConnectedToFrontEnd) {
     document.getElementById('chat-status').classList.add('on');
     client.subscribe([CHANNEL], { historyLength: 12, createOptions: { publishSubscribers: true, maxSubscribers: 100 } });
-  } else if (state === CS.Disconnected) {
+  } else if (state === CS.Disconnected || state === CS.Error) {
     document.getElementById('chat-status').classList.remove('on');
     online = {};
     setOnline();
@@ -109,7 +109,7 @@ function onState(state) {
     if (nick && reconnectTries < 6) {
       reconnectTries++;
       sys('Переподключение (' + reconnectTries + ')...');
-      setTimeout(connect, 3000);
+      setTimeout(connect, 4000);
     }
   }
 }
@@ -143,7 +143,7 @@ function connect() {
   };
   client.onUserSubscribe = function (ch, u) { if (u && !online[u]) { online[u] = 1; setOnline(); } };
   client.onUserUnsubscribe = function (ch, u) { if (u) { delete online[u]; setOnline(); } };
-  client.connectToNameServer({});
+  client.connectToNameServer({ region: 'EU' });
 }
 function sendMsg() {
   var t = input.value.replace(/\s+/g, ' ').trim();
