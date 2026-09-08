@@ -181,4 +181,3 @@ nickInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') nick
 sendBtn.addEventListener('click', sendMsg);
 input.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendMsg(); });
 })();
-})();
