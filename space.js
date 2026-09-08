@@ -5,7 +5,7 @@ camera.position.set(0, 30, 70);
 
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -638,6 +638,84 @@ function createStatue(index) {
 }
 
 for (let i = 0; i < 3; i++) createStatue(i);
+
+// ==================== HATSUNE MIKU ====================
+const mikuGroup = new THREE.Group();
+let isMikuTriggered = false;
+const mHairMat = new THREE.MeshBasicMaterial({ color: 0x39c5bb });
+const mSkinMat = new THREE.MeshBasicMaterial({ color: 0xffe0c2 });
+const mShirtMat = new THREE.MeshBasicMaterial({ color: 0xf2f2f2 });
+const mDarkMat = new THREE.MeshBasicMaterial({ color: 0x1a1a2e });
+const mHead = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), mSkinMat);
+mHead.position.y = 10;
+mikuGroup.add(mHead);
+const mBang = new THREE.Mesh(new THREE.BoxGeometry(3.3, 1.1, 3.3), mHairMat);
+mBang.position.set(0, 11.3, 0);
+mikuGroup.add(mBang);
+const mTailL = new THREE.Mesh(new THREE.BoxGeometry(0.9, 9, 0.9), mHairMat);
+mTailL.position.set(-2.4, 7.5, -1.2);
+mTailL.rotation.x = 0.35;
+mikuGroup.add(mTailL);
+const mTailR = mTailL.clone();
+mTailR.position.x = 2.4;
+mikuGroup.add(mTailR);
+const mBody = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 2.2), mShirtMat);
+mBody.position.y = 5.8;
+mikuGroup.add(mBody);
+const mTie = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.4, 0.3), mHairMat);
+mTie.position.set(0, 6.2, 1.25);
+mikuGroup.add(mTie);
+const mSkirt = new THREE.Mesh(new THREE.BoxGeometry(4.4, 2, 2.6), mDarkMat);
+mSkirt.position.y = 2.6;
+mikuGroup.add(mSkirt);
+const mLegL = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.6, 0.9), mDarkMat);
+mLegL.position.set(-1, -2.3, 0);
+mikuGroup.add(mLegL);
+const mLegR = mLegL.clone();
+mLegR.position.x = 1;
+mikuGroup.add(mLegR);
+const mArmL = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4, 0.8), mShirtMat);
+mArmL.position.set(-2.6, 6, 0);
+mArmL.rotation.z = 0.25;
+mikuGroup.add(mArmL);
+const mArmR = mArmL.clone();
+mArmR.position.x = 2.6;
+mArmR.rotation.z = -0.25;
+mikuGroup.add(mArmR);
+const mikuHitbox = new THREE.Mesh(new THREE.SphereGeometry(10, 10, 10), new THREE.MeshBasicMaterial({ visible: false }));
+mikuGroup.add(mikuHitbox);
+mikuGroup.position.set(1500, 40, -1200);
+mikuGroup.scale.set(1.4, 1.4, 1.4);
+scene.add(mikuGroup);
+
+function triggerMikuConcert() {
+  if (isMikuTriggered) return;
+  isMikuTriggered = true;
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:9600;pointer-events:none;overflow:hidden;';
+  document.body.appendChild(wrap);
+  const st = document.createElement('style');
+  st.textContent = '@keyframes mikuFall{from{transform:translateY(0) rotate(0deg);opacity:1}to{transform:translateY(108vh) rotate(300deg);opacity:.15}}';
+  document.head.appendChild(st);
+  const notes = ['\u266A', '\u266B', '\u2669', '\u266C'];
+  const cols = ['#39c5bb', '#ff4fd8', '#ffe14f', '#7b2cbf', '#ff7b4f', '#4fff8f', '#4fa8ff', '#ff4f6e'];
+  const spawner = setInterval(() => {
+    for (let k = 0; k < 3; k++) {
+      const n = document.createElement('div');
+      n.textContent = notes[Math.floor(Math.random() * notes.length)];
+      n.style.cssText = 'position:absolute;top:-40px;left:' + (Math.random() * 96) + 'vw;font-size:' + (22 + Math.random() * 26) + 'px;color:' + cols[Math.floor(Math.random() * cols.length)] + ';text-shadow:0 0 12px currentColor;animation:mikuFall ' + (2.2 + Math.random() * 2) + 's linear forwards;';
+      wrap.appendChild(n);
+    }
+  }, 90);
+  setTimeout(() => {
+    clearInterval(spawner);
+    setTimeout(() => {
+      if (wrap.parentNode) wrap.remove();
+      if (st.parentNode) st.remove();
+      isMikuTriggered = false;
+    }, 4200);
+  }, 4000);
+}
 
 function collectStatue(i) {
   if (statues[i].collected) return;
@@ -1452,7 +1530,7 @@ function handleInteraction(e) {
   if (isConsuming || isAngelTriggered || isPixelManTriggered || isErrorTriggered || isDragonTriggered) return;
 
   // Не реагируем на кнопки и карточку
-  if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.card') || e.target.closest('.planet-modal')) {
+  if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.card') || e.target.closest('.planet-modal') || e.target.closest('.clicker-ui')) {
     return;
   }
 
@@ -1522,6 +1600,12 @@ function handleInteraction(e) {
   const dragonHits = raycaster.intersectObject(dragonHitbox);
   if (dragonHits.length > 0) {
     triggerDragonFire();
+    return;
+  }
+
+  const mikuHits = raycaster.intersectObject(mikuHitbox);
+  if (mikuHits.length > 0) {
+    triggerMikuConcert();
     return;
   }
 
@@ -1830,6 +1914,7 @@ function triggerFullSetBonus(type) {
 
 function animate() {
   requestAnimationFrame(animate);
+  if (window.__uiPaused) return;
   
   planets.forEach(p => {
     p.pivot.rotation.y += p.speed;
@@ -1892,6 +1977,9 @@ function animate() {
   statues.forEach(s => {
     s.group.rotation.y += 0.003;
   });
+
+  mikuGroup.position.y = 40 + Math.sin(Date.now() * 0.0011) * 6;
+  mikuGroup.rotation.y += 0.002;
 
   // Корабль летит
   shipAngle += shipBoost ? 0.022 : 0.0035;
@@ -1993,7 +2081,7 @@ function handleMilkyWayPress(e) {
   if ((e.type === 'mousedown' || e.type === 'pointerdown') && e.button !== 0) return;
   if (isConsuming || isAngelTriggered || isPixelManTriggered || isErrorTriggered || isDragonTriggered || inDarkRoom) return;
   const t = e.target;
-  if (t && typeof t.closest === 'function' && (t.closest('button') || t.closest('a') || t.closest('.card') || t.closest('.planet-modal'))) return;
+  if (t && typeof t.closest === 'function' && (t.closest('button') || t.closest('a') || t.closest('.card') || t.closest('.planet-modal') || t.closest('.clicker-ui'))) return;
 
   // Пинч / мульти-тач — это жест камеры, не тап по галактике
   if (e.touches && e.touches.length > 1) { mwPressCandidate = null; return; }
@@ -2048,3 +2136,10 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// Clicker module loader
+(function () {
+  var s = document.createElement('script');
+  s.src = 'clicker.js';
+  document.body.appendChild(s);
+})();
