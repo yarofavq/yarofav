@@ -911,6 +911,288 @@ let shipBoost = false;
 let shipBoostTimer = 0;
 let shipAngle = 0;
 
+const asteroids = [];
+const comets = [];
+const debris = [];
+const stations = [];
+const asteroidHitboxes = [];
+const debrisHitboxes = [];
+const stationHitboxes = [];
+
+// ==================== ASTEROIDS ====================
+(function () {
+  const rockMats = [
+    new THREE.MeshBasicMaterial({ color: 0x8a7a6a }),
+    new THREE.MeshBasicMaterial({ color: 0x6e6052 }),
+    new THREE.MeshBasicMaterial({ color: 0x55493e })
+  ];
+  function crater(parent, rr) {
+    const c = new THREE.Mesh(new THREE.SphereGeometry(rr, 7, 7), new THREE.MeshBasicMaterial({ color: 0x3a322b }));
+    c.scale.set(1, 0.35, 1);
+    const a = Math.random() * Math.PI * 2;
+    const b = (Math.random() - 0.3) * Math.PI;
+    c.position.set(Math.cos(a) * Math.cos(b), Math.sin(b), Math.sin(a) * Math.cos(b)).multiplyScalar(0.92);
+    parent.add(c);
+  }
+  for (let i = 0; i < 26; i++) {
+    const cls = i < 12 ? 0 : (i < 21 ? 1 : 2);
+    const rad = cls === 0 ? 8 + Math.random() * 10 : (cls === 1 ? 20 + Math.random() * 25 : 55 + Math.random() * 65);
+    const g = new THREE.Group();
+    const geo = new THREE.DodecahedronGeometry(rad, 1);
+    const pa = geo.attributes.position;
+    for (let v = 0; v < pa.count; v++) {
+      const k = 0.75 + Math.random() * 0.5;
+      pa.setXYZ(v, pa.getX(v) * k, pa.getY(v) * k, pa.getZ(v) * k);
+    }
+    g.add(new THREE.Mesh(geo, rockMats[cls]));
+    const nc = cls === 0 ? 2 : (cls === 1 ? 4 : 7);
+    for (let c = 0; c < nc; c++) crater(g, rad * (0.12 + Math.random() * 0.14));
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 1200 + Math.random() * 7800;
+    g.position.set(Math.cos(ang) * dist, (Math.random() - 0.5) * 2400, Math.sin(ang) * dist);
+    g.userData.spin = new THREE.Vector3((Math.random() - 0.5) * 0.004, (Math.random() - 0.5) * 0.004, (Math.random() - 0.5) * 0.004);
+    const hb = new THREE.Mesh(new THREE.SphereGeometry(rad * 1.25, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    g.add(hb);
+    asteroidHitboxes.push(hb);
+    scene.add(g);
+    asteroids.push(g);
+  }
+})();
+
+// ==================== COMETS ====================
+(function () {
+  const glowC = document.createElement('canvas');
+  glowC.width = 64; glowC.height = 64;
+  const gx = glowC.getContext('2d');
+  const gg = gx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gg.addColorStop(0, 'rgba(220,240,255,1)');
+  gg.addColorStop(0.4, 'rgba(150,200,255,.5)');
+  gg.addColorStop(1, 'rgba(100,160,255,0)');
+  gx.fillStyle = gg;
+  gx.fillRect(0, 0, 64, 64);
+  const glowTex = new THREE.CanvasTexture(glowC);
+  for (let i = 0; i < 5; i++) {
+    const g = new THREE.Group();
+    const rad = 9 + Math.random() * 7;
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(rad, 12, 12), new THREE.MeshBasicMaterial({ color: 0xdfefff })));
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+    halo.scale.set(rad * 8, rad * 8, 1);
+    g.add(halo);
+    const tailLen = 260 + Math.random() * 320;
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(14, tailLen, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0x9fd0ff, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    tail.rotation.x = -Math.PI / 2;
+    tail.position.z = tailLen / 2;
+    const tail2 = new THREE.Mesh(new THREE.ConeGeometry(8, tailLen * 0.65, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xcfe8ff, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    tail2.rotation.x = -Math.PI / 2;
+    tail2.position.z = tailLen * 0.33;
+    g.add(tail, tail2);
+    g.position.set((Math.random() - 0.5) * 12000, (Math.random() - 0.5) * 4000, (Math.random() - 0.5) * 12000);
+    g.userData.dir = new THREE.Vector3(Math.random() - 0.5, (Math.random() - 0.5) * 0.3, Math.random() - 0.5).normalize();
+    g.userData.speed = 2.2 + Math.random() * 3.4;
+    g.lookAt(g.position.clone().add(g.userData.dir));
+    scene.add(g);
+    comets.push(g);
+  }
+})();
+
+// ==================== SPACE DEBRIS ====================
+(function () {
+  const panelMat = new THREE.MeshBasicMaterial({ color: 0x2a4a7a, side: THREE.DoubleSide });
+  const frameMat = new THREE.MeshBasicMaterial({ color: 0x9aa3ad });
+  const rustMat = new THREE.MeshBasicMaterial({ color: 0x7a5a3a });
+  for (let i = 0; i < 14; i++) {
+    const g = new THREE.Group();
+    const kind = i % 3;
+    if (kind === 0) {
+      g.add(new THREE.Mesh(new THREE.BoxGeometry(26, 0.7, 10), panelMat));
+      for (let f = 0; f < 3; f++) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 10.4), frameMat);
+        bar.position.x = -9 + f * 9;
+        g.add(bar);
+      }
+    } else if (kind === 1) {
+      g.add(new THREE.Mesh(new THREE.TorusGeometry(16, 2.4, 7, 22, Math.PI * (0.5 + Math.random() * 0.5)), frameMat));
+      const seg = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 12, 8), rustMat);
+      seg.position.set(16, 3, 0);
+      g.add(seg);
+    } else {
+      g.add(new THREE.Mesh(new THREE.CylinderGeometry(5, 7, 22, 7, 1, true), rustMat));
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(12, 0.6, 9), panelMat);
+      plate.position.set(4, 6, 2);
+      plate.rotation.z = 0.4;
+      g.add(plate);
+    }
+    g.rotation.set(Math.random() * 6.28, Math.random() * 6.28, Math.random() * 6.28);
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 900 + Math.random() * 5000;
+    g.position.set(Math.cos(ang) * dist, (Math.random() - 0.5) * 1800, Math.sin(ang) * dist);
+    g.userData.spin = new THREE.Vector3((Math.random() - 0.5) * 0.008, (Math.random() - 0.5) * 0.008, 0);
+    const hb = new THREE.Mesh(new THREE.SphereGeometry(24, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    g.add(hb);
+    debrisHitboxes.push(hb);
+    scene.add(g);
+    debris.push(g);
+  }
+})();
+
+// ==================== SPACE STATIONS ====================
+(function () {
+  const cfgs = [
+    { pos: [2600, 300, -1800], sc: 1 },
+    { pos: [-4200, -400, 5200], sc: 1.45 }
+  ];
+  cfgs.forEach(function (cf) {
+    const st = new THREE.Group();
+    st.add(new THREE.Mesh(new THREE.TorusGeometry(60, 8, 10, 40), new THREE.MeshBasicMaterial({ color: 0x8d99ae })));
+    st.add(new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 34, 10), new THREE.MeshBasicMaterial({ color: 0xb8c2cc })));
+    for (let s = 0; s < 4; s++) {
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 52), new THREE.MeshBasicMaterial({ color: 0x6e7a86 }));
+      spoke.rotation.y = s * Math.PI / 2;
+      spoke.position.set(Math.sin(s * Math.PI / 2) * 26, 0, Math.cos(s * Math.PI / 2) * 26);
+      st.add(spoke);
+    }
+    for (let pn = 0; pn < 2; pn++) {
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(70, 1.6, 22), new THREE.MeshBasicMaterial({ color: 0x1e3a6e, side: THREE.DoubleSide }));
+      panel.position.x = pn === 0 ? -78 : 78;
+      st.add(panel);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 30, 6), new THREE.MeshBasicMaterial({ color: 0x9aa3ad }));
+      arm.rotation.z = Math.PI / 2;
+      arm.position.x = pn === 0 ? -46 : 46;
+      st.add(arm);
+    }
+    const b1 = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff3b4f }));
+    b1.position.set(60, 8, 0);
+    const b2 = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), new THREE.MeshBasicMaterial({ color: 0x4fff8f }));
+    b2.position.set(-60, -8, 0);
+    st.add(b1, b2);
+    st.userData.beacons = [b1, b2];
+    st.userData.beaconPhase = Math.random() * 6.283;
+    const hb = new THREE.Mesh(new THREE.SphereGeometry(85, 10, 10), new THREE.MeshBasicMaterial({ visible: false }));
+    st.add(hb);
+    stationHitboxes.push(hb);
+    st.position.set(cf.pos[0], cf.pos[1], cf.pos[2]);
+    st.scale.set(cf.sc, cf.sc, cf.sc);
+    scene.add(st);
+    stations.push(st);
+  });
+})();
+
+// ==================== NEBULAE ====================
+(function () {
+  function nebTexture(c1, c2) {
+    const nc = document.createElement('canvas');
+    nc.width = 256; nc.height = 256;
+    const nx = nc.getContext('2d');
+    for (let i = 0; i < 60; i++) {
+      const a = Math.random() * 6.283;
+      const rr0 = Math.random() * 70;
+      const x = 128 + Math.cos(a) * rr0;
+      const y = 128 + Math.sin(a) * rr0;
+      const rr = 18 + Math.random() * 42;
+      const grad = nx.createRadialGradient(x, y, 0, x, y, rr);
+      const uc = Math.random() > 0.45 ? c1 : c2;
+      grad.addColorStop(0, uc + (Math.random() > 0.5 ? '66' : '33'));
+      grad.addColorStop(0.55, uc + '18');
+      grad.addColorStop(1, uc + '00');
+      nx.fillStyle = grad;
+      nx.beginPath();
+      nx.arc(x, y, rr, 0, 6.283);
+      nx.fill();
+    }
+    for (let s = 0; s < 110; s++) {
+      const a = Math.random() * 6.283;
+      const rr0 = Math.random() * 88;
+      nx.fillStyle = 'rgba(255,255,255,' + (0.3 + Math.random() * 0.6).toFixed(2) + ')';
+      const ss = Math.random() * 1.8 + 0.4;
+      nx.fillRect(128 + Math.cos(a) * rr0, 128 + Math.sin(a) * rr0, ss, ss);
+    }
+    nx.globalCompositeOperation = 'destination-in';
+    const mask = nx.createRadialGradient(128, 128, 20, 128, 128, 126);
+    mask.addColorStop(0, 'rgba(0,0,0,1)');
+    mask.addColorStop(0.55, 'rgba(0,0,0,0.75)');
+    mask.addColorStop(0.85, 'rgba(0,0,0,0.18)');
+    mask.addColorStop(1, 'rgba(0,0,0,0)');
+    nx.fillStyle = mask;
+    nx.fillRect(0, 0, 256, 256);
+    nx.globalCompositeOperation = 'source-over';
+    return new THREE.CanvasTexture(nc);
+  }
+  const cfgs = [
+    { pos: [7000, 900, -8000], size: 1700, c1: '#ff5b8a', c2: '#b04dff' },
+    { pos: [-8200, 600, -6200], size: 1300, c1: '#4fa8ff', c2: '#37e0c8' },
+    { pos: [1200, -1400, 9800], size: 1500, c1: '#7dff8f', c2: '#ffe45b' }
+  ];
+  cfgs.forEach(function (cf) {
+    for (let layer = 0; layer < 3; layer++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: nebTexture(cf.c1, cf.c2), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: layer === 0 ? 0.9 : (layer === 1 ? 0.55 : 0.4), rotation: Math.random() * 6.283 }));
+      sp.position.set(cf.pos[0] + (Math.random() - 0.5) * cf.size * 0.25, cf.pos[1] + (Math.random() - 0.5) * cf.size * 0.25, cf.pos[2] + (Math.random() - 0.5) * cf.size * 0.2);
+      const ls = cf.size * (layer === 0 ? 1 : (layer === 1 ? 0.72 : 1.35));
+      sp.scale.set(ls, ls, 1);
+      scene.add(sp);
+    }
+    const dotC = document.createElement('canvas');
+    dotC.width = 32; dotC.height = 32;
+    const dx2 = dotC.getContext('2d');
+    const dg2 = dx2.createRadialGradient(16, 16, 0, 16, 16, 16);
+    dg2.addColorStop(0, 'rgba(255,255,255,1)');
+    dg2.addColorStop(1, 'rgba(255,255,255,0)');
+    dx2.fillStyle = dg2;
+    dx2.fillRect(0, 0, 32, 32);
+    const dotTex = new THREE.CanvasTexture(dotC);
+    const N = 320;
+    const pos = new Float32Array(N * 3);
+    const col = new Float32Array(N * 3);
+    const cA = new THREE.Color(cf.c1);
+    const cB = new THREE.Color(cf.c2);
+    const R = cf.size * 0.42;
+    for (let i = 0; i < N; i++) {
+      const a = Math.random() * 6.283;
+      const b = Math.acos(2 * Math.random() - 1);
+      const rr = Math.pow(Math.random(), 0.6) * R;
+      pos[i * 3] = cf.pos[0] + Math.sin(b) * Math.cos(a) * rr;
+      pos[i * 3 + 1] = cf.pos[1] + Math.sin(b) * Math.sin(a) * rr * 0.6;
+      pos[i * 3 + 2] = cf.pos[2] + Math.cos(b) * rr;
+      const cc = Math.random() > 0.5 ? cA : cB;
+      col[i * 3] = cc.r; col[i * 3 + 1] = cc.g; col[i * 3 + 2] = cc.b;
+    }
+    const pg = new THREE.BufferGeometry();
+    pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    pg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    scene.add(new THREE.Points(pg, new THREE.PointsMaterial({ size: 30, map: dotTex, vertexColors: true, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })));
+  });
+})();
+
+// ==================== TRIPLE STAR SYSTEM (далеко) ====================
+const starSystemGroup = new THREE.Group();
+(function () {
+  const redGiant = new THREE.Mesh(new THREE.SphereGeometry(140, 24, 24), new THREE.MeshBasicMaterial({ color: 0xff5a3c }));
+  starSystemGroup.add(redGiant);
+  const yellowStar = new THREE.Mesh(new THREE.SphereGeometry(90, 24, 24), new THREE.MeshBasicMaterial({ color: 0xffd75e }));
+  yellowStar.position.set(420, 30, -160);
+  starSystemGroup.add(yellowStar);
+  const whiteStar = new THREE.Mesh(new THREE.SphereGeometry(55, 20, 20), new THREE.MeshBasicMaterial({ color: 0xeaf4ff }));
+  whiteStar.position.set(-260, -60, 320);
+  starSystemGroup.add(whiteStar);
+  const haloC = document.createElement('canvas');
+  haloC.width = 128; haloC.height = 128;
+  const hx = haloC.getContext('2d');
+  const hg = hx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  hg.addColorStop(0, 'rgba(255,220,180,.9)');
+  hg.addColorStop(0.35, 'rgba(255,150,90,.4)');
+  hg.addColorStop(1, 'rgba(255,100,50,0)');
+  hx.fillStyle = hg;
+  hx.fillRect(0, 0, 128, 128);
+  const sysHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(haloC), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  sysHalo.scale.set(1600, 1600, 1);
+  starSystemGroup.add(sysHalo);
+  const orbitRing = new THREE.Mesh(new THREE.TorusGeometry(420, 1.5, 6, 64), new THREE.MeshBasicMaterial({ color: 0xffb080, transparent: true, opacity: 0.25 }));
+  orbitRing.rotation.x = Math.PI / 2.4;
+  starSystemGroup.add(orbitRing);
+  starSystemGroup.userData.planet = yellowStar;
+  starSystemGroup.position.set(-11500, 2200, -10500);
+  scene.add(starSystemGroup);
+})();
+
 // ==================== 20 АРТЕФАКТОВ — ДАЛЕКО И РАЗБРОСАННО ====================
 const artifacts = [];
 const artifactMeshes = [];
@@ -1609,6 +1891,30 @@ function handleInteraction(e) {
     return;
   }
 
+  const stationHits = raycaster.intersectObjects(stationHitboxes);
+  if (stationHits.length > 0) {
+    artifactOverlay.textContent = 'Стыковка выполнена. Добро пожаловать на борт!';
+    artifactOverlay.style.display = 'block';
+    setTimeout(() => { artifactOverlay.style.display = 'none'; }, 2600);
+    return;
+  }
+
+  const astHits = raycaster.intersectObjects(asteroidHitboxes);
+  if (astHits.length > 0) {
+    artifactOverlay.textContent = 'Астероид. Лазер поможет от него избавиться.';
+    artifactOverlay.style.display = 'block';
+    setTimeout(() => { artifactOverlay.style.display = 'none'; }, 2000);
+    return;
+  }
+
+  const debHits = raycaster.intersectObjects(debrisHitboxes);
+  if (debHits.length > 0) {
+    artifactOverlay.textContent = 'Космический мусор. Осторожно, острые края.';
+    artifactOverlay.style.display = 'block';
+    setTimeout(() => { artifactOverlay.style.display = 'none'; }, 1800);
+    return;
+  }
+
   const statueHits = raycaster.intersectObjects(statueHitboxes);
   if (statueHits.length > 0) {
     collectStatue(statueHits[0].object.userData.statueIndex);
@@ -1981,6 +2287,37 @@ function animate() {
   mikuGroup.position.y = 40 + Math.sin(Date.now() * 0.0011) * 6;
   mikuGroup.rotation.y += 0.002;
 
+  asteroids.forEach(a => {
+    a.rotation.x += a.userData.spin.x;
+    a.rotation.y += a.userData.spin.y;
+    a.rotation.z += a.userData.spin.z;
+  });
+
+  debris.forEach(d => {
+    d.rotation.x += d.userData.spin.x;
+    d.rotation.y += d.userData.spin.y;
+  });
+
+  comets.forEach(c => {
+    c.position.addScaledVector(c.userData.dir, c.userData.speed);
+    if (Math.abs(c.position.x) > 9000 || Math.abs(c.position.y) > 5200 || Math.abs(c.position.z) > 9000) {
+      c.position.set((Math.random() - 0.5) * 14000, (Math.random() - 0.5) * 4000, (Math.random() - 0.5) * 14000);
+      c.userData.dir.set(Math.random() - 0.5, (Math.random() - 0.5) * 0.3, Math.random() - 0.5).normalize();
+      c.lookAt(c.position.clone().add(c.userData.dir));
+    }
+  });
+
+  stations.forEach(st => {
+    st.rotation.y += 0.0012;
+    const on = Math.sin(Date.now() * 0.005 + st.userData.beaconPhase) > 0.3;
+    st.userData.beacons[0].material.color.setHex(on ? 0xff3b4f : 0x441014);
+    st.userData.beacons[1].material.color.setHex(!on ? 0x4fff8f : 0x0f2e18);
+  });
+
+  starSystemGroup.rotation.y += 0.0004;
+  starSystemGroup.userData.pa = (starSystemGroup.userData.pa || 0) + 0.0016;
+  starSystemGroup.userData.planet.position.set(Math.cos(starSystemGroup.userData.pa) * 445, 30 + Math.sin(starSystemGroup.userData.pa * 2) * 20, Math.sin(starSystemGroup.userData.pa) * 445);
+
   // Корабль летит
   shipAngle += shipBoost ? 0.022 : 0.0035;
   const shipRadius = 480;
@@ -2136,6 +2473,24 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// ==================== SETTINGS (inline) ====================
+(function () {
+  var KEY = 'spaceSettings_v1';
+  var S = { zoom: 0.8, horiz: 0.8, vert: 1, vertOn: true, smooth: 5, quality: 1, rot: true, rain: true, neb: true, land: false };
+  try { var d = JSON.parse(localStorage.getItem(KEY)); if (d) for (var k in S) if (d[k] !== undefined) S[k] = d[k]; } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  var isM = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  var st = document.createElement('style');
+  st.textContent = '#sgear{position:fixed;top:16px;left:16px;z-index:9400;width:52px;height:52px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:#0a0a0e;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(0,0,0,.5);transition:transform .2s;}';
+  st.textContent += '#sgear:hover{transform:scale(1.07);}';
+  st.textContent += '#sgear:active{transform:scale(.9);}';
+  st.textContent += '#spanel{position:fixed;top:78px;left:16px;z-index:9450;width:min(360px,92vw);max-height:78vh;overflow-y:auto;background:linear-gradient(170deg,#121216,#070709);border:1px solid rgba(255,255,255,.13);border-radius:18px;padding:20px 22px;color:#e8e6e1;font-family:Georgia,serif;display:none;box-shadow:0 24px 60px rgba(0,0,0,.7);animation:sIn2 .35s cubic-bezier(.2,.9,.3,1.15);}';
+  st.textContent += '#spanel.open{display:block;}';
+  st.textContent += '@keyframes sIn2{from{transform:translateX(-24px);opacity:0}}';
+  // __G1__
+})();
+
 
 // Clicker module loader (cache-busted)
 (function () {
