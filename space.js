@@ -2144,15 +2144,20 @@ window.addEventListener('resize', () => {
   document.body.appendChild(s);
 })();
 
-// Chat loader: photon.js SDK then chat.js
+// Chat loader: photon.js SDK (root -> libs/ fallback) then chat.js
 (function () {
-  var p = document.createElement('script');
-  p.src = 'photon.js';
-  p.onload = function () {
+  function loadChat() {
     var c = document.createElement('script');
     c.src = 'chat.js';
     document.body.appendChild(c);
-  };
-  p.onerror = function () { console.warn('photon.js не найден - чат отключен'); };
-  document.body.appendChild(p);
+  }
+  function tryPaths(paths) {
+    if (!paths.length) { console.warn('photon.js не найден - чат отключен'); return; }
+    var p = document.createElement('script');
+    p.src = paths[0];
+    p.onload = loadChat;
+    p.onerror = function () { tryPaths(paths.slice(1)); };
+    document.body.appendChild(p);
+  }
+  tryPaths(['photon.js', 'libs/photon.js']);
 })();
