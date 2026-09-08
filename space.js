@@ -2147,7 +2147,7 @@ window.addEventListener('resize', () => {
 // Chat loader: photon.js SDK then chat.js
 (function () {
   var p = document.createElement('script');
-  p.src = 'libs/photon.js';
+  p.src = 'photon.js';
   p.onload = function () {
     var c = document.createElement('script');
     c.src = 'chat.js';
