@@ -12,7 +12,7 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.rotateSpeed = 0.8;
 controls.zoomSpeed = 0.8;
-controls.maxDistance = 25000;
+controls.maxDistance = Infinity;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.3;
 
@@ -1497,14 +1497,14 @@ const earthData = createEarthTextures();
 const earthClouds = [];
 
 const planetConfigs = [
-  { name: 'Меркурий', radius: 0.5, dist: 9, color: 0x999999, speed: 0.025, desc: 'Самая близкая к Солнцу планета. Температура колеблется от -180°C до +430°C!' },
-  { name: 'Венера', radius: 0.9, dist: 14, color: 0xe3bb76, speed: 0.018, desc: 'Самая горячая планета Солнечной системы с плотной атмосферой из углекислого газа.' },
-  { name: 'Земля', radius: 1.0, dist: 20, color: 0x2b6cb0, speed: 0.012, desc: 'Наш родной дом! Единственное известное место во Вселенной с жизнью.' },
-  { name: 'Марс', radius: 0.6, dist: 26, color: 0xc53030, speed: 0.009, desc: 'Красная планета. Здесь находится гигантский вулкан Олимп и древние русла рек.' },
-  { name: 'Юпитер', radius: 2.4, dist: 35, color: 0xc69214, speed: 0.005, desc: 'Крупнейший газовый гигант. Его Большое Красное Пятно — это ураган, бушующий века.' },
-  { name: 'Сатурн', radius: 1.9, dist: 46, color: 0xd69e2e, speed: 0.003, ring: true, desc: 'Властелин колец! Его ледяные кольца простираются на тысячи километров.' },
-  { name: 'Уран', radius: 1.3, dist: 55, color: 0x319795, speed: 0.002, desc: 'Ледяной гигант, который вращается на боку с наклоном оси почти в 98 градусов.' },
-  { name: 'Нептун', radius: 1.2, dist: 63, color: 0x2b6cb0, speed: 0.001, desc: 'Самая дальняя планета. Здесь дуют самые быстрые ветра в Солнечной системе.' }
+  { name: 'Меркурий', radius: 0.5, dist: 9, color: 10066329, speed: 0.025, desc: 'Самая близкая к Солнцу планета. Перепады температур до 600 градусов!' },
+  { name: 'Венера', radius: 0.9, dist: 14, color: 14924662, speed: 0.018, desc: 'Самая горячая планета Солнечной системы с плотной атмосферой из углекислого газа.' },
+  { name: 'Земля', radius: 1, dist: 20, color: 2845872, speed: 0.012, desc: 'Наш родной дом! Единственное известное место во Вселенной с жизнью.' },
+  { name: 'Марс', radius: 0.6, dist: 26, color: 12922928, speed: 0.009, desc: 'Красная планета. Здесь находится гигантский вулкан Олимп и древние русла рек.' },
+  { name: 'Юпитер', radius: 2.4, dist: 35, color: 13013524, speed: 0.005, desc: 'Крупнейший газовый гигант. Его Большое Красное Пятно — это ураган, бушующий века.' },
+  { name: 'Сатурн', radius: 1.9, dist: 46, color: 14065198, speed: 0.003, ring: true, desc: 'Властелин колец! Его ледяные кольца простираются на тысячи километров.' },
+  { name: 'Уран', radius: 1.3, dist: 55, color: 3250069, speed: 0.002, desc: 'Ледяной гигант, который вращается на боку с наклоном оси почти в 98 градусов.' },
+  { name: 'Нептун', radius: 1.2, dist: 63, color: 2845872, speed: 0.001, desc: 'Самая дальняя планета. Здесь дуют самые быстрые ветра в Солнечной системе.' }
 ];
 
 const planets = [];
@@ -1525,7 +1525,7 @@ planetConfigs.forEach(cfg => {
   const pGeo = new THREE.SphereGeometry(cfg.radius, 64, 64);
   let pMat;
   const pName = cfg.name || '';
-  if (pName.includes('Меркурий')) {
+  if (pName.includes('Нептун')) {
     pMat = new THREE.MeshStandardMaterial({
       color: 0xaaaaaa,
       bumpMap: createCraterMap('#888', '#222', true),
@@ -1644,9 +1644,9 @@ const closePlanetModalBtn = document.getElementById('close-planet-modal');
 const flyHint = document.getElementById('fly-hint');
 if (flyHint) {
   if (isMobile) {
-    flyHint.textContent = 'Управление: Вращение пальцем | Зажмите для перемещения';
+    flyHint.textContent = 'Управление: вращение | зажмите для перемещения';
   } else {
-    flyHint.textContent = 'Управление: Вращение мышью | Зажмите ЛКМ / Колесико для перемещения';
+    flyHint.textContent = 'Управление: вращение | зажмите для перемещения';
   }
 }
 
@@ -1759,7 +1759,7 @@ flyBtn.addEventListener('click', () => {
   flyOverlay.classList.remove('hidden');
   controls.autoRotate = false;
   controls.minDistance = 1;
-  controls.maxDistance = 25000;
+  controls.maxDistance = Infinity;
 });
 
 function resetCamera() {
@@ -1893,7 +1893,7 @@ function handleInteraction(e) {
 
   const stationHits = raycaster.intersectObjects(stationHitboxes);
   if (stationHits.length > 0) {
-    artifactOverlay.textContent = 'Стыковка выполнена. Добро пожаловать на борт!';
+    artifactOverlay.textContent = 'Станция: стыковка разрешена';
     artifactOverlay.style.display = 'block';
     setTimeout(() => { artifactOverlay.style.display = 'none'; }, 2600);
     return;
@@ -1901,7 +1901,7 @@ function handleInteraction(e) {
 
   const astHits = raycaster.intersectObjects(asteroidHitboxes);
   if (astHits.length > 0) {
-    artifactOverlay.textContent = 'Астероид. Лазер поможет от него избавиться.';
+    artifactOverlay.textContent = 'Астероид';
     artifactOverlay.style.display = 'block';
     setTimeout(() => { artifactOverlay.style.display = 'none'; }, 2000);
     return;
@@ -1909,7 +1909,7 @@ function handleInteraction(e) {
 
   const debHits = raycaster.intersectObjects(debrisHitboxes);
   if (debHits.length > 0) {
-    artifactOverlay.textContent = 'Космический мусор. Осторожно, острые края.';
+    artifactOverlay.textContent = 'Обломки корабля';
     artifactOverlay.style.display = 'block';
     setTimeout(() => { artifactOverlay.style.display = 'none'; }, 1800);
     return;
@@ -2159,14 +2159,14 @@ function triggerArtifact(group) {
 function triggerFullSetBonus(type) {
   const messages = {
     crystal: '✦ ВСЕ КРИСТАЛЛЫ СОБРАНЫ ✦',
-    eye: '👁 ВСЕ ГЛАЗА ОТКРЫТЫ 👁',
-    cube: '■ ВСЕ КУБЫ АКТИВИРОВАНЫ ■',
-    ring: '◎ ВСЕ КОЛЬЦА ЗАМКНУТЫ ◎',
-    spike: '▲ ВСЕ ШИПЫ ВОССОЕДИНЕНЫ ▲',
-    orb: '● ВСЕ СФЕРЫ СЛИЛИСЬ ●',
-    cross: '✚ ВСЕ КРЕСТЫ СОЕДИНЕНЫ ✚',
-    pyramid: '▲ ВСЕ ПИРАМИДЫ ВОЗНЕСЕНЫ ▲'
-  };
+    eye: 'ВСЕ ГЛАЗА ОТКРЫТЫ',
+    cube: 'ВСЕ КУБЫ АКТИВИРОВАНЫ',
+    ring: 'ВСЕ КОЛЬЦА ЗАМКНУТЫ',
+    spike: 'ВСЕ ШИПЫ ВОССОЕДИНЕНЫ',
+    orb: 'ВСЕ СФЕРЫ СЛИЛИСЬ',
+    cross: 'ВСЕ КРЕСТЫ СОЕДИНЕНЫ',
+    pyramid: 'ВСЕ ПИРАМИДЫ ВОЗНЕСЕНЫ'
+  }
 
   artifactOverlay.textContent = messages[type] || 'НАБОР СОБРАН!';
   artifactOverlay.style.display = 'block';
@@ -2218,6 +2218,36 @@ function triggerFullSetBonus(type) {
   }, 4500);
 }
 
+var bhAudio={ctx:null,gain:null,started:false};
+var errAudio={ctx:null,gain:null};
+var stAudioList=[];
+function audioStart(){
+  if(bhAudio.started)return; bhAudio.started=true;
+  try{var AC=window.AudioContext||window.webkitAudioContext;
+  bhAudio.ctx=new AC();var g=bhAudio.ctx.createGain();g.gain.value=0;g.connect(bhAudio.ctx.destination);bhAudio.gain=g;
+  var o1=bhAudio.ctx.createOscillator();o1.type=sinT();var o2=bhAudio.ctx.createOscillator();o2.type=sinT();
+  o1.frequency.value=38;o2.frequency.value=57.3;
+  var og=bhAudio.ctx.createGain();og.gain.value=0.5;o1.connect(og);o2.connect(og);og.connect(g);o1.start();o2.start();
+  var nb=bhAudio.ctx.createBuffer(1,bhAudio.ctx.sampleRate*2,bhAudio.ctx.sampleRate);
+  var nd=nb.getChannelData(0);for(var i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+  var ns=bhAudio.ctx.createBufferSource();ns.buffer=nb;ns.loop=true;
+  var nf=bhAudio.ctx.createBiquadFilter();nf.type=lowT();nf.frequency.value=220;
+  var ng=bhAudio.ctx.createGain();ng.gain.value=0.4;ns.connect(nf);nf.connect(ng);ng.connect(g);ns.start();
+  for(var si=0;si<stations.length;si++){
+    var sc=new AC();var sg=sc.createGain();sg.gain.value=0;sg.connect(sc.destination);
+    var so=sc.createOscillator();so.type=triT();so.frequency.value=82+((si*37)%46)+Math.abs(stations[si].position.x%23);
+    var so2=sc.createOscillator();so2.type=sinT();so2.frequency.value=so.frequency.value*1.5;
+    var sog=sc.createGain();sog.gain.value=0.35;so.connect(sog);so2.connect(sog);sog.connect(sg);so.start();so2.start();
+    stAudioList.push({node:stations[si],gain:sg,ctx:sc});}
+  var ec=new AC();var eg=ec.createGain();eg.gain.value=0;eg.connect(ec.destination);
+  var eo=ec.createOscillator();eo.type=sawT();eo.frequency.value=110;
+  var ef=ec.createBiquadFilter();ef.type=bandT();ef.frequency.value=400;ef.Q.value=2;
+  eo.connect(ef);ef.connect(eg);eo.start();
+  var el=ec.createOscillator();el.frequency.value=6;
+  var elg=ec.createGain();elg.gain.value=60;el.connect(elg);elg.connect(eo.frequency);el.start();
+  errAudio.ctx=ec;errAudio.gain=eg;}catch(e){}}
+function sinT(){return "sine";}function triT(){return "triangle";}function sawT(){return "sawtooth";}function lowT(){return "lowpass";}function bandT(){return "bandpass";}
+document.addEventListener("click",audioStart);document.addEventListener("touchstart",audioStart);
 function animate() {
   requestAnimationFrame(animate);
   if (window.__uiPaused) return;
@@ -2395,10 +2425,21 @@ function animate() {
   }
 
   controls.update();
+  if(bhAudio.gain){var dB=camera.position.distanceTo(blackHoleGroup.position);var vB=dB>=600?0:Math.pow(1-dB/600,1.4)*0.5;bhAudio.gain.gain.setTargetAtTime(vB,bhAudio.ctx.currentTime,0.15);}
+  if(errAudio.gain){var vE=isErrorTriggered?0.25:0;errAudio.gain.gain.setTargetAtTime(vE,errAudio.ctx.currentTime,0.1);}
+  for(var sa=0;sa<stAudioList.length;sa++){var dd=camera.position.distanceTo(stAudioList[sa].node.position);var vv=dd>=800?0:Math.pow(1-dd/800,1.4)*0.3;stAudioList[sa].gain.gain.setTargetAtTime(vv,stAudioList[sa].ctx.currentTime,0.2);}
   renderer.render(scene, camera);
 }
 
 animate();
+
+window.__spCam=controls;
+window.__spRend=renderer;
+window.__spStars=starField;
+window.__spRain=rainCloudGroup;
+
+// Settings loader
+(function(){var s3=document.createElement("script");s3.src="settings.js?v=11";document.body.appendChild(s3);})();
 
 // ==================== МЛЕЧНЫЙ ПУТЬ: ВХОД ТОЛЬКО ПО НАЖАТИЮ НА ГАЛАКТИКУ ====================
 // Валидируется точка НАЖАТИЯ, а не отпускания.
