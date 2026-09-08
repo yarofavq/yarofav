@@ -157,50 +157,7 @@ function apply() {
 
   } catch (e) {}
 }
-var capOn = false;
-var lastP = { x: 0, y: 0 };
-function rotCam(dx, dy) {
-  var cam = window.__spCam;
-  if (!cam || !cam.object || !window.THREE) return;
-  var cv = document.getElementById('bg-canvas');
-  var h = cv ? cv.clientHeight : 800;
-  var rs = 0.0018;
-  var t = cam.target;
-  var sph = new THREE.Spherical().setFromVector3(cam.object.position.clone().sub(t));
-  sph.theta -= 6.283 * dx / h * rs;
-  sph.phi -= 6.283 * dy / h * rs;
-  sph.phi = Math.max(0.05, Math.min(Math.PI - 0.05, sph.phi));
-  cam.object.position.copy(t).add(new THREE.Vector3().setFromSpherical(sph));
-  cam.object.lookAt(t);
-}
-function installCapture() {
-  if (capOn) return;
-  var cv = document.getElementById('bg-canvas');
-  if (!cv || !window.THREE || !window.__spCam) return;
-  capOn = true;
-  document.addEventListener('mousedown', function (e) {
-    if (e.target === cv && e.button === 0) { lastP.x = e.clientX; lastP.y = e.clientY; }
-  }, true);
-  document.addEventListener('mousemove', function (e) {
-    if (!(e.buttons & 1) || e.target !== cv) return;
-    e.stopImmediatePropagation();
-    var dx = e.clientX - lastP.x, dy = e.clientY - lastP.y;
-    lastP.x = e.clientX; lastP.y = e.clientY;
-    rotCam(dx, dy);
-  }, true);
-  document.addEventListener('touchstart', function (e) {
-    if (e.target === cv && e.touches.length === 1) { lastP.x = e.touches[0].clientX; lastP.y = e.touches[0].clientY; }
-  }, true);
-  document.addEventListener('touchmove', function (e) {
-    if (e.target !== cv || e.touches.length !== 1) return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    var dx = e.touches[0].clientX - lastP.x, dy = e.touches[0].clientY - lastP.y;
-    lastP.x = e.touches[0].clientX; lastP.y = e.touches[0].clientY;
-    rotCam(dx, dy);
-  }, { capture: true, passive: false });
-}
-setTimeout(installCapture, 1500);
+
 var fsT = switches.fs;
 fsT.addEventListener('click', function () {
   setTimeout(function () {
