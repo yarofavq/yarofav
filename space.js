@@ -2137,18 +2137,18 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Clicker module loader
+// Clicker module loader (cache-busted)
 (function () {
   var s = document.createElement('script');
-  s.src = 'clicker.js';
+  s.src = 'clicker.js?v=3';
   document.body.appendChild(s);
 })();
 
-// Chat loader: photon.js SDK (root -> libs/ fallback) then chat.js
+// Chat loader: photon.js SDK (root -> libs/ fallback) then chat.js (cache-busted)
 (function () {
   function loadChat() {
     var c = document.createElement('script');
-    c.src = 'chat.js';
+    c.src = 'chat.js?v=3';
     document.body.appendChild(c);
   }
   function tryPaths(paths) {
