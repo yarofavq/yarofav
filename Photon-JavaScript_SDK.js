@@ -1,1 +1,0 @@
-Couldn't find the requested file /dist/photon.js in exitgames/Photon-JavaScript_SDK.
