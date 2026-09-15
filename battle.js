@@ -29,7 +29,8 @@
   var ROUND_SEC   = 60;
   var RESULTS_SEC = 5;
   var BREAK_SEC   = 10;
-  var VOTE_NEEDED = 3;
+  var VOTE_NEEDED = 1;   // кнопка «НАЧАТЬ СЕЙЧАС»: хватает одного голоса
+  var WAIT_SEC    = 30;  // ожидание до АВТО-раунда (без голосования)
   var CLICK_LIMIT = 15;
   var COUNTDOWN   = 3;
   var STALE_MS    = 7000;  // Chat: сколько ждать без heartbeat, прежде чем считать ушедшим
@@ -51,7 +52,7 @@
   var uiTimer = null, phaseTimer = null, countdownTimer = null, hbTimer = null, reapTimer = null;
   var root = null, el = {};
   var _h = { slots: '', scores: '', phase: '', clock: '', info: '' };
-  var started = false, startedAt = 0;
+  var started = false, startedAt = 0, syncTick = 0;
 
   // ============================== УТИЛИТЫ ===================================
   function now() { return Date.now(); }
@@ -164,7 +165,18 @@
       '#bt-reg-input{width:100%;box-sizing:border-box;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.35);border-radius:12px;padding:14px 16px;color:#eafcff;font-size:15px;outline:none}',
       '#bt-reg-btn{margin-top:16px;width:100%;padding:14px;border-radius:12px;cursor:pointer;border:1px solid rgba(0,229,255,.5);color:#04121c;font-weight:700;letter-spacing:2px;font-size:14px;background:linear-gradient(135deg,#00e5ff,#8b5cff)}',
       '.bt-reg-err{margin-top:12px;font-size:12px;color:#ff8098;min-height:16px}',
-      '@media (max-width:760px){.bt-body{flex-direction:column}.bt-side{width:auto;border-left:0;border-top:1px solid rgba(0,229,255,.18);max-height:30vh}.bt-clockwrap{width:170px;height:170px}.bt-ring{width:170px;height:170px}.bt-clock{font-size:42px}#bt-target{width:150px;height:150px;font-size:20px}}'
+      '.bt-btn-acc{background:linear-gradient(135deg,#00e5ff,#8b5cff)!important;color:#04121c!important;font-weight:800!important;border:0!important}',
+      '.bt-row.top{background:linear-gradient(90deg,rgba(255,215,0,.18),rgba(0,229,255,.06));border-color:rgba(255,215,0,.5)}',
+      '.bt-row.top .c{color:#ffe45b}',
+      '.bt-chat{height:150px;overflow-y:auto;background:rgba(0,0,0,.28);border:1px solid rgba(0,229,255,.18);border-radius:10px;padding:8px;font-size:12.5px;line-height:1.45}',
+      '.bt-chat-msg{margin-bottom:5px;word-wrap:break-word;color:#b9d6e2}',
+      '.bt-chat-msg b{color:#8fe9ff}',
+      '.bt-chat-msg.me b{color:#8dffb8}',
+      '.bt-chat-in{display:flex;gap:6px;margin-top:8px}',
+      '#bt-chat-input{flex:1;min-width:0;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.3);border-radius:8px;padding:8px 10px;color:#eafcff;font-size:12.5px;outline:none}',
+      '#bt-chat-input:focus{border-color:#00e5ff;box-shadow:0 0 14px rgba(0,229,255,.3)}',
+      '#bt-chat-send{background:linear-gradient(135deg,#00e5ff,#8b5cff);border:0;border-radius:8px;color:#04121c;font-weight:800;padding:0 12px;cursor:pointer}',
+      '@media (max-width:760px){.bt-body{flex-direction:column}.bt-side{width:auto;border-left:0;border-top:1px solid rgba(0,229,255,.18);max-height:38vh}.bt-clockwrap{width:170px;height:170px}.bt-ring{width:170px;height:170px}.bt-clock{font-size:42px}#bt-target{width:150px;height:150px;font-size:20px}.bt-chat{height:96px}}'
     ].join('');
     document.head.appendChild(s);
   }
@@ -195,11 +207,17 @@
         '</div>',
         '<div class="bt-side">',
           '<h3>СЧЁТ РАУНДА</h3><div id="bt-scores"></div>',
-          '<h3 style="margin-top:24px">ЛИДЕРБОРД · ВСЁ ВРЕМЯ</h3><div id="bt-board"></div>',
+          '<h3 style="margin-top:18px">ЛИДЕРБОРД · ВСЁ ВРЕМЯ</h3><div id="bt-board"></div>',
+          '<h3 style="margin-top:18px">ЧАТ АРЕНЫ</h3>',
+          '<div id="bt-chat-log" class="bt-chat"></div>',
+          '<div class="bt-chat-in">',
+            '<input id="bt-chat-input" maxlength="120" placeholder="Сообщение…" autocomplete="off">',
+            '<button id="bt-chat-send" title="Отправить">➤</button>',
+          '</div>',
         '</div>',
       '</div>',
       '<div class="bt-bottom">',
-        '<button class="bt-btn" id="bt-vote">ГОЛОС ЗА СТАРТ (0/3)</button>',
+        '<button class="bt-btn bt-btn-acc" id="bt-vote">НАЧАТЬ СЕЙЧАС</button>',
         '<button class="bt-btn" id="bt-profile">ПРОФИЛЬ</button>',
       '</div>',
       '<div id="bt-modal-host"></div>',
@@ -221,6 +239,9 @@
     el.stage = root.querySelector('#bt-stage'); el.modal = root.querySelector('#bt-modal-host');
     el.reg = root.querySelector('#bt-register'); el.regInput = root.querySelector('#bt-reg-input');
     el.regBtn = root.querySelector('#bt-reg-btn'); el.regErr = root.querySelector('#bt-reg-err');
+    el.chatLog = root.querySelector('#bt-chat-log');
+    el.chatInput = root.querySelector('#bt-chat-input');
+    el.chatSend = root.querySelector('#bt-chat-send');
 
     root.querySelector('#bt-exit').addEventListener('click', close);
     el.vote.addEventListener('click', onVoteClick);
@@ -230,6 +251,8 @@
     el.target.addEventListener('pointerleave', onTargetUp);
     el.regBtn.addEventListener('click', submitRegister);
     el.regInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitRegister(); });
+    el.chatSend.addEventListener('click', sendChat);
+    el.chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
   }
 
   function showModal(html, autoCloseMs) {
@@ -263,7 +286,10 @@
   function renderScores() {
     if (!el.scores) return;
     var list = scoreList(), html = '', i;
-    for (i = 0; i < list.length; i++) html += '<div class="bt-row' + (list[i].id === myId ? ' me' : '') + '"><span class="r">' + medal(i) + '</span><span class="n">' + esc(list[i].nick) + '</span><span class="c">' + list[i].score + '</span></div>';
+    for (i = 0; i < list.length; i++) {
+      var cls = 'bt-row' + (list[i].id === myId ? ' me' : '') + (i === 0 && list[i].score > 0 ? ' top' : '');
+      html += '<div class="' + cls + '"><span class="r">' + medal(i) + '</span><span class="n">' + esc(list[i].nick) + '</span><span class="c">' + list[i].score + '</span></div>';
+    }
     html = html || '<div class="bt-row">пусто</div>';
     if (html !== _h.scores) { _h.scores = html; el.scores.innerHTML = html; }
   }
@@ -281,12 +307,12 @@
     if (label !== _h.phase) { _h.phase = label; el.phase.textContent = label; }
     el.target.classList.toggle('off', st.phase !== PH.PLAYING);
     el.vote.disabled = (st.phase === PH.PLAYING);
-    var vt = 'ГОЛОС ЗА СТАРТ (' + st.votes + '/' + VOTE_NEEDED + ')';
+    var vt = st.phase === PH.WAITING ? 'НАЧАТЬ СЕЙЧАС' : 'НАЧАТЬ СЕЙЧАС (' + st.votes + ')';
     if (el.vote.textContent !== vt) el.vote.textContent = vt;
   }
   function renderClock() {
     if (!el.clock) return;
-    var total = st.phase === PH.PLAYING ? ROUND_SEC : st.phase === PH.BREAK ? BREAK_SEC : st.phase === PH.RESULTS ? RESULTS_SEC : 0;
+    var total = st.phase === PH.PLAYING ? ROUND_SEC : st.phase === PH.BREAK ? BREAK_SEC : st.phase === PH.RESULTS ? RESULTS_SEC : st.phase === PH.WAITING ? WAIT_SEC : 0;
     if (!st.endsAt || !total) {
       if (_h.clock !== '--:--') { _h.clock = '--:--'; el.clock.textContent = '--:--'; el.clock.classList.remove('low'); }
       el.ring.style.strokeDashoffset = 339.29; el.ring.classList.remove('low'); return;
@@ -302,7 +328,10 @@
     if (!el.info) return;
     var t = '';
     if (!joined) t = 'Подключение (' + MODE + ')…';
-    else if (st.phase === PH.WAITING) t = 'Ждём игроков · голосуйте за старт' + (myIsMaster() ? ' · ВЫ ХОСТ' : '');
+    else if (st.phase === PH.WAITING) {
+      var secs = st.endsAt ? Math.max(0, Math.ceil((st.endsAt - now()) / 1000)) : WAIT_SEC;
+      t = 'Автораунд через ' + secs + ' с · жми «Начать сейчас»' + (myIsMaster() ? ' · ВЫ ХОСТ' : '');
+    }
     else if (st.phase === PH.PLAYING) t = 'Кликай! · раунд ' + st.round;
     else if (st.phase === PH.RESULTS) t = 'Итоги раунда ' + st.round;
     else if (st.phase === PH.BREAK) t = 'Перерыв до следующего раунда';
@@ -409,6 +438,7 @@
       case 'sc': onScore(fromId, obj); break;
       case 'v': if (isMasterNow()) masterOnVote(fromId, obj.n); break;
       case 'st': onStateMsg(obj); break;
+      case 'm': addChatLine(obj.n || fromId, obj.m, false); break;
       case 'f': onFinish(obj); break;
     }
   }
@@ -481,7 +511,7 @@
   // ---- REALTIME-транспорт (нужен Realtime App ID) ----
   function createRealtimeNet() {
     var client = null, RCV_ALL = 1;
-    var EV = { CLICK: 11, VOTE: 12, STATE: 13, SCORE: 14, FINISH: 15 };
+    var EV = { CLICK: 11, VOTE: 12, STATE: 13, SCORE: 14, FINISH: 15, CHAT: 16 };
     return {
       mode: 'realtime',
       join: function () {
@@ -517,6 +547,7 @@
           else if (code === EV.STATE) onNetMsg(from, content);
           else if (code === EV.SCORE) onNetMsg(from, content);
           else if (code === EV.FINISH) onNetMsg(from, content);
+          else if (code === EV.CHAT) onNetMsg(from, content);
         };
         client.connectToRegionMaster(REGION);
       },
@@ -527,6 +558,7 @@
         else if (obj.t === 'st' || obj.t === 'cd') client.raiseEvent(EV.STATE, obj, { receivers: RCV_ALL });
         else if (obj.t === 'sc') client.raiseEvent(EV.SCORE, obj, { receivers: RCV_ALL });
         else if (obj.t === 'f') client.raiseEvent(EV.FINISH, obj, { receivers: RCV_ALL });
+        else if (obj.t === 'm') client.raiseEvent(EV.CHAT, obj, { receivers: RCV_ALL });
       },
       leave: function () { if (client) { try { client.leaveRoom(); } catch (e) {} try { client.disconnect(); } catch (e) {} } client = null; }
     };
@@ -536,7 +568,10 @@
   // Heartbeat + реап умерших (Chat-режим)
   function startHeartbeat() {
     stopHeartbeat();
-    hbTimer = setInterval(function () { send({ t: 'h', n: nick }); }, HB_MS);
+    hbTimer = setInterval(function () {
+      if (players[myId]) players[myId].seen = now(); // ВАЖНО: своё seen, иначе сам «протухну»
+      send({ t: 'h', n: nick });
+    }, HB_MS);
     reapTimer = setInterval(function () {
       var changed = false, k;
       for (k in players) { if (k !== myId && now() - players[k].seen > STALE_MS) { delete players[k]; delete st.voters[k]; changed = true; } }
@@ -588,7 +623,25 @@
     if (!isMasterNow() || st.phase === PH.PLAYING || st.voters[id]) return;
     st.voters[id] = true; recalcVotes();
     send({ t: 'st', ph: st.phase, end: st.endsAt, rd: st.round, vt: st.votes });
-    if (st.votes >= VOTE_NEEDED) masterCountdown();
+    if (st.votes >= VOTE_NEEDED) masterCountdown(); // 1 голос = мгновенный старт
+  }
+  // ---------------- ЧАТ АРЕНЫ ----------------
+  function addChatLine(who, text, mine) {
+    if (!el.chatLog) return;
+    var d = document.createElement('div');
+    d.className = 'bt-chat-msg' + (mine ? ' me' : '');
+    d.innerHTML = '<b>' + esc(who) + '</b> ' + esc(text);
+    el.chatLog.appendChild(d);
+    while (el.chatLog.childNodes.length > 60) el.chatLog.removeChild(el.chatLog.firstChild);
+    el.chatLog.scrollTop = el.chatLog.scrollHeight;
+  }
+  function sendChat() {
+    if (!el.chatInput) return;
+    var v = String(el.chatInput.value || '').trim();
+    if (!v) return;
+    el.chatInput.value = '';
+    addChatLine(nick, v, true);
+    send({ t: 'm', n: nick, m: v });
   }
   function recalcVotes() { var c = 0, k; for (k in st.voters) if (st.voters[k]) c++; st.votes = c; renderPhase(); }
 
@@ -596,9 +649,15 @@
 
   function masterSyncState() { if (!isMasterNow()) return; send({ t: 'st', ph: st.phase, end: st.endsAt, rd: st.round, vt: st.votes }); }
   function masterToWaiting() {
-    clearTimers(); st.phase = PH.WAITING; st.endsAt = 0; st.voters = {}; st.votes = 0;
-    if (aliveCount() >= 2) return masterToPlaying();
+    clearTimers(); st.phase = PH.WAITING; st.voters = {}; st.votes = 0;
+    st.endsAt = now() + WAIT_SEC * 1000;
     masterSyncState();
+    // АВТО-РАУНД: через 30 секунд стартуем сами, без голосования
+    phaseTimer = setTimeout(masterAutoStart, WAIT_SEC * 1000);
+  }
+  function masterAutoStart() {
+    if (aliveCount() >= 1) masterToPlaying();
+    else masterToWaiting(); // никого нет — ждём ещё 30с
   }
   function masterToPlaying() {
     clearTimers(); st.phase = PH.PLAYING; st.round++; st.voters = {}; st.votes = 0; masterClicks = {};
@@ -698,10 +757,11 @@
         if (st.phase === PH.PLAYING) masterToResults();
         else if (st.phase === PH.RESULTS) masterToBreak();
         else if (st.phase === PH.BREAK) masterToWaiting();
+        else if (st.phase === PH.WAITING) masterAutoStart(); // страховка, если таймер не сработал
       }
-      if (MODE === 'chat') {
-        // при смене мастера — новый хост синхронизирует состояние
-        if (wasMaster && st.phase === PH.WAITING) masterSyncState();
+      if (MODE === 'chat' && wasMaster && st.phase === PH.WAITING) {
+        // синхронизируем состояние раз в секунду, а не 4 раза
+        if (now() - (syncTick || 0) > 1000) { syncTick = now(); masterSyncState(); }
       }
     }, 250);
   }
