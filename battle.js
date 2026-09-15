@@ -89,7 +89,7 @@
   }
   function localLeaderboard() {
     var all = lsGet('battleProfiles', '{}'), arr = [], n;
-    for (n in all) arr.push({ nick: n, total: all[n].total || 0, best: all[n].best || 0 });
+    for (n in all) arr.push({ nick: n, total: all[n].total || 0, best: all[n].best || 0, rounds: all[n].rounds || 0 });
     arr.sort(function (a, b) { return b.total - a.total; });
     return arr.slice(0, 10);
   }
@@ -177,6 +177,12 @@
       '.bt-btn-acc{background:linear-gradient(135deg,#00e5ff,#8b5cff)!important;color:#04121c!important;font-weight:800!important;border:0!important}',
       '.bt-row.top{background:linear-gradient(90deg,rgba(255,215,0,.18),rgba(0,229,255,.06));border-color:rgba(255,215,0,.5)}',
       '.bt-row.top .c{color:#ffe45b}',
+      '.bt-lb-head{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:1px;color:#4d6b7d;padding:0 4px 6px;text-transform:uppercase}',
+      '.bt-dim{color:#5f7f94;font-style:normal;font-size:11px}',
+      '.bt-prof{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0 4px}',
+      '.bt-prof-cell{background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.22);border-radius:10px;padding:12px 6px;text-align:center}',
+      '.bt-prof-cell b{display:block;font-size:20px;color:#eafcff;line-height:1.15}',
+      '.bt-prof-cell span{font-size:10px;color:#7fa6b8;letter-spacing:.5px}',
       '.bt-chat{flex:1;min-height:110px;overflow-y:auto;background:rgba(0,0,0,.3);border:1px solid rgba(0,229,255,.22);border-radius:10px;padding:9px;font-size:12.5px;line-height:1.5}',
       '.bt-chat-msg{margin-bottom:6px;word-wrap:break-word;color:#b9d6e2}',
       '.bt-chat-msg .t{font-size:10px;color:#4d6b7d;margin-right:5px}',
@@ -285,8 +291,10 @@
 
   var PHASE_LABEL = { WAITING: 'ОЖИДАНИЕ', PLAYING: 'РАУНД', RESULTS: 'РЕЗУЛЬТАТЫ', BREAK: 'ПЕРЕРЫВ' };
   function initials(n) {
-    var s = String(n || '').replace(/[^0-9A-Za-zА-Яа-яЁё]/g, '');
-    if (!s) return '•'; // плейсхолдер вида #2 — не показываем решётку
+    var raw = String(n || '');
+    if (!raw || raw.charAt(0) === '#') return '•'; // плейсхолдер #N — нейтральный значок
+    var s = raw.replace(/[^0-9A-Za-zА-Яа-яЁё]/g, '');
+    if (!s) return '•';
     return esc(s.slice(0, 2).toUpperCase());
   }
 
@@ -320,9 +328,13 @@
   function renderLeaderboard() {
     if (!el.board) return;
     getLeaderboard(function (top) {
-      var html = '', i;
-      for (i = 0; i < top.length; i++) html += '<div class="bt-row"><span class="r">' + medal(i) + '</span><span class="n">' + esc(top[i].nick) + '</span><span class="c">' + (top[i].total || 0) + '</span></div>';
-      el.board.innerHTML = html || '<div class="bt-row">пока нет данных</div>';
+      var html = '<div class="bt-lb-head"><span>ИГРОК</span><span>КЛИКИ ЗА ВСЁ ВРЕМЯ</span></div>', i;
+      for (i = 0; i < top.length; i++) {
+        html += '<div class="bt-row"><span class="r">' + medal(i) + '</span>' +
+          '<span class="n">' + esc(top[i].nick) + (top[i].rounds ? ' <i class="bt-dim">(' + top[i].rounds + ' р.)</i>' : '') + '</span>' +
+          '<span class="c">' + (top[i].total || 0) + '</span></div>';
+      }
+      el.board.innerHTML = html;
     });
   }
   function renderPhase() {
@@ -489,6 +501,7 @@
     if (isMasterNow()) masterSyncState();
     renderAll();
   }
+  function announceName() { send({ t: 'n', n: nick }); }
   function onNetMsg(fromId, obj) {
     if (!obj || !obj.t) return;
     if (players[fromId]) {
@@ -507,6 +520,11 @@
       case 'v': if (isMasterNow()) masterOnVote(fromId, obj.n); break;
       case 'st': onStateMsg(obj); break;
       case 'm': addChatLine(obj.n || fromId, obj.m, false); break;
+      case 'n':
+        // Явная рассылка ника: не ждём Photon-свойства (они приходят с задержкой)
+        if (!players[fromId]) players[fromId] = { nick: obj.n || fromId, score: 0, seen: now() };
+        if (obj.n && players[fromId].nick !== obj.n) { players[fromId].nick = obj.n; renderAll(); }
+        break;
       case 'f': onFinish(obj); break;
     }
   }
@@ -579,7 +597,7 @@
   // ---- REALTIME-транспорт (нужен Realtime App ID) ----
   function createRealtimeNet() {
     var client = null, RCV_ALL = 1;
-    var EV = { CLICK: 11, VOTE: 12, STATE: 13, SCORE: 14, FINISH: 15, CHAT: 16 };
+    var EV = { CLICK: 11, VOTE: 12, STATE: 13, SCORE: 14, FINISH: 15, CHAT: 16, NAME: 17 };
     var self = {
       mode: 'realtime',
       actorNr: 0,
@@ -613,8 +631,9 @@
           var act = client.myRoomActorsArray() || [], i;
           for (i = 0; i < act.length; i++) onNetJoin('a' + act[i].actorNr, act[i].name || ('#' + act[i].actorNr));
           syncMaster(); renderAll(); renderLeaderboard();
+          announceName();
         };
-        client.onActorJoin = function (a) { onNetJoin('a' + a.actorNr, a.name || ('#' + a.actorNr)); self.refresh(); syncMaster(); };
+        client.onActorJoin = function (a) { onNetJoin('a' + a.actorNr, a.name || ('#' + a.actorNr)); self.refresh(); syncMaster(); announceName(); };
         client.onActorLeave = function (a) { onNetLeave('a' + a.actorNr); self.refresh(); syncMaster(); };
         // Имя приходит отдельным свойством — обновляем слот, когда оно доехало
         client.onActorPropertiesChange = function (a) {
@@ -629,6 +648,7 @@
           else if (code === EV.SCORE) onNetMsg(from, content);
           else if (code === EV.FINISH) onNetMsg(from, content);
           else if (code === EV.CHAT) { if (actorNr !== self.actorNr) onNetMsg(from, content); } // свои уже показали локально
+          else if (code === EV.NAME) onNetMsg(from, content);
         };
         client.connectToRegionMaster(REGION);
       },
@@ -640,6 +660,7 @@
         else if (obj.t === 'sc') client.raiseEvent(EV.SCORE, obj, { receivers: RCV_ALL });
         else if (obj.t === 'f') client.raiseEvent(EV.FINISH, obj, { receivers: RCV_ALL });
         else if (obj.t === 'm') client.raiseEvent(EV.CHAT, obj, { receivers: RCV_ALL });
+        else if (obj.t === 'n') client.raiseEvent(EV.NAME, obj, { receivers: RCV_ALL });
       },
       leave: function () { if (client) { try { client.leaveRoom(); } catch (e) {} try { client.disconnect(); } catch (e) {} } client = null; }
     };
@@ -825,7 +846,21 @@
 
   function showProfile() {
     var p = getProfile();
-    var m = showModal('<h2>ПРОФИЛЬ · ' + esc(nick) + '</h2><p>Сыграно раундов: <b>' + (p.rounds || 0) + '</b></p><p>Лучший результат: <b>' + (p.best || 0) + '</b></p><p>Всего накликано: <b>' + (p.total || 0) + '</b></p><p style="color:#5f7f94;font-size:12px;margin-top:14px">Нажми, чтобы закрыть</p>');
+    var avg = p.rounds ? Math.round((p.total || 0) / p.rounds) : 0;
+    var lb = localLeaderboard(), rank = 0, i;
+    for (i = 0; i < lb.length; i++) if (lb[i].nick === nick) { rank = i + 1; break; }
+    var pct = (p.total && p.best) ? Math.round(p.best / p.total * 100) : 0;
+    var html = '<h2>ПРОФИЛЬ · ' + esc(nick) + '</h2>' +
+      '<div class="bt-prof">' +
+        '<div class="bt-prof-cell"><b>' + (p.rounds || 0) + '</b><span>раундов</span></div>' +
+        '<div class="bt-prof-cell"><b>' + (p.best || 0) + '</b><span>лучший раунд</span></div>' +
+        '<div class="bt-prof-cell"><b>' + (p.total || 0) + '</b><span>всего кликов</span></div>' +
+        '<div class="bt-prof-cell"><b>' + avg + '</b><span>в среднем</span></div>' +
+        '<div class="bt-prof-cell"><b>' + (rank ? '#' + rank : '—') + '</b><span>место</span></div>' +
+        '<div class="bt-prof-cell"><b>' + pct + '%</b><span>лучший от суммы</span></div>' +
+      '</div>' +
+      '<p style="color:#5f7f94;font-size:12px;margin-top:16px;text-align:center">Статистика хранится на этом устройстве. Нажми, чтобы закрыть</p>';
+    var m = showModal(html);
     m.addEventListener('click', clearModal);
   }
 
