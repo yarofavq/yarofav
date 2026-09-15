@@ -1,11 +1,12 @@
 const canvas = document.getElementById('bg-canvas');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 60000);
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 240000); // ЧАСТЬ 1 v2: мир сильно расширен
 camera.position.set(0, 30, 70);
 
-const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent), powerPreference: 'high-performance' });
+renderer.shadowMap.enabled = false;
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 1 : 1.5));
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -30,10 +31,10 @@ scene.add(sunLight);
 
 // Enormous Deep Space Stars Field
 const starsGeometry = new THREE.BufferGeometry();
-const starsCount = 15000;
+const starsCount = isMobile ? 8000 : 15000;
 const starPositions = new Float32Array(starsCount * 3);
 for (let i = 0; i < starsCount * 3; i++) {
-  starPositions[i] = (Math.random() - 0.5) * 20000;
+  starPositions[i] = (Math.random() - 0.5) * 90000; // ЧАСТЬ 1 v2: широкое поле звёзд
 }
 starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
 const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0.85 });
@@ -42,7 +43,7 @@ scene.add(starField);
 
 // Massive Milky Way Galaxy
 const milkyWayGroup = new THREE.Group();
-const particlesCount = 40000;
+const particlesCount = isMobile ? 15000 : 40000;
 const mwGeometry = new THREE.BufferGeometry();
 const mwPositions = new Float32Array(particlesCount * 3);
 const mwColors = new Float32Array(particlesCount * 3);
@@ -1809,6 +1810,7 @@ function getPointerPosition(e) {
 }
 
 function handleInteraction(e) {
+  if (document.body.classList.contains('battle-active')) return; // арена открыта — 3D не трогаем
   if (isConsuming || isAngelTriggered || isPixelManTriggered || isErrorTriggered || isDragonTriggered) return;
 
   // Не реагируем на кнопки и карточку
@@ -1974,6 +1976,20 @@ function triggerBlackHoleEvent() {
   telescopeOverlay.classList.add('hidden');
   flyOverlay.classList.add('hidden');
   controls.autoRotate = false;
+
+  // Клик по чёрной дыре открывает «Кликер-арену» (battle.js).
+  // Ник берётся из той же авторизации, что и чат (sessionStorage: spaceChatNick).
+  setTimeout(function () {
+    isConsuming = false;
+    if (window.BattleRoom && typeof window.BattleRoom.open === 'function') {
+      var bn = '';
+      try { bn = sessionStorage.getItem('spaceChatNick') || ''; } catch (e) {}
+      window.BattleRoom.open(bn);
+    } else {
+      console.warn('[battle] battle.js не загружен — арена недоступна');
+      resetCamera();
+    }
+  }, 900);
 }
 
 function triggerAngelEvent() {
@@ -2258,7 +2274,16 @@ document.addEventListener("touchend",audioResume);
 document.addEventListener("click",audioStart);document.addEventListener("touchstart",audioStart);
 function animate() {
   requestAnimationFrame(animate);
-  if (window.__uiPaused) return;
+  if (window.__uiPaused) {
+    // Арена открыта: плавно глушим весь звук космоса (ЧД, ERRORR, станции).
+    // Раньше return стоял до обновления громкости — gain застревал на последнем значении.
+    try { if (bhAudio.gain) bhAudio.gain.gain.setTargetAtTime(0, bhAudio.ctx.currentTime, 0.08); } catch (e) {}
+    try { if (errAudio.gain) errAudio.gain.gain.setTargetAtTime(0, errAudio.ctx.currentTime, 0.08); } catch (e) {}
+    for (var _sa = 0; _sa < stAudioList.length; _sa++) {
+      try { stAudioList[_sa].gain.gain.setTargetAtTime(0, stAudioList[_sa].ctx.currentTime, 0.08); } catch (e) {}
+    }
+    return;
+  }
   
   planets.forEach(p => {
     p.pivot.rotation.y += p.speed;
@@ -2436,6 +2461,9 @@ function animate() {
   if(bhAudio.gain){var dB=camera.position.distanceTo(blackHoleGroup.position);var vB=dB>=600?0:Math.pow(1-dB/600,1.4)*0.5;bhAudio.gain.gain.setTargetAtTime(vB,bhAudio.ctx.currentTime,0.15);}
   if(errAudio.gain){var vE=isErrorTriggered?0.25:0;errAudio.gain.gain.setTargetAtTime(vE,errAudio.ctx.currentTime,0.1);}
   for(var sa=0;sa<stAudioList.length;sa++){var dd=camera.position.distanceTo(stAudioList[sa].node.position);var vv=dd>=800?0:Math.pow(1-dd/800,1.4)*0.3;stAudioList[sa].gain.gain.setTargetAtTime(vv,stAudioList[sa].ctx.currentTime,0.2);}
+  // ЧАСТЬ 1: новые объекты космоса (space_extras.js)
+  if (window.__spaceExtras) window.__spaceExtras.update();
+
   renderer.render(scene, camera);
 }
 
@@ -2465,6 +2493,7 @@ function raycastMilkyWay(x, y) {
 
 function handleMilkyWayPress(e) {
   if ((e.type === 'mousedown' || e.type === 'pointerdown') && e.button !== 0) return;
+  if (document.body.classList.contains('battle-active')) return; // арена открыта
   if (isConsuming || isAngelTriggered || isPixelManTriggered || isErrorTriggered || isDragonTriggered || inDarkRoom) return;
   const t = e.target;
   if (t && typeof t.closest === 'function' && (t.closest('button') || t.closest('a') || t.closest('.card') || t.closest('.planet-modal') || t.closest('.clicker-ui'))) return;
@@ -2554,6 +2583,10 @@ window.addEventListener('resize', () => {
     var c = document.createElement('script');
     c.src = 'chat.js?v=3';
     document.body.appendChild(c);
+    // Батл-арена: отдельный компонент на Photon LoadBalancing (свой клиент, не чат)
+    var b = document.createElement('script');
+    b.src = 'battle.js?v=1';
+    document.body.appendChild(b);
   }
   function tryPaths(paths) {
     if (!paths.length) { console.warn('photon.js не найден - чат отключен'); return; }
