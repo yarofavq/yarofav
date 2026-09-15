@@ -19,7 +19,7 @@
 
   // ============================== КОНФИГ ====================================
   var APP_ID_CHAT     = '90811467-76f1-400a-b211-eb58e6d08c08'; // твой Chat App ID (работает)
-  var APP_ID_REALTIME = ''; // <-- App ID Realtime-приложения. Пусто => режим CHAT.
+  var APP_ID_REALTIME = '76effc60-4559-4235-972f-c4926fd3e883'; // Realtime-приложение
   var REGION          = 'EU';
   var APP_VERSION     = '1.0';
   var CHANNEL         = 'battle_arena_v1'; // канал в Chat-режиме
@@ -61,12 +61,19 @@
   function lsPut(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function aliveIds() {
     var out = [], k;
-    for (k in players) if (now() - (players[k].seen || 0) < STALE_MS) out.push(k);
+    if (MODE === 'realtime') {
+      for (k in players) out.push(k); // в Realtime состав ведёт сам Photon
+    } else {
+      for (k in players) if (now() - (players[k].seen || 0) < STALE_MS) out.push(k);
+    }
     out.sort();
     return out;
   }
   function myIsMaster() {
-    if (MODE === 'realtime') return isMaster;
+    if (MODE === 'realtime') {
+      // Photon сам назначает мастера; сравниваем свой actorNr с мастерским
+      return !!(net && net.actorNr > 0 && net.actorNr === net.roomMasterNr);
+    }
     var ids = aliveIds();
     return ids.length > 0 && ids[0] === myId; // минимальный ник = master (детерминированно)
   }
@@ -169,7 +176,12 @@
       '.bt-row.top{background:linear-gradient(90deg,rgba(255,215,0,.18),rgba(0,229,255,.06));border-color:rgba(255,215,0,.5)}',
       '.bt-row.top .c{color:#ffe45b}',
       '.bt-chat{height:150px;overflow-y:auto;background:rgba(0,0,0,.28);border:1px solid rgba(0,229,255,.18);border-radius:10px;padding:8px;font-size:12.5px;line-height:1.45}',
-      '.bt-chat-msg{margin-bottom:5px;word-wrap:break-word;color:#b9d6e2}',
+      '.bt-chat-msg{margin-bottom:6px;word-wrap:break-word;color:#b9d6e2}',
+      '.bt-chat-msg .t{font-size:10px;color:#4d6b7d;margin-right:5px}',
+      '.bt-chat-sys{color:#7fa6b8;font-style:italic;font-size:11.5px;text-align:center;margin:6px 0;opacity:.8}',
+      '.bt-online{display:inline-block;min-width:16px;padding:1px 6px;margin-left:6px;border-radius:9px;font-size:10px;background:rgba(0,229,255,.16);color:#8fe9ff;border:1px solid rgba(0,229,255,.3)}',
+      '#bt-chat-send.badge{position:relative;animation:btPulseBtn 1s ease infinite}',
+      '@keyframes btPulseBtn{50%{box-shadow:0 0 14px rgba(0,229,255,.9)}}',
       '.bt-chat-msg b{color:#8fe9ff}',
       '.bt-chat-msg.me b{color:#8dffb8}',
       '.bt-chat-in{display:flex;gap:6px;margin-top:8px}',
@@ -208,7 +220,7 @@
         '<div class="bt-side">',
           '<h3>СЧЁТ РАУНДА</h3><div id="bt-scores"></div>',
           '<h3 style="margin-top:18px">ЛИДЕРБОРД · ВСЁ ВРЕМЯ</h3><div id="bt-board"></div>',
-          '<h3 style="margin-top:18px">ЧАТ АРЕНЫ</h3>',
+          '<h3 style="margin-top:18px">ЧАТ АРЕНЫ <span id="bt-chat-online" class="bt-online">0</span></h3>',
           '<div id="bt-chat-log" class="bt-chat"></div>',
           '<div class="bt-chat-in">',
             '<input id="bt-chat-input" maxlength="120" placeholder="Сообщение…" autocomplete="off">',
@@ -282,6 +294,7 @@
       html += '<div class="' + cls + '">' + (p ? '<span class="bt-av">' + initials(p.nick) + '</span><span class="bt-nm">' + esc(p.nick) + '</span>' : '— свободно —') + '</div>';
     }
     if (html !== _h.slots) { _h.slots = html; el.slots.innerHTML = html; }
+    renderOnline();
   }
   function renderScores() {
     if (!el.scores) return;
@@ -417,12 +430,15 @@
   // Колбэки в общий onNet* ниже.
 
   function onNetJoin(id, nk) {
+    var isNew = !players[id]; // heartbeat тоже зовёт onNetJoin — системку шлём только на реальный вход
     players[id] = players[id] || { nick: nk, score: 0, seen: now() };
     players[id].nick = nk; players[id].seen = now();
     if (id === myId) joined = true;
+    else if (isNew) addChatSys(nk + ' зашёл в арену');
     renderAll();
   }
   function onNetLeave(id) {
+    if (players[id] && players[id].nick) addChatSys(players[id].nick + ' покинул арену');
     delete players[id]; delete st.voters[id];
     recalcVotes();
     if (isMasterNow()) masterSyncState();
@@ -512,8 +528,11 @@
   function createRealtimeNet() {
     var client = null, RCV_ALL = 1;
     var EV = { CLICK: 11, VOTE: 12, STATE: 13, SCORE: 14, FINISH: 15, CHAT: 16 };
-    return {
+    var self = {
       mode: 'realtime',
+      actorNr: 0,
+      roomMasterNr: -1,
+      refresh: function () { if (client) { try { self.roomMasterNr = client.myRoomMasterActorNr(); } catch (e) {} } },
       join: function () {
         if (typeof Photon === 'undefined' || !Photon.LoadBalancing) { showJoinProblem('SDK НЕ ЗАГРУЖЕН', 'libs/photon.js не подключён.'); return; }
         client = new Photon.LoadBalancing.LoadBalancingClient(Photon.ConnectionProtocol.Wss, APP_ID_REALTIME, APP_VERSION);
@@ -533,12 +552,14 @@
         client.onJoinRoom = function () {
           joined = true; myId = nick;
           try { client.myActor().setName(nick); } catch (e) {}
+          try { self.actorNr = client.myActor().actorNr; self.roomMasterNr = client.myRoomMasterActorNr(); } catch (e) {}
+          console.log('[battle-rt] вошёл в', ROOM_NAME, 'actorNr=' + self.actorNr, 'master=' + self.roomMasterNr);
           var act = client.myRoomActorsArray() || [], i;
           for (i = 0; i < act.length; i++) onNetJoin(act[i].name || ('#' + act[i].actorNr), act[i].name || ('#' + act[i].actorNr));
           onNetJoin(nick, nick); syncMaster(); renderLeaderboard();
         };
-        client.onActorJoin = function (a) { var n = a.name || ('#' + a.actorNr); onNetJoin(n, n); syncMaster(); };
-        client.onActorLeave = function (a) { onNetLeave(a.name || ('#' + a.actorNr)); };
+        client.onActorJoin = function (a) { var n = a.name || ('#' + a.actorNr); onNetJoin(n, n); self.refresh(); syncMaster(); };
+        client.onActorLeave = function (a) { onNetLeave(a.name || ('#' + a.actorNr)); self.refresh(); syncMaster(); };
         client.onEvent = function (code, content, actorNr) {
           var from = '#' + actorNr;
           try { var act = client.myRoomActorsArray() || []; for (var i = 0; i < act.length; i++) if (act[i].actorNr === actorNr) from = act[i].name || from; } catch (e) {}
@@ -547,7 +568,7 @@
           else if (code === EV.STATE) onNetMsg(from, content);
           else if (code === EV.SCORE) onNetMsg(from, content);
           else if (code === EV.FINISH) onNetMsg(from, content);
-          else if (code === EV.CHAT) onNetMsg(from, content);
+          else if (code === EV.CHAT) { if (actorNr !== self.actorNr) onNetMsg(from, content); } // свои уже показали локально
         };
         client.connectToRegionMaster(REGION);
       },
@@ -562,6 +583,7 @@
       },
       leave: function () { if (client) { try { client.leaveRoom(); } catch (e) {} try { client.disconnect(); } catch (e) {} } client = null; }
     };
+    return self;
   }
   function syncMaster() { isMaster = myIsMaster(); }
 
@@ -626,14 +648,33 @@
     if (st.votes >= VOTE_NEEDED) masterCountdown(); // 1 голос = мгновенный старт
   }
   // ---------------- ЧАТ АРЕНЫ ----------------
+  function hhmm() {
+    var d = new Date();
+    return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  }
   function addChatLine(who, text, mine) {
     if (!el.chatLog) return;
     var d = document.createElement('div');
     d.className = 'bt-chat-msg' + (mine ? ' me' : '');
-    d.innerHTML = '<b>' + esc(who) + '</b> ' + esc(text);
+    d.innerHTML = '<span class="t">' + hhmm() + '</span><b>' + esc(who) + '</b> ' + esc(text);
     el.chatLog.appendChild(d);
-    while (el.chatLog.childNodes.length > 60) el.chatLog.removeChild(el.chatLog.firstChild);
+    while (el.chatLog.childNodes.length > 80) el.chatLog.removeChild(el.chatLog.firstChild);
     el.chatLog.scrollTop = el.chatLog.scrollHeight;
+    // Автоскролл вниз, если сообщение не своё
+    if (!mine) el.chatLog.scrollTop = el.chatLog.scrollHeight;
+  }
+  function addChatSys(text) {
+    if (!el.chatLog) return;
+    var d = document.createElement('div');
+    d.className = 'bt-chat-sys';
+    d.textContent = text + ' · ' + hhmm();
+    el.chatLog.appendChild(d);
+    while (el.chatLog.childNodes.length > 80) el.chatLog.removeChild(el.chatLog.firstChild);
+    el.chatLog.scrollTop = el.chatLog.scrollHeight;
+  }
+  function renderOnline() {
+    var o = document.getElementById('bt-chat-online');
+    if (o) o.textContent = String(aliveCount());
   }
   function sendChat() {
     if (!el.chatInput) return;
@@ -752,16 +793,19 @@
     if (uiTimer) clearInterval(uiTimer);
     uiTimer = setInterval(function () {
       renderClock(); renderSlots(); renderScores();
-      var wasMaster = isMasterNow();
-      if (wasMaster && st.endsAt && now() > st.endsAt + 500) {
+      if (MODE === 'realtime' && net && net.refresh) net.refresh();
+      var mNow = isMasterNow();
+      // Хост сам ЗАПУСКАЕТ цикл: если я мастер и раунд не идёт — стартую ожидание
+      if (mNow && !st.endsAt) { masterToWaiting(); return; }
+      if (mNow && st.endsAt && now() > st.endsAt + 500) {
         if (st.phase === PH.PLAYING) masterToResults();
         else if (st.phase === PH.RESULTS) masterToBreak();
         else if (st.phase === PH.BREAK) masterToWaiting();
         else if (st.phase === PH.WAITING) masterAutoStart(); // страховка, если таймер не сработал
       }
-      if (MODE === 'chat' && wasMaster && st.phase === PH.WAITING) {
+      if (MODE === 'chat' && mNow && st.phase === PH.WAITING) {
         // синхронизируем состояние раз в секунду, а не 4 раза
-        if (now() - (syncTick || 0) > 1000) { syncTick = now(); masterSyncState(); }
+        if (now() - syncTick > 1000) { syncTick = now(); masterSyncState(); }
       }
     }, 250);
   }
