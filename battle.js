@@ -144,7 +144,9 @@
       '@keyframes btFly{to{transform:translateY(-96px) scale(1.35);opacity:0}}',
       '.bt-spark{position:absolute;width:6px;height:6px;border-radius:50%;background:#8dffb8;box-shadow:0 0 10px #8dffb8;pointer-events:none;animation:btSpark .6s ease-out forwards}',
       '@keyframes btSpark{to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}',
-      '.bt-side{width:250px;border-left:1px solid rgba(0,229,255,.18);padding:18px;overflow-y:auto;background:rgba(6,12,24,.4);backdrop-filter:blur(6px)}',
+      '.bt-side{width:280px;border-left:1px solid rgba(0,229,255,.18);padding:14px 16px;display:flex;flex-direction:column;min-height:0;background:rgba(6,12,24,.4);backdrop-filter:blur(6px)}',
+      '#bt-scores{max-height:132px;overflow-y:auto;margin-bottom:4px}',
+      '#bt-board{max-height:110px;overflow-y:auto;margin-bottom:4px}',
       '.bt-side h3{font-size:11px;letter-spacing:3px;color:#5f7f94;margin:0 0 12px;font-weight:600}',
       '.bt-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;margin-bottom:6px;font-size:14px;background:rgba(0,229,255,.05);border:1px solid transparent;transition:.25s}',
       '.bt-row.me{background:rgba(0,229,255,.16);border-color:rgba(0,229,255,.4)}',
@@ -175,7 +177,7 @@
       '.bt-btn-acc{background:linear-gradient(135deg,#00e5ff,#8b5cff)!important;color:#04121c!important;font-weight:800!important;border:0!important}',
       '.bt-row.top{background:linear-gradient(90deg,rgba(255,215,0,.18),rgba(0,229,255,.06));border-color:rgba(255,215,0,.5)}',
       '.bt-row.top .c{color:#ffe45b}',
-      '.bt-chat{height:150px;overflow-y:auto;background:rgba(0,0,0,.28);border:1px solid rgba(0,229,255,.18);border-radius:10px;padding:8px;font-size:12.5px;line-height:1.45}',
+      '.bt-chat{flex:1;min-height:110px;overflow-y:auto;background:rgba(0,0,0,.3);border:1px solid rgba(0,229,255,.22);border-radius:10px;padding:9px;font-size:12.5px;line-height:1.5}',
       '.bt-chat-msg{margin-bottom:6px;word-wrap:break-word;color:#b9d6e2}',
       '.bt-chat-msg .t{font-size:10px;color:#4d6b7d;margin-right:5px}',
       '.bt-chat-sys{color:#7fa6b8;font-style:italic;font-size:11.5px;text-align:center;margin:6px 0;opacity:.8}',
@@ -188,7 +190,7 @@
       '#bt-chat-input{flex:1;min-width:0;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.3);border-radius:8px;padding:8px 10px;color:#eafcff;font-size:12.5px;outline:none}',
       '#bt-chat-input:focus{border-color:#00e5ff;box-shadow:0 0 14px rgba(0,229,255,.3)}',
       '#bt-chat-send{background:linear-gradient(135deg,#00e5ff,#8b5cff);border:0;border-radius:8px;color:#04121c;font-weight:800;padding:0 12px;cursor:pointer}',
-      '@media (max-width:760px){.bt-body{flex-direction:column}.bt-side{width:auto;border-left:0;border-top:1px solid rgba(0,229,255,.18);max-height:38vh}.bt-clockwrap{width:170px;height:170px}.bt-ring{width:170px;height:170px}.bt-clock{font-size:42px}#bt-target{width:150px;height:150px;font-size:20px}.bt-chat{height:96px}}'
+      '@media (max-width:760px){.bt-body{flex-direction:column}.bt-side{width:auto;border-left:0;border-top:1px solid rgba(0,229,255,.18);max-height:44vh}.bt-clockwrap{width:170px;height:170px}.bt-ring{width:170px;height:170px}.bt-clock{font-size:42px}#bt-target{width:150px;height:150px;font-size:20px}.bt-chat{min-height:120px}#bt-scores,#bt-board{max-height:96px}}'
     ].join('');
     document.head.appendChild(s);
   }
@@ -204,6 +206,7 @@
       '<div class="bt-top">',
         '<span class="bt-title">КЛИКЕР-АРЕНА</span>',
         '<span class="bt-phase" id="bt-phase">ОЖИДАНИЕ</span>',
+        '<button class="bt-exit" id="bt-sound" title="Звук вкл/выкл">🔊</button>',
         '<button class="bt-exit" id="bt-exit">ВЫЙТИ</button>',
       '</div>',
       '<div class="bt-slots" id="bt-slots"></div>',
@@ -256,6 +259,10 @@
     el.chatSend = root.querySelector('#bt-chat-send');
 
     root.querySelector('#bt-exit').addEventListener('click', close);
+    root.querySelector('#bt-sound').addEventListener('click', function () {
+      var v = sfx.toggle(!sfx.isOn());
+      this.textContent = v ? '🔊' : '🔇';
+    });
     el.vote.addEventListener('click', onVoteClick);
     el.profile.addEventListener('click', showProfile);
     el.target.addEventListener('pointerdown', onTargetDown);
@@ -277,7 +284,11 @@
   function clearModal() { if (el.modal) el.modal.innerHTML = ''; }
 
   var PHASE_LABEL = { WAITING: 'ОЖИДАНИЕ', PLAYING: 'РАУНД', RESULTS: 'РЕЗУЛЬТАТЫ', BREAK: 'ПЕРЕРЫВ' };
-  function initials(n) { return esc(String(n || '?').slice(0, 2).toUpperCase()); }
+  function initials(n) {
+    var s = String(n || '').replace(/[^0-9A-Za-zА-Яа-яЁё]/g, '');
+    if (!s) return '•'; // плейсхолдер вида #2 — не показываем решётку
+    return esc(s.slice(0, 2).toUpperCase());
+  }
 
   function scoreList() {
     var ids = aliveIds(), out = [], i;
@@ -369,6 +380,40 @@
   }
 
   // ====================== ФОН (canvas: звёзды, туманности, ЧД) ==============
+  // ---- Звуковые эффекты (WebAudio, создаётся после первого касания) ----
+  var sfx = (function () {
+    var ctx = null, on = true;
+    function ac() {
+      if (!ctx) { try { var C = window.AudioContext || window.webkitAudioContext; ctx = new C(); } catch (e) { ctx = null; } }
+      if (ctx && ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
+      return ctx;
+    }
+    function tone(f1, f2, dur, type, vol) {
+      if (!on) return; var c = ac(); if (!c) return;
+      try {
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine';
+        o.frequency.setValueAtTime(f1, c.currentTime);
+        if (f2) o.frequency.exponentialRampToValueAtTime(Math.max(1, f2), c.currentTime + dur);
+        g.gain.setValueAtTime(0, c.currentTime);
+        g.gain.linearRampToValueAtTime(vol || 0.1, c.currentTime + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + dur + 0.02);
+      } catch (e) {}
+    }
+    return {
+      click: function () { tone(620, 900, 0.055, 'square', 0.05); },
+      tick:  function () { tone(900, 900, 0.05, 'sine', 0.09); },
+      go:    function () { tone(440, 1320, 0.3, 'triangle', 0.15); },
+      end:   function () { tone(680, 220, 0.5, 'sawtooth', 0.09); },
+      join:  function () { tone(520, 1040, 0.16, 'sine', 0.09); },
+      msg:   function () { tone(1150, 1500, 0.07, 'sine', 0.06); },
+      unlock: function () { ac(); },
+      toggle: function (v) { on = !!v; return on; },
+      isOn: function () { return on; }
+    };
+  })();
   var IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   var bg = { raf: 0, stars: [], clouds: [], t: 0, cv: null, ctx: null, W: 0, H: 0, dpr: 1 };
   function bgSize() {
@@ -434,7 +479,7 @@
     players[id] = players[id] || { nick: nk, score: 0, seen: now() };
     players[id].nick = nk; players[id].seen = now();
     if (id === myId) joined = true;
-    else if (isNew) addChatSys(nk + ' зашёл в арену');
+    else if (isNew) { addChatSys(nk + ' зашёл в арену'); sfx.join(); }
     renderAll();
   }
   function onNetLeave(id) {
@@ -446,7 +491,14 @@
   }
   function onNetMsg(fromId, obj) {
     if (!obj || !obj.t) return;
-    if (players[fromId]) players[fromId].seen = now();
+    if (players[fromId]) {
+      players[fromId].seen = now();
+      // Пришло настоящее имя, а у нас плейсхолдер #N — заменяем
+      if (obj.n && players[fromId].nick !== obj.n && String(players[fromId].nick).charAt(0) === '#') {
+        players[fromId].nick = obj.n;
+        renderAll();
+      }
+    }
     switch (obj.t) {
       case 'h': onNetJoin(fromId, obj.n); break;
       case 'j': onNetJoin(fromId, obj.n); if (isMasterNow()) masterSyncState(); break;
@@ -550,19 +602,27 @@
           if (state === S.ConnectedToMaster) client.joinRoom(ROOM_NAME, { createIfNotExists: true }, { maxPlayers: MAX_PLAYERS, isVisible: true, isOpen: true, playerTTL: 0, roomTTL: 0 });
         };
         client.onJoinRoom = function () {
-          joined = true; myId = nick;
+          joined = true;
           try { client.myActor().setName(nick); } catch (e) {}
           try { self.actorNr = client.myActor().actorNr; self.roomMasterNr = client.myRoomMasterActorNr(); } catch (e) {}
+          // Ключ игрока = 'a<actorNr>'. Тогда имя можно обновить, а игрок остаётся тем же.
+          myId = 'a' + self.actorNr; myUid = myId;
+          players = {};
+          players[myId] = { nick: nick, score: 0, seen: now() };
           console.log('[battle-rt] вошёл в', ROOM_NAME, 'actorNr=' + self.actorNr, 'master=' + self.roomMasterNr);
           var act = client.myRoomActorsArray() || [], i;
-          for (i = 0; i < act.length; i++) onNetJoin(act[i].name || ('#' + act[i].actorNr), act[i].name || ('#' + act[i].actorNr));
-          onNetJoin(nick, nick); syncMaster(); renderLeaderboard();
+          for (i = 0; i < act.length; i++) onNetJoin('a' + act[i].actorNr, act[i].name || ('#' + act[i].actorNr));
+          syncMaster(); renderAll(); renderLeaderboard();
         };
-        client.onActorJoin = function (a) { var n = a.name || ('#' + a.actorNr); onNetJoin(n, n); self.refresh(); syncMaster(); };
-        client.onActorLeave = function (a) { onNetLeave(a.name || ('#' + a.actorNr)); self.refresh(); syncMaster(); };
+        client.onActorJoin = function (a) { onNetJoin('a' + a.actorNr, a.name || ('#' + a.actorNr)); self.refresh(); syncMaster(); };
+        client.onActorLeave = function (a) { onNetLeave('a' + a.actorNr); self.refresh(); syncMaster(); };
+        // Имя приходит отдельным свойством — обновляем слот, когда оно доехало
+        client.onActorPropertiesChange = function (a) {
+          var id = 'a' + a.actorNr;
+          if (players[id] && a.name && players[id].nick !== a.name) { players[id].nick = a.name; renderAll(); }
+        };
         client.onEvent = function (code, content, actorNr) {
-          var from = '#' + actorNr;
-          try { var act = client.myRoomActorsArray() || []; for (var i = 0; i < act.length; i++) if (act[i].actorNr === actorNr) from = act[i].name || from; } catch (e) {}
+          var from = 'a' + actorNr;
           if (code === EV.CLICK) onNetMsg(from, { t: 'c', n: from });
           else if (code === EV.VOTE) onNetMsg(from, { t: 'v', n: from });
           else if (code === EV.STATE) onNetMsg(from, content);
@@ -611,6 +671,7 @@
     clickStamps.push(t); while (clickStamps.length && t - clickStamps[0] > 1000) clickStamps.shift();
     if (clickStamps.length > CLICK_LIMIT) return;
     send({ t: 'c', n: nick });
+    sfx.click();
     burst(); flyText('+1');
   }
   function onTargetUp() { if (el.target) el.target.classList.remove('press'); }
@@ -660,8 +721,7 @@
     el.chatLog.appendChild(d);
     while (el.chatLog.childNodes.length > 80) el.chatLog.removeChild(el.chatLog.firstChild);
     el.chatLog.scrollTop = el.chatLog.scrollHeight;
-    // Автоскролл вниз, если сообщение не своё
-    if (!mine) el.chatLog.scrollTop = el.chatLog.scrollHeight;
+    if (!mine) { el.chatLog.scrollTop = el.chatLog.scrollHeight; sfx.msg(); }
   }
   function addChatSys(text) {
     if (!el.chatLog) return;
@@ -739,11 +799,14 @@
     var top = obj.top || [], html = '<h2>ИТОГИ РАУНДА ' + obj.rd + '</h2>', i;
     for (i = 0; i < top.length; i++) html += '<p>' + medal(i) + ' <b>' + esc(top[i].nick) + '</b> — ' + top[i].score + '</p>';
     showModal(html, RESULTS_SEC * 1000);
+    sfx.end();
     if (players[myId]) { var p = getProfile(); p.rounds++; p.total += players[myId].score || 0; if ((players[myId].score || 0) > (p.best || 0)) p.best = players[myId].score; saveProfile(p); }
     renderLeaderboard();
   }
   function showCountdown(n) {
-    clearModal(); if (n <= 0) return;
+    clearModal();
+    if (n > 0) sfx.tick(); else sfx.go();
+    if (n <= 0) return;
     var m = document.createElement('div'); m.className = 'bt-modal';
     m.innerHTML = '<div class="bt-count">' + n + '</div>'; el.modal.appendChild(m);
     setTimeout(function () { if (m.parentNode) m.parentNode.removeChild(m); }, 900);
@@ -768,6 +831,8 @@
 
   // ============================ OPEN/CLOSE ==================================
   function open(nickArg) {
+    // Браузеры не дают звук до жеста пользователя — снимаем блок при первом клике
+    document.addEventListener('pointerdown', function once() { sfx.unlock(); document.removeEventListener('pointerdown', once); }, { once: true });
     nick = String(nickArg || '').slice(0, 16) || resolveNick();
     buildUi(); root.classList.add('open'); document.body.classList.add('battle-active');
     if (window.__spCam) window.__spCam.enabled = false;
