@@ -2585,7 +2585,7 @@ window.addEventListener('resize', () => {
     document.body.appendChild(c);
     // Батл-арена: отдельный компонент на Photon LoadBalancing (свой клиент, не чат)
     var b = document.createElement('script');
-    b.src = 'battle.js?v=1';
+    b.src = 'battle.js?v=4';
     document.body.appendChild(b);
   }
   function tryPaths(paths) {
