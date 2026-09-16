@@ -2679,7 +2679,7 @@ window.addEventListener('resize', () => {
 // Clicker module loader (cache-busted)
 (function () {
   var s = document.createElement('script');
-  s.src = 'clicker.js?v=4';
+  s.src = 'clicker.js?v=9';
   document.body.appendChild(s);
 })();
 
