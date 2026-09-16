@@ -13,7 +13,7 @@ html, body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 20px;
+  padding: 0;
   overflow: hidden;
   position: relative;
   touch-action: none;
@@ -28,6 +28,9 @@ html, body {
   left: 0;
   width: 100vw;
   height: 100vh;
+  max-width: none;
+  border: 0;
+  outline: 0;
   z-index: 0;
   cursor: grab;
   touch-action: none;
