@@ -41,16 +41,78 @@ function fmtNum(n) {
   }
   return '' + n;
 }
-function ckSave() {}
+var CK_LB = 'spaceClicker_lb_v1';
+var CK_OFFLINE_RATE = 0.5;
+var CK_OFFLINE_CAP = 8 * 3600;
+var ckOfflineGain = 0;
+var ckLbStamp = 0;
+function ckNick() {
+  var n = '';
+  try { n = sessionStorage.getItem('spaceChatNick') || ''; } catch (e) {}
+  if (!n) { try { n = localStorage.getItem('spaceChatNick') || ''; } catch (e) {} }
+  n = String(n || '').slice(0, 16);
+  return n || 'Гость';
+}
+function ckEsc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function ckLbPush(force) {
+  var t = Date.now();
+  if (!force && t - ckLbStamp < 8000) return;
+  ckLbStamp = t;
+  try {
+    var all = JSON.parse(localStorage.getItem(CK_LB) || '{}');
+    var k = ckNick();
+    var me = all[k] || { best: 0, stage: 0, rebirths: 0 };
+    var st = ckStage();
+    if (CK.clicks > (me.best || 0)) me.best = CK.clicks;
+    if (st > (me.stage || 0)) me.stage = st;
+    if ((CK.rebirths || 0) > (me.rebirths || 0)) me.rebirths = CK.rebirths;
+    me.ts = t;
+    all[k] = me;
+    localStorage.setItem(CK_LB, JSON.stringify(all));
+  } catch (e) {}
+}
+function ckLbList() {
+  var all = {}, arr = [], k;
+  try { all = JSON.parse(localStorage.getItem(CK_LB) || '{}'); } catch (e) {}
+  for (k in all) if (Object.prototype.hasOwnProperty.call(all, k)) {
+    arr.push({ nick: k, best: all[k].best || 0, stage: all[k].stage || 0, rebirths: all[k].rebirths || 0 });
+  }
+  arr.sort(function (a, b) { return b.best - a.best; });
+  return arr.slice(0, 10);
+}
+function ckSave() {
+  try {
+    localStorage.setItem(CK_KEY, JSON.stringify({
+      v: 1, clicks: CK.clicks, mult: CK.mult, rebirths: CK.rebirths,
+      lv: CK.lv, laser: CK.laser, earth: CK.earth, ts: Date.now()
+    }));
+  } catch (e) {}
+  ckLbPush(false);
+}
 function ckLoad() {
-  CK.clicks = 0;
-  CK.mult = 1;
-  CK.rebirths = 0;
-  CK.laser = false;
-  CK.earth = false;
-  try { localStorage.removeItem('spaceClicker_v1'); } catch (e) {}
+  var raw = null;
+  try { raw = JSON.parse(localStorage.getItem(CK_KEY) || 'null'); } catch (e) {}
+  if (!raw || typeof raw !== 'object') return;
+  CK.clicks = Number(raw.clicks) || 0;
+  CK.mult = Number(raw.mult) || 1;
+  CK.rebirths = Number(raw.rebirths) || 0;
+  CK.laser = !!raw.laser;
+  CK.earth = !!raw.earth;
+  if (raw.lv && raw.lv.length) {
+    for (var x = 0; x < 100 && x < raw.lv.length; x++) CK.lv[x] = Number(raw.lv[x]) || 0;
+  }
+  var dt = Math.max(0, (Date.now() - (Number(raw.ts) || Date.now())) / 1000);
+  if (dt > 60) {
+    var gain = ckCps() * Math.min(dt, CK_OFFLINE_CAP) * CK_OFFLINE_RATE;
+    if (gain >= 1) { CK.clicks += gain; ckOfflineGain = gain; }
+  }
 }
 ckLoad();
+window.addEventListener('beforeunload', function () { ckSave(); ckLbPush(true); });
+document.addEventListener('visibilitychange', function () { if (document.hidden) { ckSave(); ckLbPush(true); } });
+setInterval(function () { ckSave(); ckLbPush(true); }, 10000);
 var styleEl = document.createElement('style');
 styleEl.textContent = '';
 document.head.appendChild(styleEl);
@@ -90,6 +152,21 @@ cssAdd('.ck-shop-item{display:flex;justify-content:space-between;align-items:cen
 cssAdd('.ck-shop-item.owned{border-color:#37e08a;}');
 cssAdd('.ck-shop-item button{background:linear-gradient(135deg,#e0b23e,#8a5a00);border:none;border-radius:8px;padding:8px 12px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;}');
 cssAdd('#ck-close-shop{width:100%;background:#b3283c;border:none;border-radius:9px;padding:10px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
+cssAdd('#ck-lbbtn{background:linear-gradient(135deg,#3a86ff,#5e17a5);}');
+cssAdd('#ck-lb{position:fixed;inset:0;z-index:9470;background:rgba(2,2,14,.85);display:flex;align-items:center;justify-content:center;font-family:inherit;}');
+cssAdd('#ck-lb-box{width:min(520px,94vw);max-height:88vh;overflow-y:auto;background:linear-gradient(160deg,#141a3a,#0b1026);border:2px solid #3a86ff;border-radius:20px;padding:18px;color:#fff;}');
+cssAdd('#ck-lb-box h2{margin:0 0 6px;text-align:center;letter-spacing:2px;background:linear-gradient(90deg,#8fc0ff,#b04dff,#8fc0ff);-webkit-background-clip:text;background-clip:text;color:transparent;}');
+cssAdd('#ck-lb-me{text-align:center;font-size:12px;color:#8fa3e8;margin-bottom:12px;}');
+cssAdd('.ck-lb-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#111634;border:1px solid #2b3672;margin-bottom:7px;}');
+cssAdd('.ck-lb-row.me{border-color:#37e08a;box-shadow:0 0 16px rgba(55,224,138,.3);}');
+cssAdd('.ck-lb-row .p{width:26px;text-align:center;font-weight:bold;color:#ffd76a;}');
+cssAdd('.ck-lb-row .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}');
+cssAdd('.ck-lb-row .s{font-weight:bold;color:#9fe6ff;}');
+cssAdd('.ck-lb-empty{text-align:center;color:#6b7bb0;padding:18px 0;}');
+cssAdd('#ck-close-lb{width:100%;margin-top:10px;background:#b3283c;border:none;border-radius:12px;padding:11px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;}');
+cssAdd('#ck-offline{width:100%;background:linear-gradient(135deg,rgba(55,224,138,.18),rgba(58,134,255,.14));border:1px solid rgba(55,224,138,.5);border-radius:12px;padding:9px 12px;color:#d8ffe8;font-size:12.5px;text-align:center;cursor:pointer;}');
+cssAdd('#ck-offline b{color:#37e08a;}');
+cssAdd('#ck-off-x{float:right;color:#8fa3e8;padding:0 4px;}');
 cssAdd('#laser-fire-btn{position:fixed;left:18px;bottom:96px;z-index:9400;width:60px;height:60px;border-radius:50%;border:2px solid #ff5555;background:radial-gradient(circle,#ff2020,#7a0000);color:#fff;font-size:22px;cursor:pointer;box-shadow:0 0 16px #ff2020;display:none;font-family:inherit;font-weight:bold;}');
 cssAdd('#earth-exit-btn{position:fixed;top:16px;left:16px;z-index:9400;display:none;background:rgba(179,40,60,.9);border:1px solid #ff9aa8;color:#fff;border-radius:10px;padding:10px 16px;font-family:Courier New,monospace;font-weight:bold;cursor:pointer;}');
 function el(tag, id, cls, txt) {
@@ -116,16 +193,24 @@ var shopBtn = el('button', 'ck-shopbtn', '', 'МАГАЗИН');
 var earthBtn = el('button', 'ck-earthbtn', '', 'НА ЗЕМЛЮ');
 earthBtn.style.display = 'none';
 var rebBtn = el('button', 'ck-rebirth', '', 'x2');
+var lbBtn = el('button', 'ck-lbbtn', '', 'ЛИДЕРБОРД');
 rebBtn.disabled = true;
 var closeBtn = el('button', 'ck-closebtn', '', 'X');
 actions.appendChild(shopBtn);
 actions.appendChild(earthBtn);
 actions.appendChild(rebBtn);
+actions.appendChild(lbBtn);
 actions.appendChild(closeBtn);
 left.appendChild(stats);
 left.appendChild(disc);
 left.appendChild(prbar);
 left.appendChild(actions);
+if (ckOfflineGain >= 1) {
+  var offNote = el('div', 'ck-offline');
+  offNote.innerHTML = 'Пока тебя не было: <b>+' + fmtNum(ckOfflineGain) + '</b><span id="ck-off-x">✕</span>';
+  left.insertBefore(offNote, stats);
+  offNote.addEventListener('click', function () { offNote.style.display = 'none'; });
+}
 var right = el('div', 'clicker-right');
 right.appendChild(el('h3', '', '', 'АПГРЕЙДЫ (100)'));
 var uplist = el('div', 'ck-uplist');
@@ -165,6 +250,30 @@ var closeShopBtn = el('button', 'ck-close-shop', '', 'ЗАКРЫТЬ');
 shopBox.appendChild(closeShopBtn);
 shop.appendChild(shopBox);
 document.body.appendChild(shop);
+var lb = el('div', 'ck-lb', 'clicker-ui hidden');
+var lbBox = el('div', 'ck-lb-box');
+lbBox.appendChild(el('h2', '', '', 'ЛИДЕРБОРД'));
+var lbMe = el('div', 'ck-lb-me', '', '');
+lbBox.appendChild(lbMe);
+var lbList = el('div', 'ck-lb-list');
+lbBox.appendChild(lbList);
+var lbClose = el('button', 'ck-close-lb', '', 'ЗАКРЫТЬ');
+lbBox.appendChild(lbClose);
+lb.appendChild(lbBox);
+document.body.appendChild(lb);
+function renderLb() {
+  var arr = ckLbList(), h = '', i;
+  if (!arr.length) h = '<div class="ck-lb-empty">Пока никто не играл</div>';
+  for (i = 0; i < arr.length; i++) {
+    var md = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1);
+    var mine = arr[i].nick === ckNick();
+    h += '<div class="ck-lb-row' + (mine ? ' me' : '') + '"><span class="p">' + md + '</span>' +
+      '<span class="n">' + ckEsc(arr[i].nick) + '</span>' +
+      '<span class="s">' + fmtNum(arr[i].best) + '</span></div>';
+  }
+  lbList.innerHTML = h;
+  lbMe.textContent = 'Твой ник: ' + ckNick() + ' · сейчас: ' + fmtNum(CK.clicks);
+}
 var laserBtn = el('button', 'laser-fire-btn', '', 'ЛАЗЕР');
 document.body.appendChild(laserBtn);
 var earthExit = el('button', 'earth-exit-btn', '', 'Покинуть Землю');
@@ -267,10 +376,12 @@ uplist.addEventListener('click', function (ev) {
   ckSave();
   render(true);
 });
-openBtn.addEventListener('click', function () { overlay.classList.remove('hidden'); window.__uiPaused = true; render(true); });
+openBtn.addEventListener('click', function () { overlay.classList.remove('hidden'); window.__uiPaused = true; render(true); ckSave(); });
 closeBtn.addEventListener('click', function () { overlay.classList.add('hidden'); shop.classList.add('hidden'); window.__uiPaused = false; });
 shopBtn.addEventListener('click', function () { shop.classList.remove('hidden'); renderShop(); });
 closeShopBtn.addEventListener('click', function () { shop.classList.add('hidden'); });
+lbBtn.addEventListener('click', function () { shop.classList.add('hidden'); lb.classList.remove('hidden'); renderLb(); });
+lbClose.addEventListener('click', function () { lb.classList.add('hidden'); });
 rebBtn.addEventListener('click', function () {
   if (CK.clicks < 1e14) return;
   CK.mult *= 2;
@@ -321,13 +432,49 @@ setInterval(function () {
   }
 }, 1000);
 var beams = [];
+var booms = [];
+function destroyAsteroid(group, point) {
+  var hi = asteroidHitboxes.indexOf(group.children[group.children.length - 1]);
+  if (hi !== -1) asteroidHitboxes.splice(hi, 1);
+  var ai = asteroids.indexOf(group);
+  if (ai !== -1) asteroids.splice(ai, 1);
+  scene.remove(group);
+  if (typeof artifactOverlay !== 'undefined') {
+    artifactOverlay.textContent = 'Астероид уничтожен лазером!';
+    artifactOverlay.style.display = 'block';
+    setTimeout(function () { artifactOverlay.style.display = 'none'; }, 1600);
+  }
+  var flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: beams.length >= 0 ? flashTex() : null, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  flash.position.copy(point);
+  flash.scale.set(60, 60, 1);
+  scene.add(flash);
+  booms.push({ s: flash, life: 1 });
+}
+var _flashTexCache = null;
+function flashTex() {
+  if (_flashTexCache) return _flashTexCache;
+  var c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  var x = c.getContext('2d');
+  var g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,240,200,1)');
+  g.addColorStop(0.35, 'rgba(255,140,40,.85)');
+  g.addColorStop(1, 'rgba(255,60,0,0)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 64, 64);
+  _flashTexCache = new THREE.CanvasTexture(c);
+  return _flashTexCache;
+}
 function shootLaser(cx, cy) {
   mouse.x = (cx / window.innerWidth) * 2 - 1;
   mouse.y = -(cy / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
-  var targets = planetHitMeshes.concat(statueHitboxes, [dragonHitbox, mwHitbox, bhCore, errorMesh, manHitbox, shipHitbox]);
+  var targets = planetHitMeshes.concat(statueHitboxes, [dragonHitbox, mwHitbox, bhCore, errorMesh, manHitbox, shipHitbox], asteroidHitboxes);
   var hits = raycaster.intersectObjects(targets, false);
   var end = hits.length > 0 ? hits[0].point.clone() : raycaster.ray.at(900, new THREE.Vector3());
+  if (hits.length > 0 && asteroidHitboxes.indexOf(hits[0].object) !== -1) {
+    destroyAsteroid(hits[0].object.parent, end);
+  }
   var start = camera.position.clone();
   var dir = end.clone().sub(start);
   var len = Math.max(dir.length(), 0.001);
@@ -473,6 +620,16 @@ earthExit.addEventListener('click', function () {
       b.mesh.geometry.dispose();
       b.mesh.material.dispose();
       beams.splice(x, 1);
+    }
+  }
+  for (var m = booms.length - 1; m >= 0; m--) {
+    var bo = booms[m];
+    bo.life -= 0.04;
+    bo.s.scale.multiplyScalar(1.06);
+    bo.s.material.opacity = Math.max(bo.life, 0);
+    if (bo.life <= 0) {
+      scene.remove(bo.s);
+      booms.splice(m, 1);
     }
   }
   if (earthMode && earthRef) {
