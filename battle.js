@@ -305,15 +305,6 @@
         'color:#4d6b7d;padding:0 4px 6px;text-transform:uppercase}',
       '.bt-dim{color:#5f7f94;font-style:normal;font-size:11px}',
 
-      /* -------- профиль -------- */
-      '.bt-prof{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:12px 0 4px}',
-      '.bt-prof-cell{background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.24);border-radius:13px;',
-        'padding:13px 6px;text-align:center;transition:transform .25s cubic-bezier(.2,.9,.3,1.3),box-shadow .3s;',
-        'animation:btUp .45s cubic-bezier(.16,.84,.34,1) both}',
-      '.bt-prof-cell:hover{transform:translateY(-3px);box-shadow:0 0 22px rgba(0,229,255,.3)}',
-      '.bt-prof-cell b{display:block;font-size:21px;color:#eafcff;line-height:1.15;',
-        'text-shadow:0 0 18px rgba(0,229,255,.45)}',
-      '.bt-prof-cell span{font-size:10px;color:#7fa6b8;letter-spacing:.6px}',
 
       /* -------- чат -------- */
       '.bt-chat{flex:1;min-height:110px;overflow-y:auto;background:rgba(2,6,16,.5);',
@@ -360,10 +351,10 @@
       '.bt-btn-acc:hover{filter:brightness(1.1);box-shadow:0 0 42px rgba(0,229,255,.7)!important}',
 
       /* -------- модалки -------- */
-      '.bt-modal{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;',
+      '.bt-modal{position:absolute;inset:0;z-index:40;pointer-events:auto;display:flex;align-items:center;justify-content:center;',
         'background:rgba(2,5,12,.78);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);',
         'animation:btFadeIn .3s ease both}',
-      '.bt-modal-in{background:linear-gradient(158deg,rgba(16,24,54,.96),rgba(5,8,20,.98));',
+      '.bt-modal-in{position:relative;background:linear-gradient(158deg,rgba(16,24,54,.96),rgba(5,8,20,.98));',
         'border:1px solid rgba(0,229,255,.38);border-radius:20px;padding:30px 36px;',
         'min-width:320px;max-width:min(580px,92vw);',
         'box-shadow:0 30px 90px rgba(0,0,0,.8),0 0 70px rgba(0,229,255,.14);',
@@ -373,6 +364,23 @@
       '.bt-modal-in p{margin:8px 0;font-size:14px;color:#b9d6e2}',
       '.bt-modal-in b{color:#fff}',
       '.bt-fade{animation:btFadeIn .3s ease both}',
+      '#bt-modal-host{position:absolute;inset:0;z-index:40;pointer-events:none}',
+      /* -------- профиль -------- */
+      '.bt-prof-head{display:flex;align-items:center;gap:16px;margin-bottom:18px;padding-right:34px}',
+      '.bt-prof-av{width:62px;height:62px;border-radius:20px;flex:none;display:flex;align-items:center;justify-content:center;',
+        'font-size:23px;font-weight:900;color:#04121c;letter-spacing:1px;',
+        'background:linear-gradient(135deg,#d8e6ff,#c8d6f4 60%,#c0cee8);box-shadow:0 0 26px rgba(0,229,255,.45)}',
+      '.bt-prof-name{font-size:19px;font-weight:800;color:#fff;letter-spacing:1px;word-break:break-word}',
+      '.bt-prof-sub{font-size:10px;color:#5f7f94;letter-spacing:2px;margin-top:4px}',
+      '.bt-prof{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}',
+      '.bt-prof-cell{background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.22);border-radius:14px;padding:13px 8px;text-align:center;transition:transform .18s,border-color .18s}',
+      '.bt-prof-cell:hover{transform:translateY(-3px);border-color:rgba(0,229,255,.5)}',
+      '.bt-prof-cell b{display:block;font-size:20px;color:#fff;text-shadow:0 0 16px rgba(0,229,255,.45)}',
+      '.bt-prof-cell span{display:block;margin-top:5px;font-size:9px;letter-spacing:1.2px;color:#6f92a6;text-transform:uppercase}',
+      '.bt-prof-hint{margin:16px 0 0;text-align:center;font-size:11px;color:#5f7f94;letter-spacing:.6px}',
+      '.bt-x{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,229,255,.35);',
+        'background:rgba(4,10,22,.8);color:#9fe6ff;font-size:16px;line-height:1;cursor:pointer;transition:transform .2s,background .2s;font-family:inherit}',
+      '.bt-x:hover{transform:rotate(90deg);background:rgba(0,229,255,.18)}',
       '.bt-count{font-size:150px;font-weight:900;color:#fff;',
         'text-shadow:0 0 54px rgba(0,229,255,.95),0 0 110px rgba(169,124,255,.7);animation:btCount .9s ease}',
       '@keyframes btCount{from{transform:scale(2.2);opacity:0}}',
@@ -421,6 +429,7 @@
         '#bt-target{margin-top:12px;width:126px;height:126px;font-size:17px}',
         '.bt-info{font-size:11px;margin-top:6px}',
         '.bt-side{width:auto;max-height:none;border-left:0;border-top:1px solid rgba(0,229,255,.2);padding:10px 10px 4px}',
+        '.bt-prof{grid-template-columns:repeat(2,1fr)}',
         '.bt-side h3{font-size:9px;letter-spacing:2px;margin:0 0 6px}',
         '#bt-scores,#bt-board{max-height:none}',
         '.bt-chat{min-height:130px;max-height:32vh}',
@@ -695,9 +704,14 @@
     el.regInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitRegister(); });
     el.chatSend.addEventListener('click', sendChat);
     el.chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !root || !root.classList.contains('open')) return;
+      if (el.modal && el.modal.innerHTML) { clearModal(); e.preventDefault(); }
+    });
   }
 
   function showModal(html, autoCloseMs) {
+    clearModal();
     var m = document.createElement('div'); m.className = 'bt-modal bt-fade';
     m.innerHTML = '<div class="bt-modal-in">' + html + '</div>';
     el.modal.appendChild(m);
@@ -1326,24 +1340,32 @@ function scoreList() {
     m.querySelector('#bt-rc').addEventListener('click', function () { clearModal(); close(); });
   }
 
+  function pcell(v, l) { return '<div class="bt-prof-cell"><b>' + v + '</b><span>' + l + '</span></div>'; }
   function showProfile() {
     var p = getProfile();
     var avg = p.rounds ? Math.round((p.total || 0) / p.rounds) : 0;
     var lb = localLeaderboard(), rank = 0, i;
     for (i = 0; i < lb.length; i++) if (lb[i].nick === nick) { rank = i + 1; break; }
     var pct = (p.total && p.best) ? Math.round(p.best / p.total * 100) : 0;
-    var html = '<h2>ПРОФИЛЬ · ' + esc(nick) + '</h2>' +
-      '<div class="bt-prof">' +
-        '<div class="bt-prof-cell"><b>' + (p.rounds || 0) + '</b><span>раундов</span></div>' +
-        '<div class="bt-prof-cell"><b>' + (p.best || 0) + '</b><span>лучший раунд</span></div>' +
-        '<div class="bt-prof-cell"><b>' + (p.total || 0) + '</b><span>всего кликов</span></div>' +
-        '<div class="bt-prof-cell"><b>' + avg + '</b><span>в среднем</span></div>' +
-        '<div class="bt-prof-cell"><b>' + (rank ? '#' + rank : '—') + '</b><span>место</span></div>' +
-        '<div class="bt-prof-cell"><b>' + pct + '%</b><span>лучший от суммы</span></div>' +
+    var html = '<button class="bt-x" id="bt-prof-x" title="Закрыть">✕</button>' +
+      '<div class="bt-prof-head">' +
+        '<div class="bt-prof-av">' + esc(initials(nick) || '★') + '</div>' +
+        '<div><div class="bt-prof-name">' + esc(dispNick(nick)) + '</div>' +
+        '<div class="bt-prof-sub">' + (rank ? 'МЕСТО #' + rank + ' В ЛИДЕРБОРДЕ' : 'СТАТИСТИКА НА ЭТОМ УСТРОЙСТВЕ') + '</div></div>' +
       '</div>' +
-      '<p style="color:#5f7f94;font-size:12px;margin-top:16px;text-align:center">Статистика хранится на этом устройстве. Нажми, чтобы закрыть</p>';
+      '<div class="bt-prof">' +
+        pcell(p.rounds || 0, 'раундов') +
+        pcell(p.best || 0, 'лучший раунд') +
+        pcell(p.total || 0, 'всего кликов') +
+        pcell(avg, 'в среднем') +
+        pcell(rank ? '#' + rank : '—', 'место') +
+        pcell(pct + '%', 'лучший от суммы') +
+      '</div>' +
+      '<p class="bt-prof-hint">Клик по фону, ✕ или Esc — закрыть</p>';
     var m = showModal(html);
-    m.addEventListener('click', clearModal);
+    m.addEventListener('click', function (e) { if (e.target === m) clearModal(); });
+    var xb = m.querySelector('#bt-prof-x');
+    if (xb) xb.addEventListener('click', function (e) { e.stopPropagation(); clearModal(); });
   }
 
   // ============================ OPEN/CLOSE ==================================
