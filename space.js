@@ -1,6 +1,6 @@
 const canvas = document.getElementById('bg-canvas');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 240000); // ЧАСТЬ 1 v2: мир сильно расширен
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 700000); // ЧАСТЬ 1 v2: мир сильно расширен
 camera.position.set(0, 30, 70);
 
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent), powerPreference: 'high-performance' });
@@ -31,10 +31,10 @@ scene.add(sunLight);
 
 // Enormous Deep Space Stars Field
 const starsGeometry = new THREE.BufferGeometry();
-const starsCount = isMobile ? 8000 : 15000;
+const starsCount = isMobile ? 12000 : 26000;
 const starPositions = new Float32Array(starsCount * 3);
 for (let i = 0; i < starsCount * 3; i++) {
-  starPositions[i] = (Math.random() - 0.5) * 90000; // ЧАСТЬ 1 v2: широкое поле звёзд
+  starPositions[i] = (Math.random() - 0.5) * 400000; // ЧАСТЬ 1 v2: широкое поле звёзд
 }
 starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
 const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0.85 });
@@ -1183,8 +1183,8 @@ const starSystemGroup = new THREE.Group();
   hg.addColorStop(1, 'rgba(255,100,50,0)');
   hx.fillStyle = hg;
   hx.fillRect(0, 0, 128, 128);
-  const sysHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(haloC), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
-  sysHalo.scale.set(1600, 1600, 1);
+  const sysHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(haloC), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, visible: false }));
+  sysHalo.scale.set(0, 0, 1); sysHalo.visible = false;
   starSystemGroup.add(sysHalo);
   const orbitRing = new THREE.Mesh(new THREE.TorusGeometry(420, 1.5, 6, 64), new THREE.MeshBasicMaterial({ color: 0xffb080, transparent: true, opacity: 0.25 }));
   orbitRing.rotation.x = Math.PI / 2.4;
@@ -1809,6 +1809,103 @@ function getPointerPosition(e) {
   };
 }
 
+
+// ==================== SCREEN FX (клики по объектам) ====================
+(function () {
+  var fx = document.createElement("div");
+  fx.id = "space-fx";
+  fx.style.cssText = "position:fixed;inset:0;z-index:9998;pointer-events:none;opacity:0;transition:opacity .18s ease;mix-blend-mode:screen;";
+  document.body.appendChild(fx);
+
+  var label = document.createElement("div");
+  label.id = "space-fx-label";
+  label.style.cssText = "position:fixed;left:50%;top:14%;transform:translateX(-50%);z-index:9999;pointer-events:none;font-family:Segoe UI,sans-serif;font-size:19px;font-weight:700;letter-spacing:2px;color:#fff;text-shadow:0 0 22px rgba(120,190,255,.9),0 0 50px rgba(90,60,255,.6);opacity:0;transition:opacity .25s ease,transform .35s cubic-bezier(.2,.9,.3,1.3);white-space:nowrap;";
+  document.body.appendChild(label);
+
+  var busy = false;
+  function runLabel(text) {
+    label.textContent = text;
+    label.style.transition = "none";
+    label.style.opacity = "0";
+    label.style.transform = "translateX(-50%) translateY(14px) scale(.9)";
+    requestAnimationFrame(function () {
+      label.style.transition = "opacity .28s ease, transform .38s cubic-bezier(.2,.9,.3,1.3)";
+      label.style.opacity = "1";
+      label.style.transform = "translateX(-50%) translateY(0) scale(1)";
+    });
+    clearTimeout(runLabel._t);
+    runLabel._t = setTimeout(function () {
+      label.style.opacity = "0";
+      label.style.transform = "translateX(-50%) translateY(-14px) scale(.94)";
+    }, 1500);
+  }
+
+  // стили тряски выносим один раз
+  var sh = document.createElement("style");
+  sh.textContent = "@keyframes fxShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-7px,4px)}40%{transform:translate(6px,-5px)}60%{transform:translate(-4px,-3px)}80%{transform:translate(5px,4px)}}"
+    + ".fx-shake{animation:fxShake .42s cubic-bezier(.36,.07,.19,.97)}"
+    + "@keyframes fxPulse{0%{filter:brightness(1)}35%{filter:brightness(2.6) saturate(1.7)}100%{filter:brightness(1)}}"
+    + ".fx-pulse{animation:fxPulse .5s ease-out}";
+  document.head.appendChild(sh);
+
+  function bodyFx(cls, ms) {
+    document.body.classList.add(cls);
+    setTimeout(function () { document.body.classList.remove(cls); }, ms || 520);
+  }
+
+  function overlay(color, a, ms) {
+    if (busy) return;
+    busy = true;
+    fx.style.background = color;
+    fx.style.opacity = String(a);
+    setTimeout(function () { fx.style.opacity = "0"; busy = false; }, ms || 320);
+  }
+
+  // 21 эффект — по одному на каждый объект
+  var FX = {
+    ringworld:  function () { overlay("radial-gradient(circle at 50% 50%, rgba(255,220,140,.85), rgba(255,140,40,.3) 45%, transparent 75%)", 0.5, 420); runLabel("КОЛЬЦЕВОЙ МИР · ОБИТАЕМ"); },
+    dyson:      function () { overlay("radial-gradient(circle at 50% 50%, rgba(255,240,180,.95), rgba(255,150,40,.35) 50%, transparent 80%)", 0.62, 520); bodyFx("fx-pulse", 520); runLabel("СФЕРА ДАЙСОНА · ЗАРЯД"); },
+    station:    function () { overlay("linear-gradient(180deg, rgba(140,200,255,.35), transparent 60%)", 0.45, 340); runLabel("СТАНЦИЯ · СТЫКОВКА РАЗРЕШЕНА"); },
+    ark:        function () { overlay("linear-gradient(90deg, rgba(120,180,255,.5), transparent 70%)", 0.5, 420); runLabel("КОВЧЕГ · ДВИГАТЕЛИ ЗАПУЩЕНЫ"); },
+    crystal:    function () { overlay("radial-gradient(circle at 50% 50%, rgba(190,250,255,.9), rgba(0,190,255,.35) 45%, transparent 78%)", 0.6, 400); runLabel("КРИСТАЛЛ · РЕЗОНАНС"); },
+    comet:      function () { overlay("linear-gradient(270deg, transparent, rgba(200,240,255,.55))", 0.5, 360); runLabel("КОМЕТА · ХВОСТ РАСТЁТ"); },
+    binary:     function () { overlay("radial-gradient(circle at 35% 45%, rgba(255,220,150,.7), transparent 55%), radial-gradient(circle at 65% 55%, rgba(150,210,255,.7), transparent 55%)", 0.55, 480); runLabel("ДВОЙНАЯ ЗВЕЗДА · СЛИЯНИЕ"); },
+    protoplanet:function () { overlay("radial-gradient(circle at 50% 50%, rgba(255,240,200,.75), rgba(255,170,70,.28) 50%, transparent 80%)", 0.5, 460); runLabel("ПРОТОПЛАНЕТА · АККРЕЦИЯ"); },
+    quasar:     function () { overlay("linear-gradient(0deg, rgba(160,220,255,.6), transparent 45%, rgba(160,220,255,.6))", 0.6, 440); bodyFx("fx-pulse", 440); runLabel("КВАЗАР · ДЖЕТЫ АКТИВНЫ"); },
+    beacon:     function () { overlay("radial-gradient(circle at 50% 50%, rgba(255,120,120,.5), transparent 65%)", 0.45, 380); runLabel("МАЯК · СИГНАЛ ОТПРАВЛЕН"); },
+    portal:     function () { overlay("radial-gradient(circle at 50% 50%, rgba(200,160,255,.95), rgba(90,30,200,.4) 48%, transparent 80%)", 0.65, 520); bodyFx("fx-shake", 420); runLabel("ПОРТАЛ · ОТКРЫТИЕ"); },
+    fleet:      function () { overlay("linear-gradient(180deg, transparent 40%, rgba(150,200,255,.45))", 0.4, 340); runLabel("ФЛОТ · КУРС ПОСТРОЕН"); },
+    tether:     function () { overlay("linear-gradient(0deg, rgba(190,220,255,.5), transparent 55%)", 0.42, 360); runLabel("ЛИФТ · ПОДЪЁМ"); },
+    gasgiant:   function () { overlay("radial-gradient(circle at 62% 58%, rgba(220,110,60,.7), rgba(255,190,120,.28) 45%, transparent 78%)", 0.55, 460); runLabel("ШТОРМ · КАТЕГОРИЯ 5"); },
+    eye:        function () { overlay("radial-gradient(circle at 50% 50%, rgba(150,120,255,.6), rgba(40,10,90,.5) 50%, transparent 85%)", 0.6, 520); runLabel("ГЛАЗ · ОН СМОТРИТ"); },
+    ringdebris: function () { overlay("linear-gradient(45deg, rgba(220,200,140,.4), transparent 60%)", 0.4, 340); runLabel("ОСКОЛКИ · ДРЕВНЕЕ КОЛЬЦО"); },
+    whale:      function () { overlay("radial-gradient(circle at 50% 60%, rgba(120,180,255,.5), transparent 70%)", 0.45, 480); runLabel("КИТ · ЗОВ В ТЕМНОТЕ"); },
+    monolith:   function () { overlay("linear-gradient(180deg, rgba(130,235,255,.55), rgba(0,60,120,.35))", 0.55, 480); bodyFx("fx-shake", 420); runLabel("МОНОЛИТ · КОНТАКТ"); },
+    temple:     function () { overlay("radial-gradient(circle at 50% 30%, rgba(255,235,180,.8), rgba(255,180,60,.3) 48%, transparent 78%)", 0.58, 500); runLabel("ХРАМ · ПРОБУЖДЕНИЕ"); },
+    darkstar:   function () { overlay("radial-gradient(circle at 50% 50%, rgba(255,245,210,.85), transparent 38%), radial-gradient(circle at 50% 50%, transparent 30%, rgba(0,0,0,.75) 62%)", 0.7, 560); bodyFx("fx-shake", 480); runLabel("ТЁМНАЯ ЗВЕЗДА · ЛИНЗА"); },
+    pixel:      function () { overlay("repeating-linear-gradient(0deg, rgba(80,255,120,.28) 0 3px, transparent 3px 6px)", 0.6, 420); bodyFx("fx-pulse", 420); runLabel("8-BIT СЕКТОР · УРОВЕНЬ 1"); }
+  };
+
+  var NAMES = {
+    ringworld: "Кольцевой мир", dyson: "Сфера Дайсона", station: "Станция-тор",
+    ark: "Корабль-ковчег", crystal: "Кристаллический астероид", comet: "Ледяная комета",
+    binary: "Двойная звезда", protoplanet: "Протопланетный диск", quasar: "Квазар",
+    beacon: "Космический маяк", portal: "Портал-аномалия", fleet: "Флот",
+    tether: "Орбитальный лифт", gasgiant: "Газовый гигант", eye: "Туманность-глаз",
+    ringdebris: "Осколки кольца", whale: "Космический кит", monolith: "Монолит",
+    temple: "Храм-корабль", darkstar: "Тёмная звезда", pixel: "Пиксель-сектор"
+  };
+
+  window.__spaceFX = {
+    fire: function (kind) {
+      var f = FX[kind];
+      if (f) f();
+      return !!f;
+    },
+    name: function (kind) { return NAMES[kind] || kind; }
+  };
+})();
+
 function handleInteraction(e) {
   if (document.body.classList.contains('battle-active')) return; // арена открыта — 3D не трогаем
   if (isConsuming || isAngelTriggered || isPixelManTriggered || isErrorTriggered || isDragonTriggered) return;
@@ -1823,6 +1920,15 @@ function handleInteraction(e) {
   mouse.x = (pos.x / window.innerWidth) * 2 - 1;
   mouse.y = -(pos.y / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
+
+  // ---- дальние объекты v3: приоритетный пикинг по сферам ----
+  if (window.__spaceExtras && window.__spaceExtras.pick) {
+    const deep = window.__spaceExtras.pick(raycaster);
+    if (deep) {
+      if (window.__spaceFX) window.__spaceFX.fire(deep.kind);
+      return;
+    }
+  }
 
   if (inDarkRoom) {
     // Первое отпускание после входа по нажатию — глотаем, чтобы не сбросить комнату мгновенно
@@ -2450,7 +2556,7 @@ function animate() {
   }
 
   const distFromOrigin = camera.position.distanceTo(controls.target);
-  if (distFromOrigin >= 24500) {
+  if (distFromOrigin >= 95000) {
     heartOverlay.classList.remove('hidden');
   } else {
     heartOverlay.classList.add('hidden');
@@ -2573,7 +2679,7 @@ window.addEventListener('resize', () => {
 // Clicker module loader (cache-busted)
 (function () {
   var s = document.createElement('script');
-  s.src = 'clicker.js?v=3';
+  s.src = 'clicker.js?v=4';
   document.body.appendChild(s);
 })();
 
@@ -2585,7 +2691,7 @@ window.addEventListener('resize', () => {
     document.body.appendChild(c);
     // Батл-арена: отдельный компонент на Photon LoadBalancing (свой клиент, не чат)
     var b = document.createElement('script');
-    b.src = 'battle.js?v=24';
+    b.src = 'battle.js?v=25';
     document.body.appendChild(b);
   }
   function tryPaths(paths) {
