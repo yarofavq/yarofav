@@ -1,8 +1,185 @@
 // ==================== PLANET CLICKER MODULE ====================
 (function () {
 'use strict';
+var CK_TRACKS = [
+  { f: 'clicker-music-1.mp3', n: 'Longing for AIR' },
+  { f: 'clicker-music-2.mp3', n: '8-Twelve' },
+  { f: 'clicker-music-3.mp3', n: 'Finesse - Nico\u2019s Nextbots' },
+  { f: 'clicker-music-4.mp3', n: 'Safe Room' },
+  { f: 'clicker-music-5.mp3', n: 'Outta Luck' },
+  { f: 'clicker-music-6.mp3', n: 'Menu (In-Game)' },
+  { f: 'clicker-music-7.mp3', n: 'Tonka 2' }
+];
+var CK_MUSIC_KEY = 'spaceClicker_music';
+var CK_MVOL_KEY = 'spaceClicker_mvol';
+var CK_TRACK_KEY = 'spaceClicker_track';
+var ckAudio = null;
+var ckMusicOn = true;
+var ckMusicVol = 0.5;
+var ckTrack = 0;
+var ckFx = null;
+try { var _mv = localStorage.getItem(CK_MUSIC_KEY); if (_mv !== null) ckMusicOn = (_mv === '1'); } catch (e) {}
+try { var _vv = parseFloat(localStorage.getItem(CK_MVOL_KEY)); if (!isNaN(_vv)) ckMusicVol = Math.max(0, Math.min(1, _vv / 100)); } catch (e) {}
+try { var _tv = parseInt(localStorage.getItem(CK_TRACK_KEY), 10); if (!isNaN(_tv) && _tv >= 0 && _tv < CK_TRACKS.length) ckTrack = _tv; } catch (e) {}
+// подтянуть громкость музыки из настроек сайта (settings.js), если они есть
+(function () {
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || k.indexOf('spaceClicker') === 0) continue;
+      var v = JSON.parse(localStorage.getItem(k) || 'null');
+      if (v && typeof v === 'object' && typeof v.music === 'number' && typeof v.vol === 'number') {
+        var lv = (v.music / 100) * (v.vol / 100);
+        if (lv > 0) { ckMusicVol = Math.max(0, Math.min(1, lv)); break; }
+      }
+    }
+  } catch (e) {}
+})();
+function ckAudioInit() {
+  if (ckAudio) return ckAudio;
+  ckAudio = new Audio();
+  ckAudio.loop = true;
+  ckAudio.preload = 'auto';
+  ckAudio.volume = ckMusicVol;
+  ckAudio.src = CK_TRACKS[ckTrack].f;
+  return ckAudio;
+}
+function ckMusicPlay() {
+  if (!ckMusicOn) return;
+  var a = ckAudioInit();
+  var pr = a.play();
+  if (pr && pr.catch) pr.catch(function () {});
+}
+function ckMusicPause() { if (ckAudio) ckAudio.pause(); }
+function ckMusicSync() {
+  var nm = document.getElementById('ck-track-name');
+  if (nm) nm.textContent = CK_TRACKS[ckTrack].n;
+  var nu = document.getElementById('ck-track-num');
+  if (nu) nu.textContent = (ckTrack + 1) + '/' + CK_TRACKS.length;
+  var pb = document.getElementById('ck-play');
+  if (pb) { pb.textContent = ckMusicOn ? 'II' : '\u25B6'; pb.className = 'ck-mbtn ck-play' + (ckMusicOn ? ' on' : ''); }
+}
+function ckTrackSet(i, keepPaused) {
+  if (i < 0) i = CK_TRACKS.length - 1;
+  if (i >= CK_TRACKS.length) i = 0;
+  ckTrack = i;
+  try { localStorage.setItem(CK_TRACK_KEY, String(i)); } catch (e) {}
+  var a = ckAudioInit();
+  a.src = CK_TRACKS[i].f;
+  a.volume = ckMusicVol;
+  try { a.load(); } catch (e) {}
+  ckMusicSync();
+  if (ckMusicOn && !keepPaused) ckMusicPlay();
+}
+function ckTrackNext() { ckTrackSet(ckTrack + 1); }
+function ckTrackPrev() { ckTrackSet(ckTrack - 1); }
+/* --- ЗВУКИ (WebAudio, без файлов) --- */
+function ckFxCtx() {
+  if (ckFx) return ckFx;
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) ckFx = new AC();
+  } catch (e) {}
+  return ckFx;
+}
+function ckBeep(freq, dur, type, gain, slideTo) {
+  var ctx = ckFxCtx();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
+  var o = ctx.createOscillator();
+  var g = ctx.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(freq, ctx.currentTime);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, ctx.currentTime + dur);
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime((gain || 0.12), ctx.currentTime + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + dur + 0.02);
+}
+function sfxClick() { ckBeep(620, 0.07, 'triangle', 0.13, 880); }
+function sfxBuy() {
+  ckBeep(520, 0.09, 'square', 0.09, 780);
+  setTimeout(function () { ckBeep(880, 0.12, 'triangle', 0.11, 1180); }, 70);
+}
+function sfxRebirth() { ckBeep(300, 0.4, 'sawtooth', 0.09, 1400); }
+// пауза в фоне, возобновление при возврате
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) { ckMusicPause(); }
+  else if (ckMusicOn && ckAudio && ckAudio.paused && !overlay.classList.contains('hidden')) { ckMusicPlay(); }
+});
 var CK_KEY = 'spaceClicker_v1';
 var CK_TH = [0, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e11, 1e12];
+var CK_ITEMS = [
+  { id: 'shard', n: 'Осколок', col: '#9fb8ff', rar: 'Common',    w: 60 },
+  { id: 'core',  n: 'Ядро',    col: '#37e08a', rar: 'Rare',      w: 25 },
+  { id: 'prism', n: 'Призма',  col: '#b04dff', rar: 'Epic',      w: 10 },
+  { id: 'nova',  n: 'Нова',    col: '#ffd23f', rar: 'Legendary', w: 4 },
+  { id: 'void',  n: 'Пустота', col: '#ff4d6d', rar: 'Mythic',    w: 1 }
+];
+var CK_DROP_CHANCE = 0.0005;
+var CK_BOOST_EVERY = 500;
+var CK_BOOST_MAX = 3600;
+var CK_BOOSTS = [
+  { id: 'frenzy', n: 'Click Frenzy', col: '#ff4d6d', dur: 60,   mult: 5, tgt: 'click', price: 2.5e11, desc: 'x5 за клик' },
+  { id: 'surge',  n: 'Auto Surge',   col: '#3a86ff', dur: 1800, mult: 3, tgt: 'auto',  price: 7.5e11, desc: 'x3 авто/с' },
+  { id: 'gold',   n: 'Gold Rush',    col: '#ffd23f', dur: 3600, mult: 2, tgt: 'all',   price: 5e12, desc: 'x2 ко всему' }
+];
+function ckItemById(id) { for (var i = 0; i < CK_ITEMS.length; i++) if (CK_ITEMS[i].id === id) return CK_ITEMS[i]; return null; }
+function ckBoostById(id) { for (var i = 0; i < CK_BOOSTS.length; i++) if (CK_BOOSTS[i].id === id) return CK_BOOSTS[i]; return null; }
+function ckRollItem() {
+  var tot = 0, i;
+  for (i = 0; i < CK_ITEMS.length; i++) tot += CK_ITEMS[i].w;
+  var r = Math.random() * tot;
+  for (i = 0; i < CK_ITEMS.length; i++) { r -= CK_ITEMS[i].w; if (r <= 0) return CK_ITEMS[i]; }
+  return CK_ITEMS[0];
+}
+function ckBoostGrant(id, sec) {
+  var b = ckBoostById(id);
+  if (!b) return false;
+  sec = Math.max(1, Math.min(sec || b.dur, CK_BOOST_MAX));
+  var now = Date.now();
+  var cur = (CK.boost[id] > now) ? CK.boost[id] : now;
+  CK.boost[id] = Math.min(cur + sec * 1000, now + CK_BOOST_MAX * 1000);
+  return true;
+}
+function ckBoostMul(tgt) {
+  var m = 1, now = Date.now();
+  for (var i = 0; i < CK_BOOSTS.length; i++) {
+    var b = CK_BOOSTS[i];
+    if ((b.tgt === tgt || b.tgt === 'all') && CK.boost[b.id] > now) m *= b.mult;
+  }
+  return m;
+}
+function ckBoostPrune() {
+  var now = Date.now(), ch = 0;
+  for (var i = 0; i < CK_BOOSTS.length; i++) {
+    var id = CK_BOOSTS[i].id;
+    if (CK.boost[id] && CK.boost[id] <= now) { delete CK.boost[id]; ch++; }
+  }
+  return ch;
+}
+function ckFmtTime(s) {
+  s = Math.max(0, Math.round(s));
+  if (s >= 3600) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+  if (s >= 60) return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+  return s + 's';
+}
+function ckManualClick() {
+  var ev = [];
+  CK.mc = (CK.mc || 0) + 1;
+  if (CK.mc % CK_BOOST_EVERY === 0) {
+    var b = CK_BOOSTS[Math.floor(Math.random() * CK_BOOSTS.length)];
+    ckBoostGrant(b.id, b.dur);
+    ev.push('BOOST:' + b.id);
+  }
+  if (Math.random() < CK_DROP_CHANCE) {
+    var it = ckRollItem();
+    if (CK.inv.length < 2000) CK.inv.push(it.id);
+    ev.push('DROP:' + it.id);
+  }
+  return ev;
+}
 var CK_NAMES = ['Нептун', 'Уран', 'Сатурн', 'Юпитер', 'Марс', 'Земля', 'Венера', 'Меркурий', 'Солнце', 'Чёрная дыра'];
 var CK_COLS = [
 ['#bfe8ff', '#3f7fd6', '#12356b'],
@@ -16,22 +193,35 @@ var CK_COLS = [
 ['#fff6b8', '#ffc233', '#8a5a00'],
 ['#c9a6ff', '#6a1fb5', '#17002e']
 ];
-var CK = { clicks: 0, mult: 1, rebirths: 0, lv: [], laser: false, earth: false };
+var CK = { clicks: 0, mult: 1, rebirths: 0, lv: [], laser: false, earth: false, gold: false, critM: false, warp: false, boost: {}, inv: [], mc: 0 };
 var CK_UPG = [];
 var i;
-for (i = 0; i < 100; i++) CK.lv.push(0);
+for (i = 0; i < 300; i++) CK.lv.push(0);
 for (i = 0; i < 100; i++) {
   if (i % 2 === 0) CK_UPG.push({ name: 'Авто-дрон ' + (i / 2 + 1), type: 'auto', val: Math.max(1, Math.round(Math.pow(2.2, i / 2))), base: Math.ceil(100 * Math.pow(1.75, i)) });
   else CK_UPG.push({ name: 'Усилитель ' + Math.ceil(i / 2), type: 'power', val: Math.max(1, Math.round(Math.pow(2.2, (i - 1) / 2))), base: Math.ceil(100 * Math.pow(1.75, i)) });
 }
+for (i = 100; i < 200; i++) {
+  if (i % 2 === 0) CK_UPG.push({ name: 'Crit Chip ' + ((i - 100) / 2 + 1), type: 'crit', val: 1 + Math.round((i - 100) / 2 * 0.7), base: Math.ceil(1e6 * Math.pow(2.6, i - 100)) });
+  else CK_UPG.push({ name: 'Gold Reactor ' + Math.ceil((i - 100) / 2), type: 'gold', val: 1 + Math.round((i - 101) / 2 * 0.5), base: Math.ceil(2e6 * Math.pow(2.6, i - 101)) });
+}
+for (i = 200; i < 300; i++) {
+  if (i % 2 === 0) CK_UPG.push({ name: 'Crit Amp ' + ((i - 200) / 2 + 1), type: 'critx', val: 1, base: Math.ceil(1e12 * Math.pow(3.2, i - 200)) });
+  else CK_UPG.push({ name: 'Mega Core ' + Math.ceil((i - 200) / 2), type: 'mega', val: 2 + Math.round((i - 201) / 2), base: Math.ceil(2e12 * Math.pow(3.2, i - 201)) });
+}
 function ckUpgCost(x) { return Math.ceil(CK_UPG[x].base * Math.pow(1.25, CK.lv[x])); }
-function ckCps() { var s = 0; for (var x = 0; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult; }
-function ckPower() { var s = 1; for (var x = 1; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult; }
+function ckGold() { var s = 0; for (var x = 101; x < 200; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s + (CK.gold ? 50 : 0); }
+function ckMega() { var s = 0; for (var x = 201; x < 300; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s; }
+function ckGoldMul() { return 1 + (ckGold() + ckMega()) / 100; }
+function ckCps() { var s = 0; for (var x = 0; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult * ckGoldMul() * ckBoostMul('auto'); }
+function ckPower() { var s = 1; for (var x = 1; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult * ckGoldMul() * ckBoostMul('click'); }
+function ckCrit() { var s = 5; for (var x = 100; x < 200; x += 2) s += CK_UPG[x].val * CK.lv[x]; return Math.min(85, s + (CK.critM ? 15 : 0)); }
+function ckCritMul() { var s = 5; for (var x = 200; x < 300; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s; }
 function ckStage() { var s = 0; for (var x = 0; x < CK_TH.length; x++) if (CK.clicks >= CK_TH[x]) s = x; return s; }
 function fmtNum(n) {
   n = Math.floor(n);
   if (n < 1000) return '' + n;
-  var u = [[1e12, 'кккк'], [1e9, 'ккк'], [1e6, 'кк'], [1e3, 'к']];
+  var u = [[1e18, 'Qi'], [1e15, 'Qa'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
   for (var x = 0; x < u.length; x++) {
     if (n >= u[x][0]) {
       var v = n / u[x][0];
@@ -86,7 +276,7 @@ function ckSave() {
   try {
     localStorage.setItem(CK_KEY, JSON.stringify({
       v: 1, clicks: CK.clicks, mult: CK.mult, rebirths: CK.rebirths,
-      lv: CK.lv, laser: CK.laser, earth: CK.earth, ts: Date.now()
+      lv: CK.lv, laser: CK.laser, earth: CK.earth, gold: CK.gold, critM: CK.critM, warp: CK.warp, boost: CK.boost, inv: CK.inv, mc: CK.mc, ts: Date.now()
     }));
   } catch (e) {}
   ckLbPush(false);
@@ -100,12 +290,18 @@ function ckLoad() {
   CK.rebirths = Number(raw.rebirths) || 0;
   CK.laser = !!raw.laser;
   CK.earth = !!raw.earth;
+  CK.gold = !!raw.gold;
+  CK.critM = !!raw.critM;
+  CK.warp = !!raw.warp;
+  CK.boost = (raw.boost && typeof raw.boost === 'object') ? raw.boost : {};
+  CK.inv = (raw.inv && raw.inv.length) ? raw.inv.slice(0, 2000) : [];
+  CK.mc = Number(raw.mc) || 0;
   if (raw.lv && raw.lv.length) {
-    for (var x = 0; x < 100 && x < raw.lv.length; x++) CK.lv[x] = Number(raw.lv[x]) || 0;
+    for (var x = 0; x < 300 && x < raw.lv.length; x++) CK.lv[x] = Number(raw.lv[x]) || 0;
   }
   var dt = Math.max(0, (Date.now() - (Number(raw.ts) || Date.now())) / 1000);
   if (dt > 60) {
-    var gain = ckCps() * Math.min(dt, CK_OFFLINE_CAP) * CK_OFFLINE_RATE;
+    var gain = ckCps() * Math.min(dt, CK_OFFLINE_CAP) * (CK.warp ? 1 : CK_OFFLINE_RATE);
     if (gain >= 1) { CK.clicks += gain; ckOfflineGain = gain; }
   }
 }
@@ -139,6 +335,27 @@ cssAdd('#ck-stats{color:#cfe0ff;font-size:14px;text-align:center;line-height:1.5
 cssAdd('.ck-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}');
 cssAdd('.ck-actions button{font-family:inherit;font-weight:bold;border:none;border-radius:9px;padding:9px 14px;cursor:pointer;color:#fff;}');
 cssAdd('#ck-shopbtn{background:linear-gradient(135deg,#c7921e,#8a5a00);}');
+cssAdd('.ck-float.crit{color:#ffd23f;font-size:21px;text-shadow:0 0 10px #ffb700;}');
+cssAdd('.ck-tabs{display:flex;gap:6px;padding:8px 8px 0;}');
+cssAdd('.ck-tab{flex:1;padding:8px 6px;border:1px solid #2b3672;border-radius:9px;background:#111634;color:#8fa3e8;font-family:inherit;font-weight:bold;font-size:12px;cursor:pointer;}');
+cssAdd('.ck-tab.on{background:linear-gradient(135deg,#3a86ff,#7b2cbf);color:#fff;border-color:#3a86ff;}');
+cssAdd('#ck-boostbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}');
+cssAdd('.ck-bchip{border:1px solid;border-radius:20px;padding:4px 10px;font-size:11.5px;font-weight:bold;background:rgba(0,0,0,.35);}');
+cssAdd('.ck-toast{position:fixed;left:50%;top:13%;transform:translateX(-50%);z-index:9600;background:linear-gradient(135deg,#141a3a,#0b1026);border:1px solid #3a86ff;border-radius:12px;padding:10px 18px;color:#dfe6ff;font-family:Courier New,monospace;font-weight:bold;font-size:14px;box-shadow:0 0 22px rgba(58,134,255,.6);pointer-events:none;animation:ckToast 3.2s forwards;}');
+cssAdd('@keyframes ckToast{0%{opacity:0;transform:translate(-50%,-10px);}10%{opacity:1;transform:translate(-50%,0);}80%{opacity:1;}100%{opacity:0;transform:translate(-50%,-14px);}}');
+cssAdd('#ck-invbtn{background:linear-gradient(135deg,#6a1fb5,#3a1a6b);}');
+cssAdd('.ck-flask{width:22px;height:30px;margin:0 auto 5px;border:2px solid #dfe6ff;border-radius:4px 4px 12px 12px;background:linear-gradient(180deg,transparent 20%,var(--fc) 20%,var(--fc) 100%);position:relative;box-shadow:0 0 10px var(--fc);}');
+cssAdd('.ck-flask:before{content:"";position:absolute;top:-7px;left:4px;width:10px;height:6px;border:2px solid #dfe6ff;border-bottom:none;border-radius:3px 3px 0 0;}');
+cssAdd('#ck-inv{position:fixed;inset:0;z-index:9460;background:rgba(2,2,14,.92);display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;}');
+cssAdd('#ck-inv-box{width:min(560px,94vw);max-height:86vh;overflow-y:auto;background:linear-gradient(160deg,#0b1026,#141a3a);border:2px solid #6a1fb5;border-radius:18px;padding:18px;}');
+cssAdd('#ck-inv-box h2{margin:0 0 14px;color:#c9a6ff;text-align:center;font-size:19px;}');
+cssAdd('.ck-inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}');
+cssAdd('.ck-inv-card{position:relative;border:2px solid;border-radius:12px;padding:12px 8px;text-align:center;background:rgba(0,0,20,.55);color:#dfe6ff;font-size:12.5px;}');
+cssAdd('.ck-inv-card small{display:block;color:#8fa3e8;font-size:10.5px;margin-top:2px;}');
+cssAdd('.ck-inv-orb{width:34px;height:34px;border-radius:50%;margin:0 auto 8px;box-shadow:0 0 14px rgba(255,255,255,.25);}');
+cssAdd('.ck-inv-n{position:absolute;top:6px;right:8px;color:#ffd23f;font-weight:bold;font-size:12px;}');
+cssAdd('.ck-inv-empty{color:#8fa3e8;text-align:center;padding:26px 10px;font-size:13px;}');
+cssAdd('#ck-close-inv{display:block;margin:16px auto 0;background:linear-gradient(135deg,#3a86ff,#7b2cbf);border:none;color:#fff;border-radius:10px;padding:10px 26px;font-family:inherit;font-weight:bold;cursor:pointer;}');
 cssAdd('#ck-earthbtn{background:linear-gradient(135deg,#2e9e4f,#145a2a);}');
 cssAdd('#ck-closebtn{background:#b3283c;}');
 cssAdd('#ck-rebirth{background:linear-gradient(135deg,#b04dff,#5e12a8);}');
@@ -153,6 +370,15 @@ cssAdd('.ck-shop-item.owned{border-color:#37e08a;}');
 cssAdd('.ck-shop-item button{background:linear-gradient(135deg,#e0b23e,#8a5a00);border:none;border-radius:8px;padding:8px 12px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;}');
 cssAdd('#ck-close-shop{width:100%;background:#b3283c;border:none;border-radius:9px;padding:10px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
 cssAdd('#ck-lbbtn{background:linear-gradient(135deg,#3a86ff,#5e17a5);}');
+cssAdd('#ck-player{display:flex;align-items:center;gap:8px;width:100%;margin-top:10px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(22,28,64,.94),rgba(14,18,44,.94));border:1px solid #2b3672;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}');
+cssAdd('#ck-player-info{flex:1;min-width:0;}');
+cssAdd('#ck-track-name{font-size:12.5px;font-weight:700;color:#dfe6ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 12px rgba(120,170,255,.4);}');
+cssAdd('#ck-track-num{font-size:10px;color:#7f8fc4;letter-spacing:1.2px;margin-top:2px;}');
+cssAdd('.ck-mbtn{width:34px;height:34px;flex:none;border:1px solid #33407f;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;color:#cfe0ff;background:#1a2148;transition:transform .15s,background .2s,box-shadow .2s;}');
+cssAdd('.ck-mbtn:hover{background:#26306a;transform:translateY(-2px);box-shadow:0 4px 14px rgba(80,120,255,.3);}');
+cssAdd('.ck-mbtn:active{transform:scale(.9);}');
+cssAdd('.ck-mbtn.on{background:linear-gradient(135deg,#37e08a,#1d9d5f);color:#04121c;border-color:rgba(55,224,138,.7);box-shadow:0 0 14px rgba(55,224,138,.5);}');
+cssAdd('#ck-mvol{width:88px;flex:none;accent-color:#3a86ff;cursor:pointer;}');
 cssAdd('#ck-lb{position:fixed;inset:0;z-index:9470;background:rgba(2,2,14,.85);display:flex;align-items:center;justify-content:center;font-family:inherit;}');
 cssAdd('#ck-lb-box{width:min(520px,94vw);max-height:88vh;overflow-y:auto;background:linear-gradient(160deg,#141a3a,#0b1026);border:2px solid #3a86ff;border-radius:20px;padding:18px;color:#fff;}');
 cssAdd('#ck-lb-box h2{margin:0 0 6px;text-align:center;letter-spacing:2px;background:linear-gradient(90deg,#8fc0ff,#b04dff,#8fc0ff);-webkit-background-clip:text;background-clip:text;color:transparent;}');
@@ -169,6 +395,22 @@ cssAdd('#ck-offline b{color:#37e08a;}');
 cssAdd('#ck-off-x{float:right;color:#8fa3e8;padding:0 4px;}');
 cssAdd('#laser-fire-btn{position:fixed;left:18px;bottom:96px;z-index:9400;width:60px;height:60px;border-radius:50%;border:2px solid #ff5555;background:radial-gradient(circle,#ff2020,#7a0000);color:#fff;font-size:22px;cursor:pointer;box-shadow:0 0 16px #ff2020;display:none;font-family:inherit;font-weight:bold;}');
 cssAdd('#earth-exit-btn{position:fixed;top:16px;left:16px;z-index:9400;display:none;background:rgba(179,40,60,.9);border:1px solid #ff9aa8;color:#fff;border-radius:10px;padding:10px 16px;font-family:Courier New,monospace;font-weight:bold;cursor:pointer;}');
+function ckToast(msg) {
+  var t = el('div', '', 'ck-toast', msg);
+  document.body.appendChild(t);
+  setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3200);
+}
+function ckBoostRender() {
+  if (!boostBar) return;
+  var h = '', now = Date.now();
+  for (var i = 0; i < CK_BOOSTS.length; i++) {
+    var b = CK_BOOSTS[i];
+    var sec = Math.max(0, Math.round(((CK.boost[b.id] || 0) - now) / 1000));
+    if (sec > 0) h += '<span class="ck-bchip" style="border-color:' + b.col + ';color:' + b.col + '">' + b.n + ' ' + ckFmtTime(sec) + '</span>';
+  }
+  boostBar.innerHTML = h;
+  boostBar.style.display = h ? '' : 'none';
+}
 function el(tag, id, cls, txt) {
   var e = document.createElement(tag);
   if (id) e.id = id;
@@ -194,16 +436,42 @@ var earthBtn = el('button', 'ck-earthbtn', '', 'НА ЗЕМЛЮ');
 earthBtn.style.display = 'none';
 var rebBtn = el('button', 'ck-rebirth', '', 'x2');
 var lbBtn = el('button', 'ck-lbbtn', '', 'ЛИДЕРБОРД');
+var invBtn = el('button', 'ck-invbtn', '', 'ИНВЕНТАРЬ');
 rebBtn.disabled = true;
 var closeBtn = el('button', 'ck-closebtn', '', 'X');
 actions.appendChild(shopBtn);
 actions.appendChild(earthBtn);
 actions.appendChild(rebBtn);
 actions.appendChild(lbBtn);
+actions.appendChild(invBtn);
+var player = el('div', 'ck-player');
+var pInfo = el('div', 'ck-player-info');
+var pName = el('div', 'ck-track-name', '', CK_TRACKS[ckTrack].n);
+pName.id = 'ck-track-name';
+var pNum = el('div', 'ck-track-num', '', (ckTrack + 1) + '/' + CK_TRACKS.length);
+pNum.id = 'ck-track-num';
+pInfo.appendChild(pName);
+pInfo.appendChild(pNum);
+var pPrev = el('button', '', 'ck-mbtn ck-prev', '\u25C0');
+var pPlay = el('button', 'ck-play', 'ck-mbtn ck-play' + (ckMusicOn ? ' on' : ''), ckMusicOn ? 'II' : '\u25B6');
+var pNext = el('button', '', 'ck-mbtn ck-next', '\u25B6');
+var pVol = el('input', 'ck-mvol', 'ck-mvol');
+pVol.type = 'range'; pVol.min = '0'; pVol.max = '100';
+pVol.value = String(Math.round(ckMusicVol * 100));
+pVol.title = 'Громкость';
+player.appendChild(pInfo);
+player.appendChild(pPrev);
+player.appendChild(pPlay);
+player.appendChild(pNext);
+player.appendChild(pVol);
+actions.appendChild(player);
 actions.appendChild(closeBtn);
 left.appendChild(stats);
 left.appendChild(disc);
 left.appendChild(prbar);
+var boostBar = el('div', 'ck-boostbar');
+boostBar.style.display = 'none';
+left.appendChild(boostBar);
 left.appendChild(actions);
 if (ckOfflineGain >= 1) {
   var offNote = el('div', 'ck-offline');
@@ -212,9 +480,30 @@ if (ckOfflineGain >= 1) {
   offNote.addEventListener('click', function () { offNote.style.display = 'none'; });
 }
 var right = el('div', 'clicker-right');
-right.appendChild(el('h3', '', '', 'АПГРЕЙДЫ (100)'));
+right.appendChild(el('h3', '', '', 'АПГРЕЙДЫ'));
+var tabs = el('div', 'ck-tabs');
+var tab1 = el('button', 'ck-tab0', 'ck-tab on', 'ДОХОД');
+var tab2 = el('button', 'ck-tab1', 'ck-tab', 'КРИТ / ГОЛД');
+tabs.appendChild(tab1);
+tabs.appendChild(tab2);
+right.appendChild(tabs);
 var uplist = el('div', 'ck-uplist');
 right.appendChild(uplist);
+var tabBtns = [tab1, tab2];
+var upTab = 0;
+function ckTabApply() {
+  for (var x = 0; x < 300; x++) {
+    var rr = upRows[x];
+    if (!rr) continue;
+    var t = CK_UPG[x].type;
+    var grp = (t === 'auto' || t === 'power') ? 0 : 1;
+    rr.row.style.display = (grp === upTab) ? '' : 'none';
+  }
+  tabBtns[0].className = 'ck-tab' + (upTab === 0 ? ' on' : '');
+  tabBtns[1].className = 'ck-tab' + (upTab === 1 ? ' on' : '');
+}
+tab1.addEventListener('click', function () { upTab = 0; ckTabApply(); });
+tab2.addEventListener('click', function () { upTab = 1; ckTabApply(); });
 panel.appendChild(left);
 panel.appendChild(right);
 overlay.appendChild(panel);
@@ -227,7 +516,7 @@ var laserInfo = el('div');
 laserInfo.innerHTML = '<b>ЛАЗЕР</b><br><small>ПКМ на ПК или красная кнопка слева на телефоне</small>';
 var laserRight = el('div');
 laserRight.style.textAlign = 'right';
-var laserCost = el('div', '', '', 'Цена: 100к');
+var laserCost = el('div', '', '', 'Price: 100K');
 var laserBuy = el('button', 'ck-buy-laser', '', 'КУПИТЬ');
 laserRight.appendChild(laserCost);
 laserRight.appendChild(laserBuy);
@@ -239,17 +528,114 @@ var earthInfo = el('div');
 earthInfo.innerHTML = '<b>ЗЕМЛЯ: до нашей эры</b><br><small>Полетать по живой Земле: джунгли, динозавры, вулкан</small>';
 var earthRight = el('div');
 earthRight.style.textAlign = 'right';
-var earthCost = el('div', '', '', 'Цена: 1кк');
+var earthCost = el('div', '', '', 'Price: 1M');
 var earthBuy = el('button', 'ck-buy-earth', '', 'КУПИТЬ');
 earthRight.appendChild(earthCost);
 earthRight.appendChild(earthBuy);
 itemEarth.appendChild(earthInfo);
 itemEarth.appendChild(earthRight);
 shopBox.appendChild(itemEarth);
+var itemGold = el('div', 'ck-item-gold', 'ck-shop-item');
+var goldInfo = el('div');
+goldInfo.innerHTML = '<b>GOLDEN TOUCH</b><br><small>+50% ко всем доходам навсегда</small>';
+var goldRight = el('div');
+goldRight.style.textAlign = 'right';
+var goldCost = el('div', '', '', 'Price: 100M');
+var goldBuy = el('button', 'ck-buy-gold', '', 'КУПИТЬ');
+goldRight.appendChild(goldCost);
+goldRight.appendChild(goldBuy);
+itemGold.appendChild(goldInfo);
+itemGold.appendChild(goldRight);
+shopBox.appendChild(itemGold);
+var itemCrit = el('div', 'ck-item-crit', 'ck-shop-item');
+var critInfo = el('div');
+critInfo.innerHTML = '<b>CRIT MASTER</b><br><small>+15% шанс крита (x5 за клик)</small>';
+var critRight = el('div');
+critRight.style.textAlign = 'right';
+var critCost = el('div', '', '', 'Price: 1B');
+var critBuy = el('button', 'ck-buy-crit', '', 'КУПИТЬ');
+critRight.appendChild(critCost);
+critRight.appendChild(critBuy);
+itemCrit.appendChild(critInfo);
+itemCrit.appendChild(critRight);
+shopBox.appendChild(itemCrit);
+var itemWarp = el('div', 'ck-item-warp', 'ck-shop-item');
+var warpInfo = el('div');
+warpInfo.innerHTML = '<b>TIME WARP</b><br><small>Оффлайн-доход 100% вместо 50%</small>';
+var warpRight = el('div');
+warpRight.style.textAlign = 'right';
+var warpCost = el('div', '', '', 'Price: 10B');
+var warpBuy = el('button', 'ck-buy-warp', '', 'КУПИТЬ');
+warpRight.appendChild(warpCost);
+warpRight.appendChild(warpBuy);
+itemWarp.appendChild(warpInfo);
+itemWarp.appendChild(warpRight);
+shopBox.appendChild(itemWarp);
+shopBox.appendChild(el('h3', '', '', 'БУСТЕРЫ (1 ЧАС)'));
+var boostBtns = [];
+(function () {
+  for (var bi = 0; bi < CK_BOOSTS.length; bi++) {
+    (function (b) {
+      var row = el('div', 'ck-item-boost-' + b.id, 'ck-shop-item');
+      var info = el('div');
+      info.innerHTML = '<b>' + b.n + '</b><br><small>' + b.desc + ' · 1 час</small>';
+      var side = el('div');
+      side.style.textAlign = 'right';
+      var flask = el('div', '', 'ck-flask');
+      flask.style.setProperty('--fc', b.col);
+      var costEl = el('div', '', '', 'Price: ' + fmtNum(b.price));
+      var buy = el('button', 'ck-buy-boost-' + b.id, '', 'КУПИТЬ');
+      side.appendChild(flask);
+      side.appendChild(costEl);
+      side.appendChild(buy);
+      row.appendChild(info);
+      row.appendChild(side);
+      shopBox.appendChild(row);
+      boostBtns.push({ b: b, buy: buy });
+      buy.addEventListener('click', function () {
+        if (CK.clicks < b.price) return;
+        CK.clicks -= b.price;
+        ckBoostGrant(b.id, 3600);
+        sfxBuy();
+        ckSave();
+        ckBoostRender();
+        ckToast('КУПЛЕНО: ' + b.n + ' на 1 час');
+        renderShop();
+        render();
+      });
+    })(CK_BOOSTS[bi]);
+  }
+})();
 var closeShopBtn = el('button', 'ck-close-shop', '', 'ЗАКРЫТЬ');
 shopBox.appendChild(closeShopBtn);
 shop.appendChild(shopBox);
 document.body.appendChild(shop);
+var inv = el('div', 'ck-inv', 'clicker-ui hidden');
+var invBox = el('div', 'ck-inv-box');
+invBox.appendChild(el('h2', '', '', 'ИНВЕНТАРЬ'));
+var invGrid = el('div', 'ck-inv-grid');
+invBox.appendChild(invGrid);
+var invEmpty = el('div', 'ck-inv-empty', '', 'Пока пусто. Дроп редкий — кликай по планете.');
+invBox.appendChild(invEmpty);
+var invClose = el('button', 'ck-close-inv', '', 'ЗАКРЫТЬ');
+invBox.appendChild(invClose);
+inv.appendChild(invBox);
+document.body.appendChild(inv);
+function ckInvRender() {
+  var cnt = {}, i;
+  for (i = 0; i < CK.inv.length; i++) cnt[CK.inv[i]] = (cnt[CK.inv[i]] || 0) + 1;
+  var h = '';
+  for (var k = 0; k < CK_ITEMS.length; k++) {
+    var it = CK_ITEMS[k];
+    var c = cnt[it.id] || 0;
+    if (!c) continue;
+    h += '<div class="ck-inv-card" style="border-color:' + it.col + '"><div class="ck-inv-orb" style="background:radial-gradient(circle at 34% 30%,' + it.col + ',rgba(0,0,0,.65))"></div><b>' + it.n + '</b><small>' + it.rar + '</small><span class="ck-inv-n">x' + c + '</span></div>';
+  }
+  invGrid.innerHTML = h;
+  invEmpty.style.display = h ? 'none' : '';
+}
+invBtn.addEventListener('click', function () { inv.classList.remove('hidden'); ckInvRender(); });
+invClose.addEventListener('click', function () { inv.classList.add('hidden'); });
 var lb = el('div', 'ck-lb', 'clicker-ui hidden');
 var lbBox = el('div', 'ck-lb-box');
 lbBox.appendChild(el('h2', '', '', 'ЛИДЕРБОРД'));
@@ -279,6 +665,7 @@ document.body.appendChild(laserBtn);
 var earthExit = el('button', 'earth-exit-btn', '', 'Покинуть Землю');
 document.body.appendChild(earthExit);
 if (CK.laser) laserBtn.style.display = 'block';
+ckMusicSync();
 var upRows = [];
 var pendUp = false;
 function scheduleUpg() {
@@ -309,13 +696,13 @@ function render(forceUp) {
     prfill.style.width = '100%';
   }
   rebBtn.disabled = CK.clicks < 1e14;
-  rebBtn.textContent = CK.clicks >= 1e14 ? 'ПЕРЕРОДИТЬСЯ x2' : 'x2 (100кккк)';
+  rebBtn.textContent = CK.clicks >= 1e14 ? 'ПЕРЕРОДИТЬСЯ x2' : 'x2 (100T)';
   earthBtn.style.display = CK.earth ? '' : 'none';
   if (forceUp) renderUpgrades();
   else scheduleUpg();
 }
 (function initUpgrades() {
-  for (var x = 0; x < 100; x++) {
+  for (var x = 0; x < 300; x++) {
     var u = CK_UPG[x];
     var row = el('div', '', 'ck-up no');
     var info = el('div');
@@ -333,30 +720,42 @@ function render(forceUp) {
     uplist.appendChild(row);
     upRows.push({ row: row, lvl: lvl, eff: eff, btn: btn });
   }
+  ckTabApply();
 })();
 function renderUpgrades() {
-  for (var x = 0; x < 100; x++) {
+  for (var x = 0; x < 300; x++) {
     var r = upRows[x];
     var u = CK_UPG[x];
     var cost = ckUpgCost(x);
     var can = CK.clicks >= cost;
     r.row.className = 'ck-up' + (can ? ' can' : ' no');
     r.lvl.textContent = ' ур.' + CK.lv[x];
-    r.eff.textContent = '+' + fmtNum(u.val * CK.mult) + (u.type === 'auto' ? ' авто/с' : ' за клик');
+    r.eff.textContent = u.type === 'auto' ? ('+' + fmtNum(u.val * CK.mult) + ' авто/с') : u.type === 'power' ? ('+' + fmtNum(u.val * CK.mult) + ' за клик') : u.type === 'crit' ? ('+' + u.val + '% крит') : u.type === 'critx' ? ('+' + u.val + 'x крит-множ') : ('+' + u.val + '% ко всему');
     r.btn.textContent = fmtNum(cost);
     r.btn.disabled = !can;
   }
+  ckTabApply();
 }
 var floatCount = 0;
 disc.addEventListener('click', function (ev) {
   var gain = ckPower();
+  var isCrit = Math.random() * 100 < ckCrit();
+  if (isCrit) gain *= ckCritMul();
   CK.clicks += gain;
+  sfxClick();
+  var evs = ckManualClick();
+  for (var ei = 0; ei < evs.length; ei++) {
+    var ep = evs[ei].split(':');
+    if (ep[0] === 'BOOST') { var bo = ckBoostById(ep[1]); ckToast('БУСТЕР: ' + bo.n + ' на ' + ckFmtTime(bo.dur)); }
+    else { var io = ckItemById(ep[1]); ckToast('ДРОП: ' + io.n + ' [' + io.rar + ']'); }
+  }
+  if (evs.length) { ckInvRender(); ckBoostRender(); }
   ckSave();
   render();
   try { disc.animate([{ transform: 'scale(1)' }, { transform: 'scale(.93)' }, { transform: 'scale(1)' }], { duration: 140 }); } catch (e) {}
   if (floatCount > 8) return;
   floatCount++;
-  var f = el('div', '', 'ck-float', '+' + fmtNum(gain));
+  var f = el('div', '', 'ck-float' + (isCrit ? ' crit' : ''), (isCrit ? 'CRIT +' : '+') + fmtNum(gain));
   f.style.left = (ev.clientX - 14) + 'px';
   f.style.top = (ev.clientY - 34) + 'px';
   overlay.appendChild(f);
@@ -373,11 +772,25 @@ uplist.addEventListener('click', function (ev) {
   if (CK.clicks < cost) return;
   CK.clicks -= cost;
   CK.lv[x]++;
+  sfxBuy();
   ckSave();
   render(true);
 });
-openBtn.addEventListener('click', function () { overlay.classList.remove('hidden'); window.__uiPaused = true; render(true); ckSave(); });
-closeBtn.addEventListener('click', function () { overlay.classList.add('hidden'); shop.classList.add('hidden'); window.__uiPaused = false; });
+openBtn.addEventListener('click', function () { overlay.classList.remove('hidden'); window.__uiPaused = true; render(true); ckSave(); ckMusicPlay(); ckBoostRender(); });
+closeBtn.addEventListener('click', function () { overlay.classList.add('hidden'); shop.classList.add('hidden'); window.__uiPaused = false; ckMusicPause(); });
+pPlay.addEventListener('click', function () {
+  ckMusicOn = !ckMusicOn;
+  try { localStorage.setItem(CK_MUSIC_KEY, ckMusicOn ? '1' : '0'); } catch (e) {}
+  ckMusicSync();
+  if (ckMusicOn) ckMusicPlay(); else ckMusicPause();
+});
+pPrev.addEventListener('click', function () { ckTrackPrev(); });
+pNext.addEventListener('click', function () { ckTrackNext(); });
+pVol.addEventListener('input', function () {
+  ckMusicVol = Math.max(0, Math.min(1, parseInt(pVol.value, 10) / 100));
+  if (ckAudio) ckAudio.volume = ckMusicVol;
+  try { localStorage.setItem(CK_MVOL_KEY, String(pVol.value)); } catch (e) {}
+});
 shopBtn.addEventListener('click', function () { shop.classList.remove('hidden'); renderShop(); });
 closeShopBtn.addEventListener('click', function () { shop.classList.add('hidden'); });
 lbBtn.addEventListener('click', function () { shop.classList.add('hidden'); lb.classList.remove('hidden'); renderLb(); });
@@ -386,9 +799,10 @@ rebBtn.addEventListener('click', function () {
   if (CK.clicks < 1e14) return;
   CK.mult *= 2;
   CK.rebirths++;
+  sfxRebirth();
   CK.clicks = 0;
   CK.lv = [];
-  for (var x = 0; x < 100; x++) CK.lv.push(0);
+  for (var x = 0; x < 300; x++) CK.lv.push(0);
   ckSave();
   render(true);
 });
@@ -399,11 +813,27 @@ function renderShop() {
   earthBuy.disabled = CK.earth || CK.clicks < 1e6;
   earthBuy.textContent = CK.earth ? 'КУПЛЕНО' : 'КУПИТЬ';
   itemEarth.className = 'ck-shop-item' + (CK.earth ? ' owned' : '');
+  goldBuy.disabled = CK.gold || CK.clicks < 1e8;
+  goldBuy.textContent = CK.gold ? 'КУПЛЕНО' : 'КУПИТЬ';
+  itemGold.className = 'ck-shop-item' + (CK.gold ? ' owned' : '');
+  critBuy.disabled = CK.critM || CK.clicks < 1e9;
+  critBuy.textContent = CK.critM ? 'КУПЛЕНО' : 'КУПИТЬ';
+  itemCrit.className = 'ck-shop-item' + (CK.critM ? ' owned' : '');
+  warpBuy.disabled = CK.warp || CK.clicks < 1e10;
+  warpBuy.textContent = CK.warp ? 'КУПЛЕНО' : 'КУПИТЬ';
+  itemWarp.className = 'ck-shop-item' + (CK.warp ? ' owned' : '');
+  for (var q = 0; q < boostBtns.length; q++) {
+    var bb = boostBtns[q];
+    var ok = CK.clicks >= bb.b.price;
+    bb.buy.disabled = !ok;
+    bb.buy.textContent = ok ? 'КУПИТЬ' : 'МАЛО';
+  }
 }
 laserBuy.addEventListener('click', function () {
   if (CK.laser || CK.clicks < 1e5) return;
   CK.clicks -= 1e5;
   CK.laser = true;
+  sfxBuy();
   ckSave();
   laserBtn.style.display = 'block';
   renderShop();
@@ -413,6 +843,34 @@ earthBuy.addEventListener('click', function () {
   if (CK.earth || CK.clicks < 1e6) return;
   CK.clicks -= 1e6;
   CK.earth = true;
+  sfxBuy();
+  ckSave();
+  renderShop();
+  render();
+});
+goldBuy.addEventListener('click', function () {
+  if (CK.gold || CK.clicks < 1e8) return;
+  CK.clicks -= 1e8;
+  CK.gold = true;
+  sfxBuy();
+  ckSave();
+  renderShop();
+  render();
+});
+critBuy.addEventListener('click', function () {
+  if (CK.critM || CK.clicks < 1e9) return;
+  CK.clicks -= 1e9;
+  CK.critM = true;
+  sfxBuy();
+  ckSave();
+  renderShop();
+  render();
+});
+warpBuy.addEventListener('click', function () {
+  if (CK.warp || CK.clicks < 1e10) return;
+  CK.clicks -= 1e10;
+  CK.warp = true;
+  sfxBuy();
   ckSave();
   renderShop();
   render();
@@ -430,6 +888,8 @@ setInterval(function () {
     ckSave();
     if (!overlay.classList.contains('hidden')) render();
   }
+  if (ckBoostPrune()) ckSave();
+  ckBoostRender();
 }, 1000);
 var beams = [];
 var booms = [];
