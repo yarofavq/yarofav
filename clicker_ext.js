@@ -7,12 +7,15 @@ if(!window.__CKAPI||!window.__CKAPI.CK_UPG||window.__CKAPI.CK_UPG.length<360){se
 var A=window.__CKAPI;window.CK=A.CK;window.CK_UPG=A.CK_UPG;window.ckSave=A.ckSave;window.ckNick=A.ckNick;window.ckStage=A.ckStage;window.render=A.render;window.renderShop=A.renderShop;window.cssAdd=A.cssAdd;window.fmtNum=A.fmtNum;window.sfxBuy=A.sfxBuy;window.sfxRebirth=A.sfxRebirth;window.ckToast=A.ckToast;window.ckInvRender=A.ckInvRender;window.ckUpgCost=A.ckUpgCost;window.ckLbPush=A.ckLbPush;
 var CK=window.CK;
 try{
-if(localStorage.getItem('spaceClicker_wiped')!=='2'){
+if(localStorage.getItem('spaceClicker_wiped')!=='4'){
+localStorage.removeItem(LB2);
+localStorage.removeItem(KEY);
+CK.rbSpent=0;CK.laser=false;CK.earth=false;CK.gold=false;CK.critM=false;CK.warp=false;
 localStorage.removeItem('spaceClicker_v1');
 localStorage.removeItem('spaceClicker_lb_v1');
 CK.clicks=0;CK.mult=1;CK.rebirths=0;CK.boost={};CK.inv=[];CK.mc=0;CK.lv=[];
 for(var z=0;z<360;z++)CK.lv.push(0);
-localStorage.setItem('spaceClicker_wiped','2');
+localStorage.setItem('spaceClicker_wiped','4');
 }
 }catch(e){}
 var svd=null;
@@ -53,10 +56,10 @@ if(window.ckToast)window.ckToast('МЕГА-ПЕРЕРОЖДЕНИЕ: x50');
 window.ckSave();if(window.render)window.render(true);updMega();
 });
 setInterval(updMega,900);updMega();
-var arbBtn=document.createElement('button');arbBtn.id='ck-ap-rb';arbBtn.className='ck-apbtn'+(EX.rbAuto?' on':'');arbBtn.textContent='АВТО-РЕБЕРФ: '+(EX.rbAuto?'ВКЛ':'ВЫКЛ');
+var arbBtn=document.createElement('button');arbBtn.id='ck-ap-rb';arbBtn.className='ck-apbtn apb-rb'+(EX.rbAuto?' on':'');arbBtn.textContent='АВТО-РЕБЕРФ: '+(EX.rbAuto?'ВКЛ':'ВЫКЛ');
 var ap=document.getElementById('ck-autop');
 if(ap)ap.appendChild(arbBtn);
-arbBtn.addEventListener('click',function(){EX.rbAuto=!EX.rbAuto;arbBtn.className='ck-apbtn'+(EX.rbAuto?' on':'');arbBtn.textContent='АВТО-РЕБЕРФ: '+(EX.rbAuto?'ВКЛ':'ВЫКЛ');sv();});
+arbBtn.addEventListener('click',function(){EX.rbAuto=!EX.rbAuto;arbBtn.className='ck-apbtn apb-rb'+(EX.rbAuto?' on':'');arbBtn.textContent='АВТО-РЕБЕРФ: '+(EX.rbAuto?'ВКЛ':'ВЫКЛ');sv();});
 setInterval(function(){
 if(!EX.rbAuto)return;
 if(window.CK.clicks>=1e14){window.CK.mult*=2;window.CK.rebirths++;ckReset();if(window.sfxRebirth)window.sfxRebirth();if(window.ckToast)window.ckToast('АВТО-РЕБЕРФ: x2');window.ckSave();if(window.render)window.render(true);}
