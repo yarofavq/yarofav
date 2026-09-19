@@ -7,8 +7,9 @@ if(!window.__CKAPI||!window.__CKAPI.CK_UPG||window.__CKAPI.CK_UPG.length<360){se
 var A=window.__CKAPI;window.CK=A.CK;window.CK_UPG=A.CK_UPG;window.ckSave=A.ckSave;window.ckNick=A.ckNick;window.ckStage=A.ckStage;window.render=A.render;window.renderShop=A.renderShop;window.cssAdd=A.cssAdd;window.fmtNum=A.fmtNum;window.sfxBuy=A.sfxBuy;window.sfxRebirth=A.sfxRebirth;window.ckToast=A.ckToast;window.ckInvRender=A.ckInvRender;window.ckUpgCost=A.ckUpgCost;window.ckLbPush=A.ckLbPush;
 var CK=window.CK;
 try{
-if(localStorage.getItem('spaceClicker_wiped')!=='5'){
-EX.rbSpent=0;EX.rbAuto=0;
+if(localStorage.getItem('spaceClicker_wiped')!=='6'){
+EX.rbSpent=0;EX.rbAuto=0;EX.rbAutoMega=0;
+try{localStorage.removeItem('spaceClicker_gen_v1');}catch(e6){}
 localStorage.removeItem(LB2);
 localStorage.removeItem(KEY);
 CK.rbSpent=0;CK.laser=false;CK.earth=false;CK.gold=false;CK.critM=false;CK.warp=false;
@@ -16,7 +17,7 @@ localStorage.removeItem('spaceClicker_v1');
 localStorage.removeItem('spaceClicker_lb_v1');
 CK.clicks=0;CK.mult=1;CK.rebirths=0;CK.boost={};CK.inv=[];CK.mc=0;CK.lv=[];
 for(var z=0;z<360;z++)CK.lv.push(0);
-localStorage.setItem('spaceClicker_wiped','5');
+localStorage.setItem('spaceClicker_wiped','6');
 }
 }catch(e){}
 var svd=null;
@@ -84,7 +85,7 @@ arbBtn.addEventListener('click',function(){EX.rbAuto=!EX.rbAuto;arbBtn.className
 setInterval(function(){
 if(!EX.rbAuto)return;
 if(window.CK.clicks>=1e14){window.CK.mult*=2;window.CK.rebirths++;ckReset();if(window.sfxRebirth)window.sfxRebirth();if(window.ckToast)window.ckToast('АВТО-РЕБЕРФ: x2');window.ckSave();if(window.render)window.render(true);}
-},1000);
+},200);
 if(window.render){var _r=window.render;window.render=function(f){var out=_r(f);updMega();return out;};}
 var crafBtn=document.createElement('button');crafBtn.id='ck-craftbtn';crafBtn.textContent='КРАФТ';
 var acts2=document.getElementById('ck-actions');
@@ -143,6 +144,7 @@ if(window.ckToast)window.ckToast('КУПЛЕНО: '+it.n);
 window.ckSave();if(window.renderShop)window.renderShop();if(window.render)window.render();
 });
 })(SH2[si]);}
+setInterval(function(){if(!shopBox2)return;for(var i5=0;i5<sh2Refs.length;i5++){var r5=sh2Refs[i5];var own5=!!EX[r5.it.flag];r5.buy.disabled=own5||window.CK.clicks<r5.it.price;r5.buy.textContent=own5?'КУПЛЕНО':(window.CK.clicks<r5.it.price?'МАЛО':'КУПИТЬ');r5.row.className='ck-shop-item'+(own5?' owned':'');}},400);
 if(window.renderShop){var _rs=window.renderShop;window.renderShop=function(){_rs();for(var i2=0;i2<sh2Refs.length;i2++){var r2=sh2Refs[i2];var own=!!EX[r2.it.flag];r2.buy.disabled=own||window.CK.clicks<r2.it.price;r2.buy.textContent=own?'КУПЛЕНО':(window.CK.clicks<r2.it.price?'МАЛО':'КУПИТЬ');r2.row.className='ck-shop-item'+(own?' owned':'');}};}
 }
 if(window.cssAdd){
@@ -160,8 +162,85 @@ window.cssAdd('.ck-craft-right{text-align:right;font-size:12px;}');
 window.cssAdd('.ck-craft-right button{background:linear-gradient(135deg,#b04dff,#5e12a8);border:none;border-radius:8px;padding:8px 12px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:4px;}');
 window.cssAdd('.ck-craft-right button:disabled{opacity:.4;cursor:default;}');
 window.cssAdd('#ck-close-craft{width:100%;background:#b3283c;border:none;border-radius:9px;padding:10px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
+window.cssAdd('#ck-nuc{position:fixed;inset:0;z-index:9472;background:rgba(2,2,14,.88);display:flex;align-items:center;justify-content:center;font-family:monospace;}');
+window.cssAdd('#ck-nuc-box{width:min(620px,94vw);max-height:90vh;overflow-y:auto;background:linear-gradient(160deg,#101a2a,#0a1420);border:2px solid #7fd4ff;border-radius:16px;padding:18px;color:#fff;box-sizing:border-box;}');
+window.cssAdd('#ck-nuc-box h2{margin:0 0 10px;text-align:center;color:#7fd4ff;letter-spacing:2px;}');
+window.cssAdd('#ck-nuc-info{text-align:center;color:#9fb8cc;font-size:12px;margin-bottom:10px;}');
+window.cssAdd('#ck-nucbtn{background:linear-gradient(135deg,#0ea5e9,#134e6f);}');
+window.cssAdd('#ck-close-nuc{width:100%;background:#b3283c;border:none;border-radius:9px;padding:10px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
 }
 }
 if(window.__CKEX){extPhase2();}
 else{var wt2=setInterval(function(){if(window.__CKEX){clearInterval(wt2);extPhase2();}},60);}
+var GKKEY='spaceClicker_gen_v1';
+var GK={o:[0,0,0,0,0],p:[0,0,0,0,0],cd:[0,0,0,0,0],b:[0,0,0,0,0],spd:0,rx:0,pt:Date.now()};
+function gkSave(){try{localStorage.setItem(GKKEY,JSON.stringify(GK));}catch(e){}}
+(function(){try{var g=JSON.parse(localStorage.getItem(GKKEY)||'null');if(g&&typeof g==='object'){var i;for(i=0;i<5;i++){GK.o[i]=Number(g.o&&g.o[i])||0;GK.p[i]=Number(g.p&&g.p[i])||0;GK.cd[i]=Number(g.cd&&g.cd[i])||0;GK.b[i]=Number(g.b&&g.b[i])||0;}GK.spd=Number(g.spd)||0;GK.rx=Number(g.rx)||0;GK.pt=Number(g.pt)||Date.now();}}catch(e){}})();
+function gkSpd(){return 1+GK.spd*0.25;}
+var nucBtn=document.createElement('button');nucBtn.id='ck-nucbtn';nucBtn.textContent='ЯДРА';
+var acts3=document.getElementById('ck-actions');
+if(acts3)acts3.appendChild(nucBtn);
+function nucOk(){return (window.CK.rebirths||0)>=50;}
+setInterval(function(){nucBtn.disabled=!nucOk();},900);nucBtn.disabled=!nucOk();
+var nuc=document.createElement('div');nuc.id='ck-nuc';nuc.className='clicker-ui hidden';
+var nbox=document.createElement('div');nbox.id='ck-nuc-box';
+nbox.appendChild(document.createElement('h2')).textContent='ЯДРА';
+var nucInfo=document.createElement('div');nucInfo.id='ck-nuc-info';nbox.appendChild(nucInfo);
+var ngrid=document.createElement('div');nbox.appendChild(ngrid);
+var nshop=document.createElement('div');nbox.appendChild(nshop);
+var nclose=document.createElement('button');nclose.id='ck-close-nuc';nclose.textContent='ЗАКРЫТЬ';nbox.appendChild(nclose);
+nuc.appendChild(nbox);document.body.appendChild(nuc);
+nucBtn.addEventListener('click',function(){if(!nucOk()){if(window.ckToast)window.ckToast('Нужно 50 перерождений');return;}nuc.classList.remove('hidden');nucRender();});
+nclose.addEventListener('click',function(){nuc.classList.add('hidden');});
+function gkPrice(i){if(i===0)return Math.ceil(1e30*Math.pow(4,GK.b[0]));return Math.ceil(100*Math.pow(8,GK.b[i]));}
+setInterval(function(){
+var now=Date.now();
+for(var gi=0;gi<5;gi++){
+if(GK.cd[gi]>0)GK.cd[gi]=Math.max(0,GK.cd[gi]-(now-GK.pt)/1000);
+if(GK.o[gi]>0){
+if(gi<4)GK.p[gi]+=GK.o[gi]*10*gkSpd();
+else{window.CK.rebirths=(window.CK.rebirths||0)+GK.o[gi];}
+}
+}
+GK.pt=now;
+gkSave();
+if(!nuc.classList.contains('hidden'))nucRender();
+},10000);
+var NNAME=['Ядро-1','Ядро-2','Ядро-3','Ядро-4','Ядро-5'];
+function nucRender(){
+if(nuc.classList.contains('hidden'))return;
+var h='';
+for(var i=0;i<5;i++){
+var prev=i===0?(window.CK.clicks||0):GK.p[i-1];
+var unlocked=i===0||GK.b[i]>0||GK.o[i-1]>=10;
+var cd=Math.ceil(GK.cd[i]);
+h+='<div class=ck-craft-row style=border-color:#7fd4ff><div class=ck-craft-info><b>'+NNAME[i]+' x'+GK.o[i]+'</b><small>';
+if(i<4)h+='накоплено: '+window.fmtNum(GK.p[i]);else h+='дает: '+GK.o[i]+' перерожд./10с';
+h+='</small></div><div class=ck-craft-right>';
+if(!unlocked)h+='<small>нужно 10 '+NNAME[i-1]+'</small>';
+else if(cd>0)h+='<small>кулдаун: '+cd+'с</small>';
+else{
+if(i===0)h+='<small>цена: '+window.fmtNum(gkPrice(0))+' кликов</small><button id=ck-nb-0>КУПИТЬ x10</button>';
+else h+='<small>цена: '+window.fmtNum(gkPrice(i))+' '+NNAME[i-1]+'</small><button id=ck-nb-'+i+'>КУПИТЬ x10</button>';
+}
+h+='</div></div>';
+}
+h+='<div class=ck-craft-row style=border-color:#ffd23f><div class=ck-craft-info><b>МАГАЗИН ЯДЕР</b><small>скорость: +25%/ур ('+GK.spd+' ур) - за Ядро-1</small></div><div class=ck-craft-right><small>цена: '+window.fmtNum(Math.ceil(50*Math.pow(2,GK.spd)))+' Я-1</small><button id=ck-ns-spd>КУПИТЬ</button></div></div>';
+h+='<div class=ck-craft-row style=border-color:#d68cff><div class=ck-craft-info><b>ИКСЫ НАВСЕГДА</b><small>+'+(GK.rx*10)+' к множителю ('+GK.rx+' ур) - за Ядро-2</small></div><div class=ck-craft-right><small>цена: '+window.fmtNum(Math.ceil(20*Math.pow(2,GK.rx)))+' Я-2</small><button id=ck-ns-rx>КУПИТЬ</button></div></div>';
+ngrid.innerHTML=h;
+var b0=document.getElementById('ck-nb-0');
+if(b0)b0.addEventListener('click',function(){if(GK.cd[0]>0||window.CK.clicks<gkPrice(0))return;window.CK.clicks-=gkPrice(0);GK.o[0]+=10;GK.b[0]++;GK.cd[0]=60;gkSave();nucRender();});
+for(var k2=1;k2<5;k2++)(function(kk){
+var bk=document.getElementById('ck-nb-'+kk);
+if(bk)bk.addEventListener('click',function(){
+if(GK.cd[kk]>0||GK.p[kk-1]<gkPrice(kk))return;
+GK.p[kk-1]-=gkPrice(kk);GK.o[kk]+=10;GK.b[kk]++;GK.cd[kk]=60;gkSave();nucRender();
+});
+})(k2);
+var bs=document.getElementById('ck-ns-spd');
+if(bs)bs.addEventListener('click',function(){var c=Math.ceil(50*Math.pow(2,GK.spd));if(GK.p[0]<c)return;GK.p[0]-=c;GK.spd++;gkSave();nucRender();});
+var br=document.getElementById('ck-ns-rx');
+if(br)br.addEventListener('click',function(){var c=Math.ceil(20*Math.pow(2,GK.rx));if(GK.p[1]<c)return;GK.p[1]-=c;GK.rx++;window.CK.mult=(window.CK.mult||1)+10;gkSave();window.ckSave();nucRender();});
+}
+nucRender();
 /*__CKEXT__*/
