@@ -2679,10 +2679,10 @@ window.addEventListener('resize', () => {
 // Clicker module loader (cache-busted)
 (function () {
   var s = document.createElement('script');
-  s.src = 'clicker.js?v=50';
+  s.src = 'clicker.js?v=52';
   document.body.appendChild(s);
   var e = document.createElement('script');
-  e.src = 'clicker_ext.js?v=50';
+  e.src = 'clicker_ext.js?v=52';
   document.body.appendChild(e);
 })();
 

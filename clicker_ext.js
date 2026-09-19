@@ -79,6 +79,7 @@ EX.rbAutoMega=!!EX.rbAutoMega;
 var ckLastAM=0;
 setInterval(function(){
 if(!EX.rbAutoMega)return;
+if(Date.now()-(window.ckLastAM||0)<60000)return;
 if(Date.now()-ckLastAM<60000)return;
 if(mAvail()>=10){ckLastAM=Date.now();window.CK.mult+=50;window.CK.rebirths=Math.max(0,(window.CK.rebirths||0)-10);ckReset();if(window.sfxRebirth)window.sfxRebirth();if(window.ckToast)window.ckToast('АВТО-МЕГА: x50');window.ckSave();if(window.render)window.render(true);}
 },1000);
@@ -327,7 +328,7 @@ setInterval(function(){if(!document.hidden)PT++;},1000);
 setInterval(function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}},10000);
 window.addEventListener('beforeunload',function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}});
 function ckFmtPT(s){var d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),sc=s%60;if(d>0)return d+'д '+h+'ч '+m+'м';if(h>0)return h+'ч '+m+'м '+sc+'с';if(m>0)return m+'м '+sc+'с';return sc+'с';}
-window.__ckExtVer='v51';
+window.__ckExtVer='v52';
 var profBtn=document.getElementById('ck-profbtn');
 if(!profBtn){profBtn=document.createElement('button');profBtn.id='ck-profbtn';profBtn.textContent='ПРОФИЛЬ';var _pI=setInterval(function(){var apP=document.getElementById('ck-actions');if(apP&&!document.getElementById('ck-profbtn')){apP.appendChild(profBtn);clearInterval(_pI);}},500);}
 var prof=document.createElement('div');prof.id='ck-prof';prof.className='clicker-ui hidden';

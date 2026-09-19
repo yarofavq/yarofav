@@ -293,7 +293,7 @@ function ckLbPush(force) {
 function ckLbList() {
   var all = {}, arr = [], k;
   try { all = JSON.parse(localStorage.getItem(CK_LB) || '{}'); } catch (e) {}
-  for (k in all) if (Object.prototype.hasOwnProperty.call(all, k)) {
+  for (k in all) if (Object.prototype.hasOwnProperty.call(all, k) && k !== 'Гость') {
     if (k === 'Гость') continue;
     arr.push({ nick: k, best: all[k].best || 0, stage: all[k].stage || 0, rebirths: all[k].rebirths || 0 });
   }
@@ -905,9 +905,9 @@ nbox2.appendChild(nclose2);
 nuc2.appendChild(nbox2);
 document.body.appendChild(nuc2);
 var GKKEY2='spaceClicker_gen_v1';
-var GK={o:[0,0,0,0,0],p:[0,0,0,0,0],cd:[0,0,0,0,0],b:[0,0,0,0,0],spd:0,rx:0,pt:Date.now()};
+var GK={o:[0,0,0,0,0],p:[0,0,0,0,0],cd:[0,0,0,0,0],b:[0,0,0,0,0],spd:0,rx:0,rbBank:0,pt:Date.now()};
 function gkSave(){try{localStorage.setItem(GKKEY2,JSON.stringify(GK));}catch(e20){}}
-(function(){try{var g=JSON.parse(localStorage.getItem(GKKEY2)||'null');if(g&&typeof g==='object'){var g1;for(g1=0;g1<5;g1++){GK.o[g1]=Number(g.o&&g.o[g1])||0;GK.p[g1]=Number(g.p&&g.p[g1])||0;GK.cd[g1]=Number(g.cd&&g.cd[g1])||0;GK.b[g1]=Number(g.b&&g.b[g1])||0;}GK.spd=Number(g.spd)||0;GK.rx=Number(g.rx)||0;GK.pt=Number(g.pt)||Date.now();}}catch(e21){}})();
+(function(){try{var g=JSON.parse(localStorage.getItem(GKKEY2)||'null');if(g&&typeof g==='object'){var g1;for(g1=0;g1<5;g1++){GK.o[g1]=Number(g.o&&g.o[g1])||0;GK.p[g1]=Number(g.p&&g.p[g1])||0;GK.cd[g1]=Number(g.cd&&g.cd[g1])||0;GK.b[g1]=Number(g.b&&g.b[g1])||0;}GK.spd=Number(g.spd)||0;GK.rx=Number(g.rx)||0;GK.rbBank=Number(g.rbBank)||0;GK.pt=Number(g.pt)||Date.now();}}catch(e21){}})();
 function gkSpd(){return 1+GK.spd*0.25;}
 function gkPrice(gi2){if(gi2===0)return Math.ceil(1e30*Math.pow(4,GK.b[0]));return Math.ceil(100*Math.pow(8,GK.b[gi2]));}
 var NNAME=['Ядро-1','Ядро-2','Ядро-3','Ядро-4','Ядро-5'];
@@ -920,7 +920,7 @@ for(var gi3=0;gi3<5;gi3++){
 if(GK.cd[gi3]>0)GK.cd[gi3]=Math.max(0,GK.cd[gi3]-(now2-GK.pt)/1000);
 if(GK.o[gi3]>0){
 if(gi3<4)GK.p[gi3]+=GK.o[gi3]*10*gkSpd();
-else CK.rebirths=(CK.rebirths||0)+GK.o[gi3];
+else GK.rbBank=(GK.rbBank||0)+GK.o[gi3];
 }
 }
 GK.pt=now2;
@@ -947,6 +947,7 @@ h+='</div></div>';
 }
 h+='<div class=ck-nrow style=border-color:#ffd23f><div class=n1><b>СКОРОСТЬ</b><small>+'+(GK.spd*25)+'% выработки ('+GK.spd+' ур) - за Ядро-1</small></div><div class=n2><small>цена: '+fmtNum(Math.ceil(50*Math.pow(2,GK.spd)))+' Я-1</small><button id=ck-nss>КУПИТЬ</button></div></div>';
 h+='<div class=ck-nrow style=border-color:#d68cff><div class=n1><b>ИКСЫ НАВСЕГДА</b><small>+'+(GK.rx*10)+' к множителю ('+GK.rx+' ур) - за Ядро-2</small></div><div class=n2><small>цена: '+fmtNum(Math.ceil(20*Math.pow(2,GK.rx)))+' Я-2</small><button id=ck-nsr>КУПИТЬ</button></div></div>';
+h+='<div class=ck-nrow style=border-color:#ff4d6d><div class=n1><b>БАНК ПЕРЕРОЖДЕНИЙ</b><small>Ядро-5 копит перерождения - забирай вручную</small></div><div class=n2><small>в банке: '+Math.floor(GK.rbBank||0)+'</small><button id=ck-nbc>ЗАБРАТЬ</button></div></div>';
 ngrid2.innerHTML=h;
 var nb0=document.getElementById('ck-nb0');
 if(nb0)nb0.addEventListener('click',function(){if(GK.cd[0]>0||CK.clicks<gkPrice(0))return;CK.clicks-=gkPrice(0);GK.o[0]+=10;GK.b[0]++;GK.cd[0]=60;gkSave();sfxBuy();nucRender2();});
@@ -962,6 +963,8 @@ var bs2=document.getElementById('ck-nss');
 if(bs2)bs2.addEventListener('click',function(){var c2=Math.ceil(50*Math.pow(2,GK.spd));if(GK.p[0]<c2)return;GK.p[0]-=c2;GK.spd++;gkSave();sfxBuy();nucRender2();});
 var br2=document.getElementById('ck-nsr');
 if(br2)br2.addEventListener('click',function(){var c3=Math.ceil(20*Math.pow(2,GK.rx));if(GK.p[1]<c3)return;GK.p[1]-=c3;GK.rx++;CK.mult=(CK.mult||1)+10;gkSave();ckSave();sfxBuy();nucRender2();});
+var bc3=document.getElementById('ck-nbc');
+if(bc3)bc3.addEventListener('click',function(){var nn=Math.floor(GK.rbBank||0);if(nn<1)return;CK.rebirths=(CK.rebirths||0)+nn;GK.rbBank=0;gkSave();ckSave();sfxBuy();ckToast('ЗАБРАНО: '+nn);nucRender2();});
 }
 nucBtn2.disabled=true;
 setInterval(function(){nucBtn2.disabled=!nucOk2();},900);
