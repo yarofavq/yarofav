@@ -372,6 +372,9 @@ cssAdd('.ck-swot{width:26px;height:26px;border:2px solid #2b3672;border-radius:7
 cssAdd('.ck-swot.on{border-color:#ffd76a;}');
 cssAdd('.apb-buy.on{background:linear-gradient(135deg,#ffb057,#c76b00);border-color:#ffb057;box-shadow:0 0 12px rgba(255,150,60,.45);}');
 cssAdd('.apb-scl.on{background:linear-gradient(135deg,#35d0ee,#0b6e93);border-color:#35d0ee;box-shadow:0 0 12px rgba(60,190,230,.45);}');
+cssAdd('.apb-lb.on{background:linear-gradient(135deg,#5eead4,#2563eb);border-color:#5eead4;box-shadow:0 0 12px rgba(90,200,255,.45);}');
+cssAdd('.apb-mg.on{background:linear-gradient(135deg,#d68cff,#8b2fd6);border-color:#d68cff;box-shadow:0 0 12px rgba(200,120,255,.5);}');
+cssAdd('.apb-gr.on{background:linear-gradient(135deg,#7bed9f,#1d9d5f);border-color:#7bed9f;box-shadow:0 0 12px rgba(90,230,140,.45);}');
 cssAdd('.apb-rb.on{background:linear-gradient(135deg,#ff5e7e,#a3123a);border-color:#ff5e7e;box-shadow:0 0 12px rgba(255,95,125,.5);}');
 cssAdd('#clicker-overlay{overflow:hidden;}');
 cssAdd('#clicker-panel{will-change:transform;}');
@@ -545,9 +548,9 @@ if (ckOfflineGain >= 1) {
 }
 var right = el('div', 'clicker-right');
 right.appendChild(el('h3', '', '', 'АПГРЕЙДЫ'));
-var CK_AUTO = { on: false, thr: 0, scroll: true };
+var CK_AUTO = { t: [ { on: false, thr: 0 }, { on: false, thr: 0 }, { on: false, thr: 0 }, { on: false, thr: 0 } ], scroll: true };
 var ckAutoUserScroll = 0;
-function ckAutoSave() { try { localStorage.setItem('spaceClicker_auto', JSON.stringify({ on: CK_AUTO.on, thr: CK_AUTO.thr, scroll: CK_AUTO.scroll })); } catch (e) {} }
+function ckAutoSave() { try { localStorage.setItem('spaceClicker_auto', JSON.stringify({ t: CK_AUTO.t, scroll: CK_AUTO.scroll })); } catch (e) {} }
 function ckAutoScroll() {
   if (!CK_AUTO.scroll || upTab === 4) return;
   if (overlay.classList.contains('hidden')) return;
@@ -558,31 +561,83 @@ function ckAutoScroll() {
   }
 }
 (function () {
-  try { var s = JSON.parse(localStorage.getItem('spaceClicker_auto') || 'null'); if (s && typeof s === 'object') { CK_AUTO.on = !!s.on; CK_AUTO.thr = Math.max(0, Number(s.thr) || 0); CK_AUTO.scroll = (s.scroll !== false); } } catch (e) {}
+  try {
+    var s = JSON.parse(localStorage.getItem('spaceClicker_auto') || 'null');
+    if (s && typeof s === 'object') {
+      CK_AUTO.scroll = (s.scroll !== false);
+      if (s.t && typeof s.t === 'object') {
+        for (var tk = 0; tk < 4; tk++) {
+          var tc = s.t[tk];
+          if (tc) { CK_AUTO.t[tk].on = !!tc.on; CK_AUTO.t[tk].thr = Math.max(0, Number(tc.thr) || 0); }
+        }
+      }
+    }
+  } catch (e) {}
   var ap = el('div', 'ck-autop');
-  var tgl = el('button', 'ck-ap-tgl', 'ck-apbtn apb-buy' + (CK_AUTO.on ? ' on' : ''), 'АВТО-ПОКУПКА: ' + (CK_AUTO.on ? 'ВКЛ' : 'ВЫКЛ'));
-  var thr = el('input', 'ck-ap-thr', 'ck-apin');
-  thr.type = 'number'; thr.min = '0'; thr.placeholder = 'Порог суммы'; thr.value = CK_AUTO.thr ? String(CK_AUTO.thr) : '';
   var scl = el('button', 'ck-ap-scl', 'ck-apbtn apb-scl' + (CK_AUTO.scroll ? ' on' : ''), 'АВТО-СКРОЛЛ: ' + (CK_AUTO.scroll ? 'ВКЛ' : 'ВЫКЛ'));
-  tgl.addEventListener('click', function () { CK_AUTO.on = !CK_AUTO.on; tgl.className = 'ck-apbtn apb-buy' + (CK_AUTO.on ? ' on' : ''); tgl.textContent = 'АВТО-ПОКУПКА: ' + (CK_AUTO.on ? 'ВКЛ' : 'ВЫКЛ'); ckAutoSave(); });
-  thr.addEventListener('input', function () { var v = parseInt(thr.value, 10); CK_AUTO.thr = (isNaN(v) || v < 0) ? 0 : v; ckAutoSave(); });
+  function ckParseAmt(v) {
+    var st = String(v || '').trim().toUpperCase();
+    if (!st) return 0;
+    var mult = 1;
+    var last = st.charAt(st.length - 1);
+    if (!(last >= '0' && last <= '9')) { var mp = { K: 1e3, M: 1e6, B: 1e9, T: 1e12, Q: 1e15 }; mult = mp[last] || 1; st = st.slice(0, -1); }
+    var nn = parseFloat(st);
+    if (isNaN(nn)) return 0;
+    return Math.floor(nn * mult);
+  }
+  function ckFmtAmt(n) {
+    var u = [[1e18, 'Qi'], [1e15, 'Qa'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+    for (var xi = 0; xi < u.length; xi++) {
+      if (n >= u[xi][0]) { var vv = n / u[xi][0]; return parseFloat(vv >= 100 ? vv.toFixed(0) : vv >= 10 ? vv.toFixed(1) : vv.toFixed(2)) + u[xi][1]; }
+    }
+    return '' + n;
+  }
   scl.addEventListener('click', function () { CK_AUTO.scroll = !CK_AUTO.scroll; scl.className = 'ck-apbtn apb-scl' + (CK_AUTO.scroll ? ' on' : ''); scl.textContent = 'АВТО-СКРОЛЛ: ' + (CK_AUTO.scroll ? 'ВКЛ' : 'ВЫКЛ'); ckAutoSave(); });
-  ap.appendChild(tgl); ap.appendChild(thr); ap.appendChild(scl);
+  ap.appendChild(scl);
+  var ANAMES = ['ДОХОД', 'КРИТ/ГОЛД', 'МНОЖ', 'НОВЫЕ'];
+  var ACLS = ['apb-buy', 'apb-lb', 'apb-mg', 'apb-gr'];
+  var ASTRAT = ['last', 'cheapest', 'last', 'cheapest'];
+  for (var t3i = 0; t3i < 4; t3i++) {
+    (function (tix) {
+      var cfg = CK_AUTO.t[tix];
+      var b = el('button', 'ck-ap-t' + tix, 'ck-apbtn ' + ACLS[tix] + (cfg.on ? ' on' : ''), ANAMES[tix] + ': ' + (cfg.on ? 'ВКЛ' : 'ВЫКЛ'));
+      var inp = el('input', 'ck-ap-i' + tix, 'ck-apin');
+      inp.type = 'text'; inp.placeholder = '100K / 2M / 1B'; inp.value = cfg.thr ? ckFmtAmt(cfg.thr) : '';
+      b.addEventListener('click', function () { cfg.on = !cfg.on; b.className = 'ck-apbtn ' + ACLS[tix] + (cfg.on ? ' on' : ''); b.textContent = ANAMES[tix] + ': ' + (cfg.on ? 'ВКЛ' : 'ВЫКЛ'); ckAutoSave(); });
+      inp.addEventListener('input', function () { cfg.thr = ckParseAmt(inp.value); ckAutoSave(); });
+      ap.appendChild(b); ap.appendChild(inp);
+    })(t3i);
+  }
   right.appendChild(ap);
   setInterval(function () {
-    if (!CK_AUTO.on) return;
-    var bought = 0;
-    while (bought < 25) {
-      var best = -1, bestC = Infinity, x;
-      for (x = 0; x < 360; x++) {
-        var c = ckUpgCost(x);
-        if (CK.clicks - c >= CK_AUTO.thr && c < bestC) { bestC = c; best = x; }
+    for (var t4 = 0; t4 < 4; t4++) {
+      var cfg2 = CK_AUTO.t[t4];
+      if (!cfg2.on) continue;
+      var bought = 0;
+      while (bought < 12) {
+        var pick = -1, pcost = 0;
+        if (ASTRAT[t4] === 'last') {
+          for (var xa = 359; xa >= 0; xa--) {
+            if (ckUpgGrp(xa) !== t4) continue;
+            var ca = ckUpgCost(xa);
+            if (CK.clicks - ca >= cfg2.thr) { pick = xa; pcost = ca; break; }
+          }
+        } else {
+          var bc = Infinity;
+          for (var xb2 = 0; xb2 < 360; xb2++) {
+            if (ckUpgGrp(xb2) !== t4) continue;
+            var cb = ckUpgCost(xb2);
+            if (CK.clicks - cb >= cfg2.thr && cb < bc) { bc = cb; pick = xb2; }
+          }
+        }
+        if (pick < 0) break;
+        CK.clicks -= pcost;
+        CK.lv[pick]++;
+        bought++;
       }
-      if (best < 0) break;
-      CK.clicks -= bestC; CK.lv[best]++; bought++;
+      if (bought) { sfxBuy(); ckSave(); render(true); }
     }
-    if (bought) { sfxBuy(); ckSave(); render(true); }
-  }, 1000);
+  }, 400);
 })();
 var tabs = el('div', 'ck-tabs');
 var tab1 = el('button', 'ck-tab0', 'ck-tab on', 'ДОХОД');
