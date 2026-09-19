@@ -124,6 +124,11 @@ var CK_BOOSTS = [
   { id: 'frenzy', n: 'Click Frenzy', col: '#ff4d6d', dur: 60,   mult: 5, tgt: 'click', price: 2.5e11, desc: 'x5 за клик' },
   { id: 'surge',  n: 'Auto Surge',   col: '#3a86ff', dur: 1800, mult: 3, tgt: 'auto',  price: 7.5e11, desc: 'x3 авто/с' },
   { id: 'gold',   n: 'Gold Rush',    col: '#ffd23f', dur: 3600, mult: 2, tgt: 'all',   price: 5e12, desc: 'x2 ко всему' }
+  ,
+  { id: 'novaflask', n: 'Nova Flask', col: '#7fd4ff', dur: 300, mult: 4, tgt: 'click', price: 2e12, desc: 'x4 за клик' },
+  { id: 'quasar', n: 'Quasar Brew', col: '#37e08a', dur: 900, mult: 4, tgt: 'auto', price: 4e12, desc: 'x4 авто/с' },
+  { id: 'hyperion', n: 'Hyperion Draft', col: '#b04dff', dur: 1200, mult: 3, tgt: 'all', price: 2e13, desc: 'x3 ко всему' },
+  { id: 'voidflask', n: 'Void Elixir', col: '#ff4d6d', dur: 120, mult: 10, tgt: 'click', price: 1e13, desc: 'x10 за клик' }
 ];
 function ckItemById(id) { for (var i = 0; i < CK_ITEMS.length; i++) if (CK_ITEMS[i].id === id) return CK_ITEMS[i]; return null; }
 function ckBoostById(id) { for (var i = 0; i < CK_BOOSTS.length; i++) if (CK_BOOSTS[i].id === id) return CK_BOOSTS[i]; return null; }
@@ -196,7 +201,7 @@ var CK_COLS = [
 var CK = { clicks: 0, mult: 1, rebirths: 0, lv: [], laser: false, earth: false, gold: false, critM: false, warp: false, boost: {}, inv: [], mc: 0 };
 var CK_UPG = [];
 var i;
-for (i = 0; i < 300; i++) CK.lv.push(0);
+for (i = 0; i < 360; i++) CK.lv.push(0);
 for (i = 0; i < 100; i++) {
   if (i % 2 === 0) CK_UPG.push({ name: 'Авто-дрон ' + (i / 2 + 1), type: 'auto', val: Math.max(1, Math.round(Math.pow(2.2, i / 2))), base: Math.ceil(100 * Math.pow(1.75, i)) });
   else CK_UPG.push({ name: 'Усилитель ' + Math.ceil(i / 2), type: 'power', val: Math.max(1, Math.round(Math.pow(2.2, (i - 1) / 2))), base: Math.ceil(100 * Math.pow(1.75, i)) });
@@ -209,14 +214,18 @@ for (i = 200; i < 300; i++) {
   if (i % 2 === 0) CK_UPG.push({ name: 'Crit Amp ' + ((i - 200) / 2 + 1), type: 'critx', val: 1, base: Math.ceil(1e12 * Math.pow(3.2, i - 200)) });
   else CK_UPG.push({ name: 'Mega Core ' + Math.ceil((i - 200) / 2), type: 'mega', val: 2 + Math.round((i - 201) / 2), base: Math.ceil(2e12 * Math.pow(3.2, i - 201)) });
 }
+for (i = 300; i < 360; i++) {
+  if (i % 2 === 0) CK_UPG.push({ name: 'Star Engine ' + ((i - 300) / 2 + 1), type: 'auto', val: Math.max(1, Math.round(25 * Math.pow(2.3, (i - 300) / 2))), base: Math.ceil(5e13 * Math.pow(2.8, i - 300)) });
+  else CK_UPG.push({ name: 'Nova Fist ' + Math.ceil((i - 300) / 2), type: 'power', val: Math.max(1, Math.round(25 * Math.pow(2.3, (i - 301) / 2))), base: Math.ceil(6e13 * Math.pow(2.8, i - 301)) });
+}
 function ckUpgCost(x) { return Math.ceil(CK_UPG[x].base * Math.pow(1.25, CK.lv[x])); }
-function ckGold() { var s = 0; for (var x = 101; x < 200; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s + (CK.gold ? 50 : 0); }
+function ckGold() { var s = 0; for (var x = 101; x < 200; x += 2) s += CK_UPG[x].val * CK.lv[x]; var ex = window.__CKEX; return s + (CK.gold ? 50 : 0) + (ex && ex.idol ? 50 : 0) + (ex && ex.forge ? 25 : 0); }
 function ckMega() { var s = 0; for (var x = 201; x < 300; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s; }
-function ckGoldMul() { return 1 + (ckGold() + ckMega()) / 100; }
-function ckCps() { var s = 0; for (var x = 0; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult * ckGoldMul() * ckBoostMul('auto'); }
-function ckPower() { var s = 1; for (var x = 1; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult * ckGoldMul() * ckBoostMul('click'); }
-function ckCrit() { var s = 5; for (var x = 100; x < 200; x += 2) s += CK_UPG[x].val * CK.lv[x]; return Math.min(85, s + (CK.critM ? 15 : 0)); }
-function ckCritMul() { var s = 5; for (var x = 200; x < 300; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s; }
+function ckGoldMul() { var ex = window.__CKEX; var cs = (ex && ex.craft) ? ((ex.craft.s || 0) + (ex.craft.g || 0) * 5 + (ex.craft.v || 0) * 10) : 0; return 1 + (ckGold() + ckMega() + cs) / 100; }
+function ckCps() { var s = 0, x; for (x = 0; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; for (x = 300; x < 360; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult * ckGoldMul() * ckBoostMul('auto'); }
+function ckPower() { var s = 1, x; for (x = 1; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; for (x = 301; x < 360; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult * ckGoldMul() * ckBoostMul('click'); }
+function ckCrit() { var s = 5; for (var x = 100; x < 200; x += 2) s += CK_UPG[x].val * CK.lv[x]; var ex = window.__CKEX; return Math.min(85, s + (CK.critM ? 15 : 0) + (ex && ex.nexus ? 10 : 0) + (ex && ex.craft ? (ex.craft.c || 0) * 2 : 0)); }
+function ckCritMul() { var s = 5; for (var x = 200; x < 300; x += 2) s += CK_UPG[x].val * CK.lv[x]; var ex = window.__CKEX; return s + (ex && ex.craft ? (ex.craft.m || 0) : 0); }
 function ckStage() { var s = 0; for (var x = 0; x < CK_TH.length; x++) if (CK.clicks >= CK_TH[x]) s = x; return s; }
 function fmtNum(n) {
   n = Math.floor(n);
@@ -231,7 +240,7 @@ function fmtNum(n) {
   }
   return '' + n;
 }
-var CK_LB = 'spaceClicker_lb_v1';
+var CK_LB = 'spaceClicker_lb_v2';
 var CK_OFFLINE_RATE = 0.5;
 var CK_OFFLINE_CAP = 8 * 3600;
 var ckOfflineGain = 0;
@@ -273,10 +282,11 @@ function ckLbList() {
   return arr.slice(0, 10);
 }
 function ckSave() {
+  try { if (window.__CKSYNC) window.__CKSYNC(); } catch (e0) {}
   try {
     localStorage.setItem(CK_KEY, JSON.stringify({
       v: 1, clicks: CK.clicks, mult: CK.mult, rebirths: CK.rebirths,
-      lv: CK.lv, laser: CK.laser, earth: CK.earth, gold: CK.gold, critM: CK.critM, warp: CK.warp, boost: CK.boost, inv: CK.inv, mc: CK.mc, ts: Date.now()
+      lv: CK.lv, laser: CK.laser, earth: CK.earth, gold: CK.gold, critM: CK.critM, warp: CK.warp, boost: CK.boost, inv: CK.inv, mc: CK.mc, offVault: !!CK.offVault, ts: Date.now()
     }));
   } catch (e) {}
   ckLbPush(false);
@@ -296,16 +306,18 @@ function ckLoad() {
   CK.boost = (raw.boost && typeof raw.boost === 'object') ? raw.boost : {};
   CK.inv = (raw.inv && raw.inv.length) ? raw.inv.slice(0, 2000) : [];
   CK.mc = Number(raw.mc) || 0;
+  CK.offVault = !!raw.offVault;
   if (raw.lv && raw.lv.length) {
-    for (var x = 0; x < 300 && x < raw.lv.length; x++) CK.lv[x] = Number(raw.lv[x]) || 0;
+    for (var x = 0; x < 360 && x < raw.lv.length; x++) CK.lv[x] = Number(raw.lv[x]) || 0;
   }
   var dt = Math.max(0, (Date.now() - (Number(raw.ts) || Date.now())) / 1000);
   if (dt > 60) {
-    var gain = ckCps() * Math.min(dt, CK_OFFLINE_CAP) * (CK.warp ? 1 : CK_OFFLINE_RATE);
+    var gain = ckCps() * Math.min(dt, CK.offVault ? 86400 : CK_OFFLINE_CAP) * (CK.warp ? 1 : CK_OFFLINE_RATE);
     if (gain >= 1) { CK.clicks += gain; ckOfflineGain = gain; }
   }
 }
 ckLoad();
+window.__CKAPI = { CK: CK, CK_UPG: CK_UPG, ckSave: ckSave, ckNick: ckNick, ckStage: ckStage, render: render, renderShop: renderShop, cssAdd: cssAdd, fmtNum: fmtNum, sfxBuy: sfxBuy, sfxRebirth: sfxRebirth, ckToast: ckToast, ckInvRender: ckInvRender, ckUpgCost: ckUpgCost, ckLbPush: ckLbPush, ckLbList: ckLbList };
 window.addEventListener('beforeunload', function () { ckSave(); ckLbPush(true); });
 document.addEventListener('visibilitychange', function () { if (document.hidden) { ckSave(); ckLbPush(true); } });
 setInterval(function () { ckSave(); ckLbPush(true); }, 10000);
@@ -336,9 +348,20 @@ cssAdd('.ck-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
 cssAdd('.ck-actions button{font-family:inherit;font-weight:bold;border:none;border-radius:9px;padding:9px 14px;cursor:pointer;color:#fff;}');
 cssAdd('#ck-shopbtn{background:linear-gradient(135deg,#c7921e,#8a5a00);}');
 cssAdd('.ck-float.crit{color:#ffd23f;font-size:21px;text-shadow:0 0 10px #ffb700;}');
-cssAdd('.ck-tabs{display:flex;gap:6px;padding:8px 8px 0;}');
-cssAdd('.ck-tab{flex:1;padding:8px 6px;border:1px solid #2b3672;border-radius:9px;background:#111634;color:#8fa3e8;font-family:inherit;font-weight:bold;font-size:12px;cursor:pointer;}');
+cssAdd('.ck-tabs{display:flex;gap:6px;padding:8px 8px 0;flex-wrap:wrap;}');
+cssAdd('.ck-tab{flex:1;padding:8px 6px;border:1px solid #2b3672;border-radius:9px;background:#111634;color:#8fa3e8;font-family:inherit;font-weight:bold;font-size:12px;cursor:pointer;min-width:86px;}');
 cssAdd('.ck-tab.on{background:linear-gradient(135deg,#3a86ff,#7b2cbf);color:#fff;border-color:#3a86ff;}');
+cssAdd('#ck-autop{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 8px 0;}');
+cssAdd('.ck-apbtn{flex:1;min-width:110px;padding:7px 8px;border:1px solid #2b3672;border-radius:9px;background:#111634;color:#8fa3e8;font-family:inherit;font-weight:bold;font-size:11px;cursor:pointer;}');
+cssAdd('.ck-apbtn.on{background:linear-gradient(135deg,#1f9d55,#0e5c2f);color:#fff;border-color:#37e08a;}');
+cssAdd('.ck-apin{width:120px;padding:7px 8px;border:1px solid #2b3672;border-radius:9px;background:#0b1026;color:#fff;font-family:inherit;font-size:12px;}');
+cssAdd('.ck-setp{padding:10px 8px;overflow-y:auto;}');
+cssAdd('.ck-seth{color:#ffd76a;font-weight:bold;font-size:13px;letter-spacing:1px;margin:4px 0 10px;}');
+cssAdd('.ck-setrow{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}');
+cssAdd('.ck-setl{color:#8fa3e8;font-size:12px;min-width:130px;}');
+cssAdd('.ck-setr{flex:1;min-width:120px;}');
+cssAdd('.ck-swot{width:26px;height:26px;border:2px solid #2b3672;border-radius:7px;cursor:pointer;padding:0;}');
+cssAdd('.ck-swot.on{border-color:#ffd76a;}');
 cssAdd('#ck-boostbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}');
 cssAdd('.ck-bchip{border:1px solid;border-radius:20px;padding:4px 10px;font-size:11.5px;font-weight:bold;background:rgba(0,0,0,.35);}');
 cssAdd('.ck-toast{position:fixed;left:50%;top:13%;transform:translateX(-50%);z-index:9600;background:linear-gradient(135deg,#141a3a,#0b1026);border:1px solid #3a86ff;border-radius:12px;padding:10px 18px;color:#dfe6ff;font-family:Courier New,monospace;font-weight:bold;font-size:14px;box-shadow:0 0 22px rgba(58,134,255,.6);pointer-events:none;animation:ckToast 3.2s forwards;}');
@@ -481,6 +504,45 @@ if (ckOfflineGain >= 1) {
 }
 var right = el('div', 'clicker-right');
 right.appendChild(el('h3', '', '', 'АПГРЕЙДЫ'));
+var CK_AUTO = { on: false, thr: 0, scroll: true };
+var ckAutoUserScroll = 0;
+function ckAutoSave() { try { localStorage.setItem('spaceClicker_auto', JSON.stringify({ on: CK_AUTO.on, thr: CK_AUTO.thr, scroll: CK_AUTO.scroll })); } catch (e) {} }
+function ckAutoScroll() {
+  if (!CK_AUTO.scroll || upTab === 4) return;
+  if (overlay.classList.contains('hidden')) return;
+  if (Date.now() - ckAutoUserScroll < 4000) return;
+  for (var x = 359; x >= 0; x--) {
+    var rr = upRows[x];
+    if (rr && rr.row.className.indexOf('can') !== -1) { try { rr.row.scrollIntoView({ block: 'nearest' }); } catch (e) {} return; }
+  }
+}
+(function () {
+  try { var s = JSON.parse(localStorage.getItem('spaceClicker_auto') || 'null'); if (s && typeof s === 'object') { CK_AUTO.on = !!s.on; CK_AUTO.thr = Math.max(0, Number(s.thr) || 0); CK_AUTO.scroll = (s.scroll !== false); } } catch (e) {}
+  var ap = el('div', 'ck-autop');
+  var tgl = el('button', 'ck-ap-tgl', 'ck-apbtn' + (CK_AUTO.on ? ' on' : ''), 'АВТО-ПОКУПКА: ' + (CK_AUTO.on ? 'ВКЛ' : 'ВЫКЛ'));
+  var thr = el('input', 'ck-ap-thr', 'ck-apin');
+  thr.type = 'number'; thr.min = '0'; thr.placeholder = 'Порог суммы'; thr.value = CK_AUTO.thr ? String(CK_AUTO.thr) : '';
+  var scl = el('button', 'ck-ap-scl', 'ck-apbtn' + (CK_AUTO.scroll ? ' on' : ''), 'АВТО-СКРОЛЛ: ' + (CK_AUTO.scroll ? 'ВКЛ' : 'ВЫКЛ'));
+  tgl.addEventListener('click', function () { CK_AUTO.on = !CK_AUTO.on; tgl.className = 'ck-apbtn' + (CK_AUTO.on ? ' on' : ''); tgl.textContent = 'АВТО-ПОКУПКА: ' + (CK_AUTO.on ? 'ВКЛ' : 'ВЫКЛ'); ckAutoSave(); });
+  thr.addEventListener('input', function () { var v = parseInt(thr.value, 10); CK_AUTO.thr = (isNaN(v) || v < 0) ? 0 : v; ckAutoSave(); });
+  scl.addEventListener('click', function () { CK_AUTO.scroll = !CK_AUTO.scroll; scl.className = 'ck-apbtn' + (CK_AUTO.scroll ? ' on' : ''); scl.textContent = 'АВТО-СКРОЛЛ: ' + (CK_AUTO.scroll ? 'ВКЛ' : 'ВЫКЛ'); ckAutoSave(); });
+  ap.appendChild(tgl); ap.appendChild(thr); ap.appendChild(scl);
+  right.appendChild(ap);
+  setInterval(function () {
+    if (!CK_AUTO.on) return;
+    var bought = 0;
+    while (bought < 25) {
+      var best = -1, bestC = Infinity, x;
+      for (x = 0; x < 360; x++) {
+        var c = ckUpgCost(x);
+        if (CK.clicks - c >= CK_AUTO.thr && c < bestC) { bestC = c; best = x; }
+      }
+      if (best < 0) break;
+      CK.clicks -= bestC; CK.lv[best]++; bought++;
+    }
+    if (bought) { sfxBuy(); ckSave(); render(true); }
+  }, 1000);
+})();
 var tabs = el('div', 'ck-tabs');
 var tab1 = el('button', 'ck-tab0', 'ck-tab on', 'ДОХОД');
 var tab2 = el('button', 'ck-tab1', 'ck-tab', 'КРИТ / ГОЛД');
@@ -489,21 +551,99 @@ tabs.appendChild(tab2);
 right.appendChild(tabs);
 var uplist = el('div', 'ck-uplist');
 right.appendChild(uplist);
-var tabBtns = [tab1, tab2];
+uplist.addEventListener('wheel', function () { ckAutoUserScroll = Date.now(); }, { passive: true });
+uplist.addEventListener('touchmove', function () { ckAutoUserScroll = Date.now(); }, { passive: true });
+var tab3 = el('button', 'ck-tab2', 'ck-tab', 'МНОЖ / MEGA');
+var tab4 = el('button', 'ck-tab3', 'ck-tab', 'НОВЫЕ');
+var tab5 = el('button', 'ck-tab4', 'ck-tab', 'НАСТРОЙКИ');
+tabs.appendChild(tab3);
+tabs.appendChild(tab4);
+tabs.appendChild(tab5);
+var tabBtns = [tab1, tab2, tab3, tab4, tab5];
 var upTab = 0;
+var ckSettingsPanel = null;
+function ckUpgGrp(x) {
+  if (x >= 300) return 3;
+  var t = CK_UPG[x].type;
+  if (t === 'auto' || t === 'power') return 0;
+  if (t === 'crit' || t === 'gold') return 1;
+  return 2;
+}
 function ckTabApply() {
-  for (var x = 0; x < 300; x++) {
+  for (var x = 0; x < 360; x++) {
     var rr = upRows[x];
     if (!rr) continue;
-    var t = CK_UPG[x].type;
-    var grp = (t === 'auto' || t === 'power') ? 0 : 1;
-    rr.row.style.display = (grp === upTab) ? '' : 'none';
+    rr.row.style.display = (ckUpgGrp(x) === upTab) ? '' : 'none';
   }
-  tabBtns[0].className = 'ck-tab' + (upTab === 0 ? ' on' : '');
-  tabBtns[1].className = 'ck-tab' + (upTab === 1 ? ' on' : '');
+  for (var tb = 0; tb < tabBtns.length; tb++) tabBtns[tb].className = 'ck-tab' + (upTab === tb ? ' on' : '');
+  var so = (upTab === 4);
+  uplist.style.display = so ? 'none' : '';
+  if (ckSettingsPanel) ckSettingsPanel.style.display = so ? '' : 'none';
 }
 tab1.addEventListener('click', function () { upTab = 0; ckTabApply(); });
 tab2.addEventListener('click', function () { upTab = 1; ckTabApply(); });
+tab3.addEventListener('click', function () { upTab = 2; ckTabApply(); });
+tab4.addEventListener('click', function () { upTab = 3; ckTabApply(); });
+tab5.addEventListener('click', function () { upTab = 4; ckTabApply(); });
+var CK_UI = { sfx: true, font: 100, ui: 100, bg: 0 };
+var CK_BGS = [null, 'linear-gradient(160deg,#101638,#0b1026)', 'linear-gradient(160deg,#2a1030,#12051a)', 'linear-gradient(160deg,#0a2a1e,#04140d)', 'linear-gradient(160deg,#301a10,#140a04)', 'linear-gradient(160deg,#101c30,#050a12)'];
+var uiSwatches = [];
+function ckUiSave() { try { localStorage.setItem('spaceClicker_ui', JSON.stringify(CK_UI)); } catch (e) {} }
+function ckUiApply() {
+  var z = CK_UI.ui / 100;
+  panel.style.zoom = (z !== 1) ? String(z) : '';
+  var fz = CK_UI.font / 100;
+  stats.style.zoom = (fz !== 1) ? String(fz) : '';
+  uplist.style.zoom = (fz !== 1) ? String(fz) : '';
+  panel.style.background = CK_BGS[CK_UI.bg] || '';
+  for (var s = 0; s < uiSwatches.length; s++) uiSwatches[s].className = 'ck-swot' + (CK_UI.bg === s ? ' on' : '');
+}
+var _ckBeepOrig = ckBeep;
+ckBeep = function (freq, dur, type, gain, slideTo) { if (CK_UI.sfx === false) return; _ckBeepOrig(freq, dur, type, gain, slideTo); };
+(function () {
+  try { var s = JSON.parse(localStorage.getItem('spaceClicker_ui') || 'null'); if (s && typeof s === 'object') { CK_UI.sfx = (s.sfx !== false); CK_UI.font = Math.max(80, Math.min(160, Number(s.font) || 100)); CK_UI.ui = Math.max(70, Math.min(140, Number(s.ui) || 100)); CK_UI.bg = Math.max(0, Math.min(CK_BGS.length - 1, Number(s.bg) || 0)); } } catch (e) {}
+  ckSettingsPanel = el('div', 'ck-setp');
+  ckSettingsPanel.style.display = 'none';
+  ckSettingsPanel.appendChild(el('div', '', 'ck-seth', 'НАСТРОЙКИ КЛИКЕРА'));
+  var sfxBtn = el('button', '', 'ck-apbtn' + (CK_UI.sfx ? ' on' : ''), 'ЗВУКИ (SFX): ' + (CK_UI.sfx ? 'ВКЛ' : 'ВЫКЛ'));
+  sfxBtn.addEventListener('click', function () { CK_UI.sfx = !CK_UI.sfx; sfxBtn.className = 'ck-apbtn' + (CK_UI.sfx ? ' on' : ''); sfxBtn.textContent = 'ЗВУКИ (SFX): ' + (CK_UI.sfx ? 'ВКЛ' : 'ВЫКЛ'); ckUiSave(); });
+  ckSettingsPanel.appendChild(sfxBtn);
+  var musBtn = el('button', '', 'ck-apbtn' + (ckMusicOn ? ' on' : ''), 'МУЗЫКА: ' + (ckMusicOn ? 'ВКЛ' : 'ВЫКЛ'));
+  musBtn.addEventListener('click', function () {
+    ckMusicOn = !ckMusicOn;
+    try { localStorage.setItem(CK_MUSIC_KEY, ckMusicOn ? '1' : '0'); } catch (e) {}
+    ckMusicSync();
+    if (ckMusicOn) ckMusicPlay(); else ckMusicPause();
+    musBtn.className = 'ck-apbtn' + (ckMusicOn ? ' on' : '');
+    musBtn.textContent = 'МУЗЫКА: ' + (ckMusicOn ? 'ВКЛ' : 'ВЫКЛ');
+  });
+  ckSettingsPanel.appendChild(musBtn);
+  function mkRange(label, key, min, max) {
+    var row = el('div', '', 'ck-setrow');
+    var l = el('span', '', 'ck-setl', label + ': ' + CK_UI[key] + '%');
+    var r = el('input', '', 'ck-setr');
+    r.type = 'range'; r.min = String(min); r.max = String(max); r.value = String(CK_UI[key]);
+    r.addEventListener('input', function () { CK_UI[key] = parseInt(r.value, 10) || 100; l.textContent = label + ': ' + CK_UI[key] + '%'; ckUiApply(); ckUiSave(); });
+    row.appendChild(l); row.appendChild(r);
+    ckSettingsPanel.appendChild(row);
+  }
+  mkRange('Размер шрифта', 'font', 80, 160);
+  mkRange('Масштаб UI', 'ui', 70, 140);
+  var swRow = el('div', '', 'ck-setrow');
+  swRow.appendChild(el('span', '', 'ck-setl', 'Фон панели:'));
+  for (var bi = 0; bi < CK_BGS.length; bi++) {
+    (function (idx) {
+      var sw = el('button', '', 'ck-swot');
+      sw.style.background = CK_BGS[idx] || 'linear-gradient(160deg,#141a3a,#0b1026)';
+      sw.addEventListener('click', function () { CK_UI.bg = idx; ckUiApply(); ckUiSave(); });
+      swRow.appendChild(sw);
+      uiSwatches.push(sw);
+    })(bi);
+  }
+  ckSettingsPanel.appendChild(swRow);
+  right.appendChild(ckSettingsPanel);
+  ckUiApply();
+})();
 panel.appendChild(left);
 panel.appendChild(right);
 overlay.appendChild(panel);
@@ -578,7 +718,7 @@ var boostBtns = [];
     (function (b) {
       var row = el('div', 'ck-item-boost-' + b.id, 'ck-shop-item');
       var info = el('div');
-      info.innerHTML = '<b>' + b.n + '</b><br><small>' + b.desc + ' · 1 час</small>';
+      info.innerHTML = '<b>' + b.n + '</b><br><small>' + b.desc + ' · ' + ckFmtTime(b.dur) + '</small>';
       var side = el('div');
       side.style.textAlign = 'right';
       var flask = el('div', '', 'ck-flask');
@@ -595,11 +735,11 @@ var boostBtns = [];
       buy.addEventListener('click', function () {
         if (CK.clicks < b.price) return;
         CK.clicks -= b.price;
-        ckBoostGrant(b.id, 3600);
+        ckBoostGrant(b.id, b.dur);
         sfxBuy();
         ckSave();
         ckBoostRender();
-        ckToast('КУПЛЕНО: ' + b.n + ' на 1 час');
+        ckToast('КУПЛЕНО: ' + b.n + ' на ' + ckFmtTime(b.dur));
         renderShop();
         render();
       });
@@ -702,7 +842,7 @@ function render(forceUp) {
   else scheduleUpg();
 }
 (function initUpgrades() {
-  for (var x = 0; x < 300; x++) {
+  for (var x = 0; x < 360; x++) {
     var u = CK_UPG[x];
     var row = el('div', '', 'ck-up no');
     var info = el('div');
@@ -723,7 +863,7 @@ function render(forceUp) {
   ckTabApply();
 })();
 function renderUpgrades() {
-  for (var x = 0; x < 300; x++) {
+  for (var x = 0; x < 360; x++) {
     var r = upRows[x];
     var u = CK_UPG[x];
     var cost = ckUpgCost(x);
@@ -735,6 +875,7 @@ function renderUpgrades() {
     r.btn.disabled = !can;
   }
   ckTabApply();
+  ckAutoScroll();
 }
 var floatCount = 0;
 disc.addEventListener('click', function (ev) {
@@ -802,7 +943,7 @@ rebBtn.addEventListener('click', function () {
   sfxRebirth();
   CK.clicks = 0;
   CK.lv = [];
-  for (var x = 0; x < 300; x++) CK.lv.push(0);
+  for (var x = 0; x < 360; x++) CK.lv.push(0);
   ckSave();
   render(true);
 });
