@@ -7,7 +7,7 @@ if(!window.__CKAPI||!window.__CKAPI.CK_UPG||window.__CKAPI.CK_UPG.length<360){se
 var A=window.__CKAPI;window.CK=A.CK;window.CK_UPG=A.CK_UPG;window.ckSave=A.ckSave;window.ckNick=A.ckNick;window.ckStage=A.ckStage;window.render=A.render;window.renderShop=A.renderShop;window.cssAdd=A.cssAdd;window.fmtNum=A.fmtNum;window.sfxBuy=A.sfxBuy;window.sfxRebirth=A.sfxRebirth;window.ckToast=A.ckToast;window.ckInvRender=A.ckInvRender;window.ckUpgCost=A.ckUpgCost;window.ckLbPush=A.ckLbPush;
 var CK=window.CK;
 try{
-if(localStorage.getItem('spaceClicker_wiped')!=='11'){
+if(localStorage.getItem('spaceClicker_wiped')!=='12'){
 EX.rbSpent=0;EX.rbAuto=0;EX.rbAutoMega=0;
 try{localStorage.removeItem('spaceClicker_gen_v1');}catch(e7){}
 EX.rbSpent=0;EX.rbAuto=0;EX.rbAutoMega=0;
@@ -19,13 +19,13 @@ localStorage.removeItem('spaceClicker_v1');
 localStorage.removeItem('spaceClicker_lb_v1');
 CK.clicks=0;CK.mult=1;CK.rebirths=0;CK.boost={};CK.inv=[];CK.mc=0;CK.lv=[];
 for(var z=0;z<360;z++)CK.lv.push(0);
-localStorage.setItem('spaceClicker_wiped','11');
+localStorage.setItem('spaceClicker_wiped','12');
 }
 }catch(e){}
 var svd=null;
 try{svd=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){}
 if(svd&&typeof svd==='object'){
-EX.rbSpent=Number(svd.rbSpent)||0;EX.rbAuto=!!svd.rbAuto;EX.rbAutoMega=!!svd.rbAutoMega;EX.nexus=!!svd.nexus;EX.idol=!!svd.idol;EX.forge=!!svd.forge;EX.offVault=!!svd.offVault;
+EX.rbSpent=Number(svd.rbSpent)||0;EX.rbAuto=0;/*na1*/EX.rbAutoMega=0;/*na2*/EX.nexus=!!svd.nexus;EX.idol=!!svd.idol;EX.forge=!!svd.forge;EX.offVault=!!svd.offVault;
 if(svd.craft&&typeof svd.craft==='object')EX.craft={s:Number(svd.craft.s)||0,c:Number(svd.craft.c)||0,m:Number(svd.craft.m)||0,g:Number(svd.craft.g)||0,v:Number(svd.craft.v)||0};
 }
 CK.rbSpent=EX.rbSpent;CK.nexus=EX.nexus;CK.idol=EX.idol;CK.forge=EX.forge;CK.offVault=EX.offVault;CK.craft=EX.craft;
@@ -328,7 +328,7 @@ setInterval(function(){if(!document.hidden)PT++;},1000);
 setInterval(function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}},10000);
 window.addEventListener('beforeunload',function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}});
 function ckFmtPT(s){var d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),sc=s%60;if(d>0)return d+'д '+h+'ч '+m+'м';if(h>0)return h+'ч '+m+'м '+sc+'с';if(m>0)return m+'м '+sc+'с';return sc+'с';}
-window.__ckExtVer='v52';
+window.__ckExtVer='v53';
 var profBtn=document.getElementById('ck-profbtn');
 if(!profBtn){profBtn=document.createElement('button');profBtn.id='ck-profbtn';profBtn.textContent='ПРОФИЛЬ';var _pI=setInterval(function(){var apP=document.getElementById('ck-actions');if(apP&&!document.getElementById('ck-profbtn')){apP.appendChild(profBtn);clearInterval(_pI);}},500);}
 var prof=document.createElement('div');prof.id='ck-prof';prof.className='clicker-ui hidden';
