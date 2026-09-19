@@ -10,7 +10,9 @@ var CK_TRACKS = [
   { f: 'clicker-music-6.mp3', n: 'Menu (In-Game)' },
   { f: 'clicker-music-7.mp3', n: 'Tonka 2' },
   { f: 'clicker-music-8.mp3', n: 'Антикобыла - daybe' },
-  { f: 'clicker-music-9.mp3', n: 'Полка, YASMI - Омут' }
+  { f: 'clicker-music-9.mp3', n: 'Полка, YASMI - Омут' },
+  { f: 'clicker-music-10.mp3', n: 'ТАБЛЕТКА - плохой парень' },
+  { f: 'clicker-music-11.mp3', n: 'Voskresenskii - Еду по Москве' }
 ];
 var CK_MUSIC_KEY = 'spaceClicker_music';
 var CK_MVOL_KEY = 'spaceClicker_mvol';
@@ -127,7 +129,7 @@ var CK_ITEMS = [
   { id: 'void',  n: 'Пустота', col: '#ff4d6d', rar: 'Mythic',    w: 1 }
 ];
 var CK_DROP_CHANCE = 0.0005;
-var CK_BOOST_EVERY = 500;
+var CK_BOOST_EVERY = 5000;
 var CK_BOOST_MAX = 3600;
 var CK_BOOSTS = [
   { id: 'frenzy', n: 'Click Frenzy', col: '#ff4d6d', dur: 60,   mult: 5, tgt: 'click', price: 2.5e11, desc: 'x5 за клик' },
@@ -292,6 +294,7 @@ function ckLbList() {
   var all = {}, arr = [], k;
   try { all = JSON.parse(localStorage.getItem(CK_LB) || '{}'); } catch (e) {}
   for (k in all) if (Object.prototype.hasOwnProperty.call(all, k)) {
+    if (k === 'Гость') continue;
     arr.push({ nick: k, best: all[k].best || 0, stage: all[k].stage || 0, rebirths: all[k].rebirths || 0 });
   }
   arr.sort(function (a, b) { return b.best - a.best; });
@@ -484,6 +487,10 @@ cssAdd('#ck-track-name.ck-trk8{background:linear-gradient(90deg,#f87171,#fb923c,
 cssAdd('@keyframes ckT8{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
 cssAdd('#ck-track-name.ck-trk9{background:linear-gradient(90deg,#60a5fa,#22d3ee,#60a5fa);background-size:200% 200%;animation:ckT9 3s ease infinite;-webkit-background-clip:text;background-clip:text;color:transparent;}');
 cssAdd('@keyframes ckT9{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
+cssAdd('#ck-track-name.ck-trk10{background:linear-gradient(90deg,#14b8a6,#e879f9,#14b8a6);background-size:200% 200%;animation:ckT10 3s ease infinite;-webkit-background-clip:text;background-clip:text;color:transparent;}');
+cssAdd('@keyframes ckT10{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
+cssAdd('#ck-track-name.ck-trk11{background:linear-gradient(90deg,#a3e635,#22d3ee,#a3e635);background-size:200% 200%;animation:ckT11 3s ease infinite;-webkit-background-clip:text;background-clip:text;color:transparent;}');
+cssAdd('@keyframes ckT11{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
 cssAdd('#ck-bgvid{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:.85;pointer-events:none;}');
 cssAdd('.t2-theme{background:#f4f6fb !important;border-color:#c9d2e8 !important;}');
 cssAdd('.t2-theme #clicker-left{position:relative;}');
@@ -774,7 +781,7 @@ player.className = ckMusicOn ? 'ck-on' : '';
 var pInfo = el('div', 'ck-player-info');
 var pName = el('div', 'ck-track-name', '', CK_TRACKS[ckTrack].n);
 pName.id = 'ck-track-name';
-var TPALETTE = ['ck-trk1','ck-trk2','ck-trk3','ck-trk4','ck-trk5','ck-trk6','ck-trk7','ck-trk8','ck-trk9'];
+var TPALETTE = ['ck-trk1','ck-trk2','ck-trk3','ck-trk4','ck-trk5','ck-trk6','ck-trk7','ck-trk8','ck-trk9','ck-trk10','ck-trk11'];
 function ckTrackPaint() {
   pName.className = 'ck-track-name ' + (TPALETTE[ckTrack] || 'ck-trk1');
 }
@@ -783,7 +790,7 @@ var pNum = el('div', 'ck-track-num', '', (ckTrack + 1) + '/' + CK_TRACKS.length)
 pNum.id = 'ck-track-num';
 pInfo.appendChild(pName);
 pInfo.appendChild(pNum);
-var TMEDIA = { 5: 'vid4.mp4', 6: 'vid1.mp4', 7: 'vid2.mp4', 8: 'vid3.mp4' };
+var TMEDIA = { 5: 'vid4.mp4', 6: 'vid1.mp4', 7: 'vid2.mp4', 8: 'vid3.mp4', 9: 'vid5.mp4', 10: 'vid6.mp4' };
 var ckMedia = null;
 function ckBuildMedia() {
   var tgt = pInfo;
@@ -869,6 +876,97 @@ profBtn.addEventListener('click',function(){profM.classList.remove('hidden');ckP
 pclose2.addEventListener('click',function(){profM.classList.add('hidden');});
 setInterval(function(){if(!profM.classList.contains('hidden')){var el5=document.getElementById('ck-prof-pt');if(el5)el5.textContent=ckFmtPT(ckPT);}},1000);
 window.__ckProfCore=1;
+window.__ckNucCore=1;
+cssAdd('#ck-nucbtn{display:none !important;}');
+cssAdd('#ck-nuc{display:none !important;}');
+cssAdd('#ck-nucbtn2{background:linear-gradient(135deg,#0ea5e9,#134e6f);}');
+cssAdd('#ck-nuc2{position:fixed;inset:0;z-index:9472;background:rgba(2,2,14,.88);display:flex;align-items:center;justify-content:center;font-family:Segoe UI,sans-serif;}');
+cssAdd('#ck-nuc2-box{width:min(620px,94vw);max-height:90vh;overflow-y:auto;background:linear-gradient(160deg,#101a2a,#0a1420);border:2px solid #7fd4ff;border-radius:16px;padding:18px;color:#fff;box-sizing:border-box;}');
+cssAdd('#ck-nuc2-box h2{margin:0 0 10px;text-align:center;color:#7fd4ff;letter-spacing:2px;}');
+cssAdd('#ck-nuc2-info{text-align:center;color:#9fb8cc;font-size:12px;margin-bottom:10px;}');
+cssAdd('.ck-nrow{display:flex;align-items:center;gap:10px;background:#111634;border:1px solid #2b3672;border-radius:12px;padding:10px;margin-bottom:8px;}');
+cssAdd('.ck-nrow .n1{flex:1;min-width:0;}');
+cssAdd('.ck-nrow .n1 small{display:block;color:#8fa3e8;font-size:11px;}');
+cssAdd('.ck-nrow .n2{text-align:right;flex:none;}');
+cssAdd('.ck-nrow .n2 small{display:block;color:#8fa3e8;font-size:11px;margin-bottom:4px;}');
+cssAdd('.ck-nrow .n2 button{background:linear-gradient(135deg,#7fd4ff,#134e6f);border:none;border-radius:8px;padding:7px 12px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;font-size:11px;}');
+cssAdd('.ck-nrow .n2 button:disabled{opacity:.4;cursor:default;}');
+cssAdd('#ck-close-nuc2{width:100%;background:#b3283c;border:none;border-radius:9px;padding:10px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
+var nucBtn2=el('button','ck-nucbtn2','','ЯДРА');
+var nuc2=el('div','ck-nuc2','clicker-ui hidden');
+var nbox2=el('div','ck-nuc2-box');
+nbox2.appendChild(el('h2','','','ЯДРА'));
+var ninfo=el('div','ck-nuc2-info');
+nbox2.appendChild(ninfo);
+var ngrid2=el('div','','');
+nbox2.appendChild(ngrid2);
+var nclose2=el('button','ck-close-nuc2','','ЗАКРЫТЬ');
+nbox2.appendChild(nclose2);
+nuc2.appendChild(nbox2);
+document.body.appendChild(nuc2);
+var GKKEY2='spaceClicker_gen_v1';
+var GK={o:[0,0,0,0,0],p:[0,0,0,0,0],cd:[0,0,0,0,0],b:[0,0,0,0,0],spd:0,rx:0,pt:Date.now()};
+function gkSave(){try{localStorage.setItem(GKKEY2,JSON.stringify(GK));}catch(e20){}}
+(function(){try{var g=JSON.parse(localStorage.getItem(GKKEY2)||'null');if(g&&typeof g==='object'){var g1;for(g1=0;g1<5;g1++){GK.o[g1]=Number(g.o&&g.o[g1])||0;GK.p[g1]=Number(g.p&&g.p[g1])||0;GK.cd[g1]=Number(g.cd&&g.cd[g1])||0;GK.b[g1]=Number(g.b&&g.b[g1])||0;}GK.spd=Number(g.spd)||0;GK.rx=Number(g.rx)||0;GK.pt=Number(g.pt)||Date.now();}}catch(e21){}})();
+function gkSpd(){return 1+GK.spd*0.25;}
+function gkPrice(gi2){if(gi2===0)return Math.ceil(1e30*Math.pow(4,GK.b[0]));return Math.ceil(100*Math.pow(8,GK.b[gi2]));}
+var NNAME=['Ядро-1','Ядро-2','Ядро-3','Ядро-4','Ядро-5'];
+function nucOk2(){return (CK.rebirths||0)>=50;}
+nucBtn2.addEventListener('click',function(){if(!nucOk2()){ckToast('Нужно 50 перерождений');return;}nuc2.classList.remove('hidden');nucRender2();});
+nclose2.addEventListener('click',function(){nuc2.classList.add('hidden');});
+setInterval(function(){
+var now2=Date.now();
+for(var gi3=0;gi3<5;gi3++){
+if(GK.cd[gi3]>0)GK.cd[gi3]=Math.max(0,GK.cd[gi3]-(now2-GK.pt)/1000);
+if(GK.o[gi3]>0){
+if(gi3<4)GK.p[gi3]+=GK.o[gi3]*10*gkSpd();
+else CK.rebirths=(CK.rebirths||0)+GK.o[gi3];
+}
+}
+GK.pt=now2;
+gkSave();
+if(!nuc2.classList.contains('hidden'))nucRender2();
+},10000);
+function nucRender2(){
+if(nuc2.classList.contains('hidden'))return;
+ninfo.textContent='Ядра вырабатывают ресурсы каждые 10 секунд. Партии по 10 шт, кулдаун 60с.';
+var h='';
+for(var ni=0;ni<5;ni++){
+var unlocked=ni===0||GK.b[ni]>0||GK.o[ni-1]>=10;
+var cd=Math.ceil(GK.cd[ni]);
+h+='<div class=ck-nrow><div class=n1><b>'+NNAME[ni]+' x'+GK.o[ni]+'</b><small>';
+if(ni<4)h+='накоплено: '+fmtNum(GK.p[ni]);else h+='даёт: '+GK.o[ni]+' перерожд./10с';
+h+='</small></div><div class=n2>';
+if(!unlocked)h+='<small>нужно 10 '+NNAME[ni-1]+'</small>';
+else if(cd>0)h+='<small>кулдаун: '+cd+'с</small>';
+else{
+if(ni===0)h+='<small>цена: '+fmtNum(gkPrice(0))+' кликов</small><button id=ck-nb0>КУПИТЬ x10</button>';
+else h+='<small>цена: '+fmtNum(gkPrice(ni))+' '+NNAME[ni-1]+'</small><button id=ck-nb'+ni+'>КУПИТЬ x10</button>';
+}
+h+='</div></div>';
+}
+h+='<div class=ck-nrow style=border-color:#ffd23f><div class=n1><b>СКОРОСТЬ</b><small>+'+(GK.spd*25)+'% выработки ('+GK.spd+' ур) - за Ядро-1</small></div><div class=n2><small>цена: '+fmtNum(Math.ceil(50*Math.pow(2,GK.spd)))+' Я-1</small><button id=ck-nss>КУПИТЬ</button></div></div>';
+h+='<div class=ck-nrow style=border-color:#d68cff><div class=n1><b>ИКСЫ НАВСЕГДА</b><small>+'+(GK.rx*10)+' к множителю ('+GK.rx+' ур) - за Ядро-2</small></div><div class=n2><small>цена: '+fmtNum(Math.ceil(20*Math.pow(2,GK.rx)))+' Я-2</small><button id=ck-nsr>КУПИТЬ</button></div></div>';
+ngrid2.innerHTML=h;
+var nb0=document.getElementById('ck-nb0');
+if(nb0)nb0.addEventListener('click',function(){if(GK.cd[0]>0||CK.clicks<gkPrice(0))return;CK.clicks-=gkPrice(0);GK.o[0]+=10;GK.b[0]++;GK.cd[0]=60;gkSave();sfxBuy();nucRender2();});
+var nq;
+for(nq=1;nq<5;nq++)(function(nq2){
+var b2=document.getElementById('ck-nb'+nq2);
+if(b2)b2.addEventListener('click',function(){
+if(GK.cd[nq2]>0||GK.p[nq2-1]<gkPrice(nq2))return;
+GK.p[nq2-1]-=gkPrice(nq2);GK.o[nq2]+=10;GK.b[nq2]++;GK.cd[nq2]=60;gkSave();sfxBuy();nucRender2();
+});
+})(nq);
+var bs2=document.getElementById('ck-nss');
+if(bs2)bs2.addEventListener('click',function(){var c2=Math.ceil(50*Math.pow(2,GK.spd));if(GK.p[0]<c2)return;GK.p[0]-=c2;GK.spd++;gkSave();sfxBuy();nucRender2();});
+var br2=document.getElementById('ck-nsr');
+if(br2)br2.addEventListener('click',function(){var c3=Math.ceil(20*Math.pow(2,GK.rx));if(GK.p[1]<c3)return;GK.p[1]-=c3;GK.rx++;CK.mult=(CK.mult||1)+10;gkSave();ckSave();sfxBuy();nucRender2();});
+}
+nucBtn2.disabled=true;
+setInterval(function(){nucBtn2.disabled=!nucOk2();},900);
+/*__CKN3__*/
+actions.appendChild(nucBtn2);
 actions.appendChild(profBtn);
 actions.appendChild(player);
 actions.appendChild(closeBtn);
@@ -1481,7 +1579,7 @@ lbBtn.addEventListener('click', function () { shop.classList.add('hidden'); lb.c
 lbClose.addEventListener('click', function () { lb.classList.add('hidden'); });
 rebBtn.addEventListener('click', function () {
   if (CK.clicks < 1e14) return;
-  CK.mult *= 2;
+  CK.mult += 2;
   CK.rebirths++;
   sfxRebirth();
   CK.clicks = 0;
