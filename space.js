@@ -2682,7 +2682,7 @@ window.addEventListener('resize', () => {
   s.src = 'clicker.js?v=50';
   document.body.appendChild(s);
   var e = document.createElement('script');
-  e.src = 'clicker_ext2.js?v=50';
+  e.src = 'clicker_ext.js?v=50';
   document.body.appendChild(e);
 })();
 

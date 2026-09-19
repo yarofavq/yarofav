@@ -7,7 +7,7 @@ if(!window.__CKAPI||!window.__CKAPI.CK_UPG||window.__CKAPI.CK_UPG.length<360){se
 var A=window.__CKAPI;window.CK=A.CK;window.CK_UPG=A.CK_UPG;window.ckSave=A.ckSave;window.ckNick=A.ckNick;window.ckStage=A.ckStage;window.render=A.render;window.renderShop=A.renderShop;window.cssAdd=A.cssAdd;window.fmtNum=A.fmtNum;window.sfxBuy=A.sfxBuy;window.sfxRebirth=A.sfxRebirth;window.ckToast=A.ckToast;window.ckInvRender=A.ckInvRender;window.ckUpgCost=A.ckUpgCost;window.ckLbPush=A.ckLbPush;
 var CK=window.CK;
 try{
-if(localStorage.getItem('spaceClicker_wiped')!=='9'){
+if(localStorage.getItem('spaceClicker_wiped')!=='11'){
 EX.rbSpent=0;EX.rbAuto=0;EX.rbAutoMega=0;
 try{localStorage.removeItem('spaceClicker_gen_v1');}catch(e7){}
 EX.rbSpent=0;EX.rbAuto=0;EX.rbAutoMega=0;
@@ -19,7 +19,7 @@ localStorage.removeItem('spaceClicker_v1');
 localStorage.removeItem('spaceClicker_lb_v1');
 CK.clicks=0;CK.mult=1;CK.rebirths=0;CK.boost={};CK.inv=[];CK.mc=0;CK.lv=[];
 for(var z=0;z<360;z++)CK.lv.push(0);
-localStorage.setItem('spaceClicker_wiped','9');
+localStorage.setItem('spaceClicker_wiped','11');
 }
 }catch(e){}
 var svd=null;
@@ -327,7 +327,7 @@ setInterval(function(){if(!document.hidden)PT++;},1000);
 setInterval(function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}},10000);
 window.addEventListener('beforeunload',function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}});
 function ckFmtPT(s){var d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),sc=s%60;if(d>0)return d+'д '+h+'ч '+m+'м';if(h>0)return h+'ч '+m+'м '+sc+'с';if(m>0)return m+'м '+sc+'с';return sc+'с';}
-window.__ckExtVer='v41';
+window.__ckExtVer='v51';
 var profBtn=document.getElementById('ck-profbtn');
 if(!profBtn){profBtn=document.createElement('button');profBtn.id='ck-profbtn';profBtn.textContent='ПРОФИЛЬ';var _pI=setInterval(function(){var apP=document.getElementById('ck-actions');if(apP&&!document.getElementById('ck-profbtn')){apP.appendChild(profBtn);clearInterval(_pI);}},500);}
 var prof=document.createElement('div');prof.id='ck-prof';prof.className='clicker-ui hidden';
