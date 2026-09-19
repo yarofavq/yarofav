@@ -2679,8 +2679,11 @@ window.addEventListener('resize', () => {
 // Clicker module loader (cache-busted)
 (function () {
   var s = document.createElement('script');
-  s.src = 'clicker.js?v=9';
+  s.src = 'clicker.js?v=12';
   document.body.appendChild(s);
+  var e = document.createElement('script');
+  e.src = 'clicker_ext.js?v=12';
+  document.body.appendChild(e);
 })();
 
 // Chat loader: photon.js SDK (root -> libs/ fallback) then chat.js (cache-busted)
