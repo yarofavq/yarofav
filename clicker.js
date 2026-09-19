@@ -222,7 +222,7 @@ for (i = 300; i < 360; i++) {
   if (i % 2 === 0) CK_UPG.push({ name: 'Хронизатор ' + ((i - 300) / 2 + 1), type: 'boost', val: 30, base: Math.ceil(1e13 * Math.pow(3.0, i - 300)) });
   else CK_UPG.push({ name: 'Гравиконденсатор ' + Math.ceil((i - 300) / 2), type: 'drop', val: 0.0002, base: Math.ceil(2e13 * Math.pow(3.0, i - 301)) });
 }
-function ckUpgCost(x) { return Math.ceil(CK_UPG[x].base * Math.pow(1.25, CK.lv[x])); }
+function ckUpgCost(x) { return Math.ceil(CK_UPG[x].base * Math.pow(1.45, CK.lv[x])); }
 function ckGold() { var s = 0; for (var x = 101; x < 200; x += 2) s += CK_UPG[x].val * CK.lv[x]; var ex = window.__CKEX; return s + (CK.gold ? 50 : 0) + (ex && ex.idol ? 50 : 0) + (ex && ex.forge ? 25 : 0); }
 function ckMega() { var s = 0; for (var x = 201; x < 300; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s; }
 function ckGoldMul() { var ex = window.__CKEX; var cs = (ex && ex.craft) ? ((ex.craft.s || 0) + (ex.craft.g || 0) * 5 + (ex.craft.v || 0) * 10) : 0; return 1 + (ckGold() + ckMega() + cs) / 100; }
@@ -376,6 +376,10 @@ cssAdd('.apb-lb.on{background:linear-gradient(135deg,#5eead4,#2563eb);border-col
 cssAdd('.apb-mg.on{background:linear-gradient(135deg,#d68cff,#8b2fd6);border-color:#d68cff;box-shadow:0 0 12px rgba(200,120,255,.5);}');
 cssAdd('.apb-gr.on{background:linear-gradient(135deg,#7bed9f,#1d9d5f);border-color:#7bed9f;box-shadow:0 0 12px rgba(90,230,140,.45);}');
 cssAdd('.apb-rb.on{background:linear-gradient(135deg,#ff5e7e,#a3123a);border-color:#ff5e7e;box-shadow:0 0 12px rgba(255,95,125,.5);}');
+cssAdd('.apb-am.on{background:linear-gradient(135deg,#ff8a3d,#b31212);border-color:#ff8a3d;box-shadow:0 0 12px rgba(255,120,60,.55);}');
+cssAdd('#ck-superreb{background:linear-gradient(135deg,#ff4d6d,#ffd23f 50%,#ff4d6d);background-size:200% 200%;animation:ckSupF 2s ease infinite;box-shadow:0 0 20px rgba(255,90,110,.6),inset 0 1px 0 rgba(255,255,255,.35);}');
+cssAdd('#ck-superreb:disabled{opacity:.45;}');
+cssAdd('@keyframes ckSupF{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
 cssAdd('#clicker-overlay{overflow:hidden;}');
 cssAdd('#clicker-panel{will-change:transform;}');
 cssAdd('.ck-actions button{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.25);letter-spacing:1px;transition:transform .18s,box-shadow .18s,filter .18s;}');
@@ -633,11 +637,12 @@ function ckAutoScroll() {
   }
   right.appendChild(ap);
   setInterval(function () {
+    if (window.__CKEX && window.__CKEX.rbAuto && CK.clicks >= 1e14) return;
     for (var t4 = 0; t4 < 4; t4++) {
       var cfg2 = CK_AUTO.t[t4];
       if (!cfg2.on) continue;
       var bought = 0;
-      while (bought < 12) {
+      while (bought < 50) {
         var pick = -1, pcost = 0;
         if (ASTRAT[t4] === 'last') {
           for (var xa = 359; xa >= 0; xa--) {
@@ -652,6 +657,7 @@ function ckAutoScroll() {
             var cb = ckUpgCost(xb2);
             if (CK.clicks - cb >= cfg2.thr && cb < bc) { bc = cb; pick = xb2; }
           }
+          if (pick >= 0) pcost = bc;
         }
         if (pick < 0) break;
         CK.clicks -= pcost;
@@ -660,7 +666,7 @@ function ckAutoScroll() {
       }
       if (bought) { sfxBuy(); ckSave(); render(true); }
     }
-  }, 400);
+  }, 100);
 })();
 var tabs = el('div', 'ck-tabs');
 var tab1 = el('button', 'ck-tab0', 'ck-tab on', 'ДОХОД');
