@@ -229,7 +229,7 @@ function ckGoldMul() { var ex = window.__CKEX; var cs = (ex && ex.craft) ? ((ex.
 function ckCps() { var s = 0, x; for (x = 0; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult * ckGoldMul() * ckBoostMul('auto'); }
 function ckPower() { var s = 1, x; for (x = 1; x < 100; x += 2) s += CK_UPG[x].val * CK.lv[x]; return s * CK.mult * ckGoldMul() * ckBoostMul('click'); }
 function ckCrit() { var s = 5; for (var x = 100; x < 200; x += 2) s += CK_UPG[x].val * CK.lv[x]; var ex = window.__CKEX; return Math.min(85, s + (CK.critM ? 15 : 0) + (ex && ex.nexus ? 10 : 0) + (ex && ex.craft ? (ex.craft.c || 0) * 2 : 0)); }
-function ckCritMul() { var s = 5; for (var x = 200; x < 300; x += 2) s += CK_UPG[x].val * CK.lv[x]; var ex = window.__CKEX; return s + (ex && ex.craft ? (ex.craft.m || 0) : 0); }
+function ckCritMul() { var s = 5, l; for (var x = 200; x < 300; x += 2) { l = CK.lv[x]; if (l > 0) s += 1 + Math.round((l - 1) * 10) / 10; } var ex = window.__CKEX; return s + (ex && ex.craft ? (ex.craft.m || 0) : 0); }
 function ckStage() { var s = 0; for (var x = 0; x < CK_TH.length; x++) if (CK.clicks >= CK_TH[x]) s = x; return s; }
 function fmtNum(n) {
   n = Math.floor(n);
@@ -443,6 +443,29 @@ cssAdd('@keyframes ckPlayP{0%,100%{box-shadow:0 0 8px rgba(55,224,138,.45)}50%{b
 cssAdd('@keyframes ckRowIn{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}');
 cssAdd('.ck-tab.on{animation:ckTabPop .22s ease;}');
 cssAdd('@keyframes ckTabPop{from{transform:scale(.9)}to{transform:scale(1)}}');
+cssAdd('@media(max-height:540px) and (orientation:landscape){');
+cssAdd('#clicker-panel{flex-direction:row;height:97vh;width:97vw;}');
+cssAdd('#clicker-left{padding:8px;gap:6px;}');
+cssAdd('#clicker-right{width:42%;min-width:220px;border-left:2px solid #26306a;border-top:none;flex:0 0 auto;}');
+cssAdd('#ck-disc{width:min(190px,34vh);height:min(190px,34vh);}');
+cssAdd('#ck-disc-name{font-size:15px;}');
+cssAdd('#ck-stats{font-size:11.5px;line-height:1.35;}');
+cssAdd('#ck-prbar{width:92%;height:12px;}');
+cssAdd('.ck-actions{gap:5px;}');
+cssAdd('.ck-actions button{padding:6px 10px;font-size:11px;border-radius:10px;}');
+cssAdd('.ck-mbtn{width:26px;height:26px;font-size:11px;border-radius:8px;}');
+cssAdd('#ck-player{padding:5px 8px;margin-top:2px;gap:5px;}');
+cssAdd('#ck-track-name{font-size:10.5px;}');
+cssAdd('#ck-track-num{font-size:8.5px;}');
+cssAdd('#ck-mvol{width:64px;}');
+cssAdd('.ck-eq{height:10px;margin-top:3px;}');
+cssAdd('#ck-uplist{padding:5px;gap:4px;}');
+cssAdd('.ck-up{min-height:34px;padding:4px 7px;font-size:11px;}');
+cssAdd('.ck-tab{padding:5px 4px;font-size:10px;min-width:60px;}');
+cssAdd('#ck-autop{padding:5px 5px 0;gap:4px;}');
+cssAdd('.ck-apbtn{padding:4px 6px;font-size:9.5px;min-width:80px;}');
+cssAdd('.ck-apin{width:88px;font-size:11px;padding:4px 6px;}');
+cssAdd('}');
 cssAdd('#ck-lb{position:fixed;inset:0;z-index:9470;background:rgba(2,2,14,.85);display:flex;align-items:center;justify-content:center;font-family:inherit;}');
 cssAdd('#ck-lb-box{width:min(520px,94vw);max-height:88vh;overflow-y:auto;background:linear-gradient(160deg,#141a3a,#0b1026);border:2px solid #3a86ff;border-radius:20px;padding:18px;color:#fff;}');
 cssAdd('#ck-lb-box h2{margin:0 0 6px;text-align:center;letter-spacing:2px;background:linear-gradient(90deg,#8fc0ff,#b04dff,#8fc0ff);-webkit-background-clip:text;background-clip:text;color:transparent;}');
@@ -703,6 +726,9 @@ var uiSwatches = [];
 function ckUiSave() { try { localStorage.setItem('spaceClicker_ui', JSON.stringify(CK_UI)); } catch (e) {} }
 function ckUiApply() {
   var z = CK_UI.ui / 100;
+  var iw = window.innerWidth || 1200;
+  var ih = window.innerHeight || 800;
+  var land = (ih <= 540) && (iw > ih);
   panel.style.transform = '';
   panel.style.transformOrigin = '';
   panel.style.zoom = '';
@@ -710,8 +736,8 @@ function ckUiApply() {
   panel.style.height = '';
   if (z !== 1) {
     panel.style.zoom = String(z);
-    panel.style.width = Math.round(Math.min(1060, (window.innerWidth || 1200) * 0.96) / z) + 'px';
-    panel.style.height = Math.round(Math.min(640, (window.innerHeight || 800) * 0.92) / z) + 'px';
+    panel.style.width = Math.round(Math.min(1060, iw * (land ? 0.97 : 0.96)) / z) + 'px';
+    panel.style.height = Math.round(Math.min(land ? 4000 : 640, ih * (land ? 0.97 : 0.92)) / z) + 'px';
   }
   var fz = CK_UI.font / 100;
   stats.style.zoom = (fz !== 1) ? String(fz) : '';
@@ -994,7 +1020,7 @@ function renderUpgrades() {
     var can = CK.clicks >= cost;
     r.row.className = 'ck-up' + (can ? ' can' : ' no') + (u.type === 'auto' ? ' aut' : '');
     r.lvl.textContent = ' ур.' + CK.lv[x];
-    r.eff.textContent = u.type === 'auto' ? ('+' + fmtNum(u.val * CK.mult) + ' авто/с') : u.type === 'power' ? ('+' + fmtNum(u.val * CK.mult) + ' за клик') : u.type === 'crit' ? ('+' + u.val + '% крит') : u.type === 'critx' ? ('+' + u.val + 'x крит-множ') : u.type === 'boost' ? ('+' + u.val + 'с к бустерам') : u.type === 'drop' ? ('+' + (u.val * 100).toFixed(2) + '% дропа') : ('+' + u.val + '% ко всему');
+    r.eff.textContent = u.type === 'auto' ? ('+' + fmtNum(u.val * CK.mult) + ' авто/с') : u.type === 'power' ? ('+' + fmtNum(u.val * CK.mult) + ' за клик') : u.type === 'crit' ? ('+' + u.val + '% крит') : u.type === 'critx' ? ('+' + (CK.lv[x] > 0 ? (1 + Math.round((CK.lv[x] - 1) * 10) / 10) : 1) + 'x крит-множ') : u.type === 'boost' ? ('+' + u.val + 'с к бустерам') : u.type === 'drop' ? ('+' + (u.val * 100).toFixed(2) + '% дропа') : ('+' + u.val + '% ко всему');
     r.btn.textContent = fmtNum(cost);
     r.btn.disabled = !can;
   }
@@ -1388,7 +1414,7 @@ pcss('.ck-actions button{border-radius:14px;padding:11px 18px;font-size:13px;let
 pcss('.ck-actions button:hover{transform:translateY(-2px);filter:brightness(1.12);box-shadow:0 8px 24px rgba(80,120,255,.35);}');
 pcss('.ck-actions button:active{transform:translateY(0) scale(.95);}');
 pcss('#ck-closebtn{width:46px;height:46px;border-radius:50%;padding:0;font-size:14px;background:linear-gradient(135deg,#ff5f6d,#b3283c);}');
-pcss('#ck-disc{width:min(320px,46vw);height:min(320px,46vw);}');
+pcss('#ck-disc{width:min(320px,46vw,48vh);height:min(320px,46vw,48vh);flex:none;flex-shrink:0;aspect-ratio:1/1;}');
 pcss('@keyframes ckFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}');
 pcss('#ck-disc::before{content:\'\';position:absolute;inset:-14px;border-radius:50%;background:conic-gradient(from 0deg,rgba(90,140,255,0),rgba(120,160,255,.4),rgba(210,120,255,.4),rgba(90,140,255,0));animation:ckSpin 12s linear infinite;will-change:transform;}');
 pcss('@keyframes ckSpin{to{transform:rotate(360deg)}}');
