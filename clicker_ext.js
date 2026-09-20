@@ -25,7 +25,7 @@ localStorage.setItem('spaceClicker_wiped','12');
 var svd=null;
 try{svd=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){}
 if(svd&&typeof svd==='object'){
-EX.rbSpent=Number(svd.rbSpent)||0;EX.rbAuto=0;/*na1*/EX.rbAutoMega=0;/*na2*/EX.nexus=!!svd.nexus;EX.idol=!!svd.idol;EX.forge=!!svd.forge;EX.offVault=!!svd.offVault;
+EX.rbSpent=Number(svd.rbSpent)||0;EX.rbAuto=!!svd.rbAuto;EX.rbAutoMega=0;/*na2*/EX.nexus=!!svd.nexus;EX.idol=!!svd.idol;EX.forge=!!svd.forge;EX.offVault=!!svd.offVault;
 if(svd.craft&&typeof svd.craft==='object')EX.craft={s:Number(svd.craft.s)||0,c:Number(svd.craft.c)||0,m:Number(svd.craft.m)||0,g:Number(svd.craft.g)||0,v:Number(svd.craft.v)||0};
 }
 CK.rbSpent=EX.rbSpent;CK.nexus=EX.nexus;CK.idol=EX.idol;CK.forge=EX.forge;CK.offVault=EX.offVault;CK.craft=EX.craft;
@@ -46,15 +46,15 @@ boot();
 function extPhase2(){
 var EX=window.__CKEX;
 function sv(){try{localStorage.setItem('spaceClicker_ext_v1',JSON.stringify(EX));}catch(e){}}
-function mAvail(){return Math.floor((window.CK.rebirths||0)/10);}
+function mAvail(){return Math.floor(window.CK.rebirths||0);}
 function ckReset(){var CK=window.CK;CK.clicks=0;CK.lv=[];for(var z=0;z<360;z++)CK.lv.push(0);}
 var megaBtn=document.createElement('button');megaBtn.id='ck-megareb';megaBtn.textContent='МЕГА x50 (0/10)';
 var acts=document.getElementById('ck-actions');
 if(acts)acts.appendChild(megaBtn);
 function updMega(){var a=mAvail();megaBtn.disabled=a<10;megaBtn.textContent='МЕГА x50 ('+a+'/10)';}
 megaBtn.addEventListener('click',function(){
-if(mAvail()<10)return;
-window.CK.mult+=50;window.CK.rebirths=Math.max(0,(window.CK.rebirths||0)-10);EX.rbSpent=0;window.CK.rbSpent=0;ckReset();
+if(mAvail()<1)return;
+window.CK.mult+=50;window.CK.rebirths=Math.max(0,(window.CK.rebirths||0)-1);EX.rbSpent=0;window.CK.rbSpent=0;ckReset();
 if(window.sfxRebirth)window.sfxRebirth();
 if(window.ckToast)window.ckToast('МЕГА-ПЕРЕРОЖДЕНИЕ: x50');
 window.ckSave();if(window.render)window.render(true);updMega();
@@ -65,7 +65,7 @@ if(acts)acts.appendChild(supBtn);
 function updSup(){var a=mAvail();supBtn.disabled=a<100;supBtn.textContent='СУПЕР x10000 ('+a+'/100)';}
 supBtn.addEventListener('click',function(){
 if(mAvail()<100)return;
-window.CK.mult+=10000;window.CK.rebirths=Math.max(0,(window.CK.rebirths||0)-1000);EX.rbSpent=0;window.CK.rbSpent=0;ckReset();
+window.CK.mult+=10000;window.CK.rebirths=Math.max(0,(window.CK.rebirths||0)-100);EX.rbSpent=0;window.CK.rbSpent=0;ckReset();
 if(window.sfxRebirth)window.sfxRebirth();
 if(window.ckToast)window.ckToast('СУПЕР-ПЕРЕРОЖДЕНИЕ: x10000');
 window.ckSave();if(window.render)window.render(true);updMega();updSup();
@@ -81,7 +81,7 @@ setInterval(function(){
 if(!EX.rbAutoMega)return;
 if(Date.now()-(window.ckLastAM||0)<60000)return;
 if(Date.now()-ckLastAM<60000)return;
-if(mAvail()>=10){ckLastAM=Date.now();window.CK.mult+=50;window.CK.rebirths=Math.max(0,(window.CK.rebirths||0)-10);ckReset();if(window.sfxRebirth)window.sfxRebirth();if(window.ckToast)window.ckToast('АВТО-МЕГА: x50');window.ckSave();if(window.render)window.render(true);}
+if(mAvail()>=1){ckLastAM=Date.now();window.CK.mult+=50;window.CK.rebirths=Math.max(0,(window.CK.rebirths||0)-1);ckReset();if(window.sfxRebirth)window.sfxRebirth();if(window.ckToast)window.ckToast('АВТО-МЕГА: x50');window.ckSave();if(window.render)window.render(true);}
 },1000);
 var arbBtn=document.createElement('button');arbBtn.id='ck-ap-rb';arbBtn.className='ck-apbtn apb-rb'+(EX.rbAuto?' on':'');arbBtn.textContent='АВТО-РЕБЕРФ: '+(EX.rbAuto?'ВКЛ':'ВЫКЛ');
 var ap=document.getElementById('ck-autop');
@@ -91,7 +91,7 @@ var ckLastRbT=0;
 setInterval(function(){
 if(!EX.rbAuto||EX.rbAutoMega)return;
 if(Date.now()-ckLastRbT<10000)return;
-if(window.CK.clicks>=1e14){ckLastRbT=Date.now();window.CK.mult+=2;window.CK.rebirths++;ckReset();if(window.sfxRebirth)window.sfxRebirth();if(window.ckToast)window.ckToast('АВТО-РЕБЕРФ: x2');window.ckSave();if(window.render)window.render(true);}
+if(false){ckLastRbT=Date.now();window.CK.mult+=2;window.CK.rebirths++;ckReset();if(window.sfxRebirth)window.sfxRebirth();if(window.ckToast)window.ckToast('АВТО-РЕБЕРФ: x2');window.ckSave();if(window.render)window.render(true);}
 },200);
 if(window.render){var _r=window.render;window.render=function(f){var out=_r(f);updMega();return out;};}
 var crafBtn=document.createElement('button');crafBtn.id='ck-craftbtn';crafBtn.textContent='КРАФТ';
@@ -328,7 +328,7 @@ setInterval(function(){if(!document.hidden)PT++;},1000);
 setInterval(function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}},10000);
 window.addEventListener('beforeunload',function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}});
 function ckFmtPT(s){var d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),sc=s%60;if(d>0)return d+'д '+h+'ч '+m+'м';if(h>0)return h+'ч '+m+'м '+sc+'с';if(m>0)return m+'м '+sc+'с';return sc+'с';}
-window.__ckExtVer='v55';
+window.__ckExtVer='v58';
 var profBtn=document.getElementById('ck-profbtn');
 if(!profBtn){profBtn=document.createElement('button');profBtn.id='ck-profbtn';profBtn.textContent='ПРОФИЛЬ';var _pI=setInterval(function(){var apP=document.getElementById('ck-actions');if(apP&&!document.getElementById('ck-profbtn')){apP.appendChild(profBtn);clearInterval(_pI);}},500);}
 var prof=document.createElement('div');prof.id='ck-prof';prof.className='clicker-ui hidden';
