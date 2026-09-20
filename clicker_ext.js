@@ -261,7 +261,7 @@ var nick=window.ckNick();
 if(!nick||nick==='Гость')return;
 var best=Math.min(window.CK.clicks||0,1e18);
 var body={nick:nick,best:best,stage:window.ckStage?window.ckStage():0,rebirths:window.CK.rebirths||0,updated_at:new Date().toISOString()};
-fetch(SBURL+'/rest/v1/leaderboard',{method:'POST',headers:sbHeaders(),body:JSON.stringify([body])}).catch(function(){});
+fetch(SBURL+'/rest/v1/leaderboard?on_conflict=nick',{method:'POST',headers:sbHeaders(),body:JSON.stringify([body])}).catch(function(){});
 }catch(e){}
 }
 function sbPull(cb){
