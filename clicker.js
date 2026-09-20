@@ -1139,7 +1139,7 @@ tab2.addEventListener('click', function () { upTab = 1; ckTabApply(); });
 tab3.addEventListener('click', function () { upTab = 2; ckTabApply(); });
 tab4.addEventListener('click', function () { upTab = 3; ckTabApply(); });
 tab5.addEventListener('click', function () { upTab = 4; ckTabApply(); });
-var CK_UI = { sfx: true, font: 100, ui: 100, bg: 0, t2: 0 };
+var CK_UI = { sfx: true, font: 100, ui: 100, bg: 0, t2: 0, low: 0 };
 var ckBgVid = null;
 var T2FILES = ['', 'back1.mp4', 'back2.mp4', 'back3.mp4', 'back4.mp4'];
 var T2CLASSES = ['', 't2w', 't2g', 't2p', 't2y'];
@@ -1186,10 +1186,11 @@ function ckUiApply() {
   for (var s = 0; s < uiSwatches.length; s++) uiSwatches[s].className = 'ck-swot' + (CK_UI.bg === s ? ' on' : '');
   ckT2Apply();
 }
+if(CK_UI.low){cssAdd('*,*::before,*::after{animation:none!important;transition:none!important;}');}
 var _ckBeepOrig = ckBeep;
 ckBeep = function (freq, dur, type, gain, slideTo) { if (CK_UI.sfx === false) return; _ckBeepOrig(freq, dur, type, gain, slideTo); };
 (function () {
-  try { var s = JSON.parse(localStorage.getItem('spaceClicker_ui') || 'null'); if (s && typeof s === 'object') { CK_UI.sfx = (s.sfx !== false); CK_UI.font = Math.max(80, Math.min(160, Number(s.font) || 100)); CK_UI.ui = Math.max(70, Math.min(140, Number(s.ui) || 100)); CK_UI.bg = Math.max(0, Math.min(CK_BGS.length - 1, Number(s.bg) || 0)); CK_UI.t2 = Math.max(0, Math.min(4, Number(s.t2) || 0)); } } catch (e) {}
+  try { var s = JSON.parse(localStorage.getItem('spaceClicker_ui') || 'null'); if (s && typeof s === 'object') { CK_UI.sfx = (s.sfx !== false); CK_UI.font = Math.max(80, Math.min(160, Number(s.font) || 100)); CK_UI.ui = Math.max(70, Math.min(140, Number(s.ui) || 100)); CK_UI.bg = Math.max(0, Math.min(CK_BGS.length - 1, Number(s.bg) || 0)); CK_UI.t2 = Math.max(0, Math.min(4, Number(s.t2) || 0)); CK_UI.low = !!s.low; } } catch (e) {}
   ckSettingsPanel = el('div', 'ck-setp');
   ckSettingsPanel.style.display = 'none';
   ckSettingsPanel.appendChild(el('div', '', 'ck-seth', 'НАСТРОЙКИ КЛИКЕРА'));
@@ -1232,7 +1233,10 @@ ckBeep = function (freq, dur, type, gain, slideTo) { if (CK_UI.sfx === false) re
       uiSwatches.push(sw);
     })(bi);
   }
-  ckSettingsPanel.appendChild(swRow);
+  var lowBtn = el('button', '', 'ck-apbtn' + (CK_UI.low ? ' on' : ''), 'СЛАБЫЙ УСТРОЙСТВО: ' + (CK_UI.low ? 'ВКЛ' : 'ВЫКЛ'));
+lowBtn.addEventListener('click', function(){CK_UI.low=!CK_UI.low;lowBtn.className='ck-apbtn'+(CK_UI.low?' on':'');lowBtn.textContent='СЛАБЫЙ УСТРОЙСТВО: '+(CK_UI.low?'ВКЛ':'ВЫКЛ');ckUiSave();location.reload();});
+ckSettingsPanel.appendChild(lowBtn);
+ckSettingsPanel.appendChild(swRow);
   ckSettingsPanel.appendChild(el('div', '', 'ck-seth', 'ТЕМА V2'));
   var T2NAMES = ['СТАНДАРТ', 'БЕЛАЯ', 'СЕРАЯ', 'РОЗОВАЯ', 'ЖЕЛТАЯ'];
   for (var t2i = 0; t2i < 5; t2i++) {
@@ -1248,7 +1252,10 @@ ckBeep = function (freq, dur, type, gain, slideTo) { if (CK_UI.sfx === false) re
       ckSettingsPanel.appendChild(tb2);
     })(t2i);
   }
-  ckSettingsPanel.appendChild(swRow);
+  var lowBtn = el('button', '', 'ck-apbtn' + (CK_UI.low ? ' on' : ''), 'СЛАБЫЙ УСТРОЙСТВО: ' + (CK_UI.low ? 'ВКЛ' : 'ВЫКЛ'));
+lowBtn.addEventListener('click', function(){CK_UI.low=!CK_UI.low;lowBtn.className='ck-apbtn'+(CK_UI.low?' on':'');lowBtn.textContent='СЛАБЫЙ УСТРОЙСТВО: '+(CK_UI.low?'ВКЛ':'ВЫКЛ');ckUiSave();location.reload();});
+ckSettingsPanel.appendChild(lowBtn);
+ckSettingsPanel.appendChild(swRow);
   right.appendChild(ckSettingsPanel);
   ckUiApply();
   window.addEventListener('resize', function () { ckUiApply(); });
