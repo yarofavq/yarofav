@@ -328,7 +328,7 @@ setInterval(function(){if(!document.hidden)PT++;},1000);
 setInterval(function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}},10000);
 window.addEventListener('beforeunload',function(){try{localStorage.setItem(PROFKEY,String(PT));}catch(e){}});
 function ckFmtPT(s){var d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),sc=s%60;if(d>0)return d+'д '+h+'ч '+m+'м';if(h>0)return h+'ч '+m+'м '+sc+'с';if(m>0)return m+'м '+sc+'с';return sc+'с';}
-window.__ckExtVer='v65';
+window.__ckExtVer='v67';
 var profBtn=document.getElementById('ck-profbtn');
 if(!profBtn){profBtn=document.createElement('button');profBtn.id='ck-profbtn';profBtn.textContent='ПРОФИЛЬ';var _pI=setInterval(function(){var apP=document.getElementById('ck-actions');if(apP&&!document.getElementById('ck-profbtn')){apP.appendChild(profBtn);clearInterval(_pI);}},500);}
 var prof=document.createElement('div');prof.id='ck-prof';prof.className='clicker-ui hidden';
@@ -373,5 +373,13 @@ if(el0)el0.textContent=ckFmtPT(PT);
 },1000);
 })();
 }
+window.__ckExtVer='v73';
 setInterval(function(){var ve0=document.getElementById('ck-ver');if(ve0&&window.__ckExtVer&&ve0.textContent.indexOf('ext')===-1)ve0.textContent+=' · ext '+window.__ckExtVer;},2000);
+console.log('[LB-DBG] === START ===');
+console.log('[LB-DBG] 1.EXT-VER='+(window.__ckExtVer||'NONE'));
+console.log('[LB-DBG] 2.NICK='+window.ckNick());
+fetch('https://bvyobeaxkeeatoaaljcz.supabase.co/rest/v1/leaderboard?select=*&order=best.desc&limit=5',{headers:{'apikey':'sb_publishable_erwxcWrojnbTBb6UpYgq2w_n8nnzzmQ','Authorization':'Bearer sb_publishable_erwxcWrojnbTBb6UpYgq2w_n8nnzzmQ'}}).then(function(r){console.log('[LB-DBG] 4.SB-READ status='+r.status);return r.json();}).then(function(a){console.log('[LB-DBG] 4.SB-DATA='+JSON.stringify(a));}).catch(function(e){console.log('[LB-DBG] 4.SB-READ ERR='+e.message);});
+console.log('[LB-DBG] 5.LOCAL-LB='+localStorage.getItem('spaceClicker_lb_v2'));
+console.log('[LB-DBG] 6.NICK-REG='+localStorage.getItem('spaceClicker_nick_reg'));
+console.log('[LB-DBG] === END ===');
 /*__CKEXT__*/
