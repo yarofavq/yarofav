@@ -1070,14 +1070,14 @@ function ckAutoScroll() {
           for (var xa = 359; xa >= 0; xa--) {
             if (ckUpgGrp(xa) !== t4) continue;
             var ca = ckUpgCost(xa);
-            if (CK.clicks - ca >= (window.__CKEX && window.__CKEX.rbAuto ? Math.max(cfg2.thr, 1e14) : cfg2.thr)) { pick = xa; pcost = ca; break; }
+            if (CK.clicks - ca >= cfg2.thr) { pick = xa; pcost = ca; break; }
           }
         } else {
           var bc = Infinity;
           for (var xb2 = 0; xb2 < 360; xb2++) {
             if (ckUpgGrp(xb2) !== t4) continue;
             var cb = ckUpgCost(xb2);
-            if (CK.clicks - cb >= (window.__CKEX && window.__CKEX.rbAuto ? Math.max(cfg2.thr, 1e14) : cfg2.thr) && cb < bc) { bc = cb; pick = xb2; }
+            if (CK.clicks - cb >= cfg2.thr && cb < bc) { bc = cb; pick = xb2; }
           }
           if (pick >= 0) pcost = bc;
         }
