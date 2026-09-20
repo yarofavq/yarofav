@@ -140,7 +140,9 @@ var CK_BOOSTS = [
   { id: 'quasar', n: 'Quasar Brew', col: '#37e08a', dur: 900, mult: 4, tgt: 'auto', price: 4e12, desc: 'x4 авто/с' },
   { id: 'hyperion', n: 'Hyperion Draft', col: '#b04dff', dur: 1200, mult: 3, tgt: 'all', price: 2e13, desc: 'x3 ко всему' },
   { id: 'voidflask', n: 'Void Elixir', col: '#ff4d6d', dur: 120, mult: 10, tgt: 'click', price: 1e13, desc: 'x10 за клик' }
-];
+,
+  { id: 'pstorm', n: 'Photon Storm', col: '#7fffd4', dur: 90, mult: 7, tgt: 'click', price: 1e14, desc: 'x7 за клик' },
+  { id: 'chrono', n: 'Chrono Field', col: '#c0c0ff', dur: 1800, mult: 5, tgt: 'all', price: 5e13, desc: 'x5 ко всему' }];
 function ckItemById(id) { for (var i = 0; i < CK_ITEMS.length; i++) if (CK_ITEMS[i].id === id) return CK_ITEMS[i]; return null; }
 function ckBoostById(id) { for (var i = 0; i < CK_BOOSTS.length; i++) if (CK_BOOSTS[i].id === id) return CK_BOOSTS[i]; return null; }
 function ckRollItem() {
@@ -796,7 +798,7 @@ function ckBuildMedia() {
   var tgt = pInfo;
   var old = document.getElementById('ck-mediabox');
   if (old && old.parentNode) { old.parentNode.removeChild(old); }
-  var tm = TMEDIA[ckTrack];
+  var tm = (CK_UI && CK_UI.low)?null:TMEDIA[ckTrack];
   if (tm) {
     var box = el('div', 'ck-mediabox', 'ck-medbox');
     try {
@@ -1055,7 +1057,7 @@ function ckAutoScroll() {
       var cfg2 = CK_AUTO.t[t4];
       if (!cfg2.on) continue;
       var bought = 0;
-      while (bought < 50) {
+      while (bought < (CK_UI.low?15:50)) {
         var pick = -1, pcost = 0;
         if (ASTRAT[t4] === 'last') {
           for (var xa = 359; xa >= 0; xa--) {
@@ -1077,7 +1079,7 @@ function ckAutoScroll() {
         CK.lv[pick]++;
         bought++;
       }
-      if (bought) { sfxBuy(); ckSave(); render(true); }
+      if (bought) { sfxBuy(); ckSave(); if(CK_UI.low){render();}else{render(true);} }
     }
   }, 100);
 })();
@@ -1149,7 +1151,7 @@ function ckT2Apply() {
   var old0 = document.getElementById('ck-bgvid');
   if (old0 && old0.parentNode) old0.parentNode.removeChild(old0);
   ckBgVid = null;
-  if (CK_UI.t2 && left0) {
+  if (CK_UI.t2 && left0 && !CK_UI.low) {
     try {
       var v0 = document.createElement('video');
       v0.id = 'ck-bgvid';
@@ -1187,6 +1189,7 @@ function ckUiApply() {
   ckT2Apply();
 }
 if(CK_UI.low){cssAdd('*,*::before,*::after{animation:none!important;transition:none!important;}');}
+if(CK_UI.low){cssAdd('#ck-bgvid,#ck-orb,.ck-medbox,.ck-medv{display:none !important;}');}/*low-extra-css*/
 var _ckBeepOrig = ckBeep;
 ckBeep = function (freq, dur, type, gain, slideTo) { if (CK_UI.sfx === false) return; _ckBeepOrig(freq, dur, type, gain, slideTo); };
 (function () {
@@ -1252,9 +1255,6 @@ ckSettingsPanel.appendChild(swRow);
       ckSettingsPanel.appendChild(tb2);
     })(t2i);
   }
-  var lowBtn = el('button', '', 'ck-apbtn' + (CK_UI.low ? ' on' : ''), 'СЛАБЫЙ УСТРОЙСТВО: ' + (CK_UI.low ? 'ВКЛ' : 'ВЫКЛ'));
-lowBtn.addEventListener('click', function(){CK_UI.low=!CK_UI.low;lowBtn.className='ck-apbtn'+(CK_UI.low?' on':'');lowBtn.textContent='СЛАБЫЙ УСТРОЙСТВО: '+(CK_UI.low?'ВКЛ':'ВЫКЛ');ckUiSave();location.reload();});
-ckSettingsPanel.appendChild(lowBtn);
 ckSettingsPanel.appendChild(swRow);
   right.appendChild(ckSettingsPanel);
   ckUiApply();
