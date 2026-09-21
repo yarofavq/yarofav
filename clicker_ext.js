@@ -47,17 +47,20 @@ boot();
 function extPhase2(){
 var EX=window.__CKEX;
 function sv(){try{localStorage.setItem('spaceClicker_ext_v1',JSON.stringify(EX));}catch(e){}}
-function mAvail(){var base=Math.floor((window.CK.rebirths||0)/10);return Math.max(0,base-(EX.rbSpent||0));}
+function mAvail(){return Math.floor(window.CK ? (window.CK.rebirths||0) : 0);}
 function ckReset(){var CK=window.CK;CK.clicks=0;CK.lv=[];for(var z=0;z<360;z++)CK.lv.push(0);}
 var megaBtn=document.createElement('button');megaBtn.id='ck-megareb';megaBtn.textContent='МЕГА x50 (0/10)';
 var acts=document.getElementById('ck-actions');
 if(acts)acts.appendChild(megaBtn);
 function updMega(){var a=mAvail();megaBtn.disabled=a<10;megaBtn.textContent='МЕГА x50 ('+a+'/10)';}
 megaBtn.addEventListener('click',function(){
-if(mAvail()<10)return;
-window.CK.mult=50;EX.rbSpent=(EX.rbSpent||0)+1;window.CK.rbSpent=EX.rbSpent;ckReset();if(window.ckThemeShock)window.ckThemeShock('rgba(255,45,149,.5)');if(window.ckSndPlay)window.ckSndPlay('meg');
+if((window.CK.rebirths||0)<10)return;
+window.CK.rebirths-=10;
+window.CK.mult=(window.CK.mult||1)+50;
+EX.megaCount=(EX.megaCount||0)+1;
+ckReset();if(window.ckThemeShock)window.ckThemeShock('rgba(255,45,149,.5)');if(window.ckSndPlay)window.ckSndPlay('meg');
 if(window.sfxRebirth)window.sfxRebirth();
-if(window.ckToast)window.ckToast('МЕГА-ПЕРЕРОЖДЕНИЕ: x50');
+if(window.ckToast)window.ckToast('МЕГА-ПЕРЕРОЖДЕНИЕ: +50x');
 window.ckSave();if(window.render)window.render(true);updMega();
 });
 setInterval(updMega,900);updMega();
@@ -82,7 +85,7 @@ setInterval(function(){
 if(!EX.rbAutoMega)return;
 if(Date.now()-(window.ckLastAM||0)<60000)return;
 if(Date.now()-ckLastAM<60000)return;
-if(mAvail()>=10){ckLastAM=Date.now();window.CK.mult=50;EX.rbSpent=(EX.rbSpent||0)+1;window.CK.rbSpent=EX.rbSpent;ckReset();if(window.sfxRebirth)window.sfxRebirth();if(window.ckToast)window.ckToast('АВТО-МЕГА: x50');window.ckSave();if(window.render)window.render(true);}
+if((window.CK.rebirths||0)>=10){ckLastAM=Date.now();window.CK.rebirths-=10;window.CK.mult=(window.CK.mult||1)+50;EX.megaCount=(EX.megaCount||0)+1;ckReset();if(window.sfxRebirth)window.sfxRebirth();if(window.ckToast)window.ckToast('АВТО-МЕГА: +50x');window.ckSave();if(window.render)window.render(true);updMega();}
 },1000);
 var arbBtn=document.createElement('button');arbBtn.id='ck-ap-rb';arbBtn.className='ck-apbtn apb-rb'+(EX.rbAuto?' on':'');arbBtn.textContent='АВТО-РЕБЕРФ: '+(EX.rbAuto?'ВКЛ':'ВЫКЛ');
 var ap=document.getElementById('ck-autop');

@@ -1,4 +1,4 @@
-// ==================== PLANET CLICKER MODULE ====================
+﻿// ==================== PLANET CLICKER MODULE ====================
 (function () {
 'use strict';
 var CK_TRACKS = [
@@ -137,15 +137,19 @@ var CK_BOOST_MAX = 3600;
 var CK_BOOSTS = [
   { id: 'frenzy', n: 'Click Frenzy', col: '#ff4d6d', dur: 60,   mult: 5, tgt: 'click', price: 2.5e11, desc: 'x5 за клик' },
   { id: 'surge',  n: 'Auto Surge',   col: '#3a86ff', dur: 1800, mult: 3, tgt: 'auto',  price: 7.5e11, desc: 'x3 авто/с' },
-  { id: 'gold',   n: 'Gold Rush',    col: '#ffd23f', dur: 3600, mult: 2, tgt: 'all',   price: 5e12, desc: 'x2 ко всему' }
-  ,
+  { id: 'gold',   n: 'Gold Rush',    col: '#ffd23f', dur: 3600, mult: 2, tgt: 'all',   price: 5e12, desc: 'x2 ко всему' },
   { id: 'novaflask', n: 'Nova Flask', col: '#7fd4ff', dur: 300, mult: 4, tgt: 'click', price: 2e12, desc: 'x4 за клик' },
   { id: 'quasar', n: 'Quasar Brew', col: '#37e08a', dur: 900, mult: 4, tgt: 'auto', price: 4e12, desc: 'x4 авто/с' },
   { id: 'hyperion', n: 'Hyperion Draft', col: '#b04dff', dur: 1200, mult: 3, tgt: 'all', price: 2e13, desc: 'x3 ко всему' },
-  { id: 'voidflask', n: 'Void Elixir', col: '#ff4d6d', dur: 120, mult: 10, tgt: 'click', price: 1e13, desc: 'x10 за клик' }
-,
+  { id: 'voidflask', n: 'Void Elixir', col: '#ff4d6d', dur: 120, mult: 10, tgt: 'click', price: 1e13, desc: 'x10 за клик' },
   { id: 'pstorm', n: 'Photon Storm', col: '#7fffd4', dur: 90, mult: 7, tgt: 'click', price: 1e14, desc: 'x7 за клик' },
-  { id: 'chrono', n: 'Chrono Field', col: '#c0c0ff', dur: 1800, mult: 5, tgt: 'all', price: 5e13, desc: 'x5 ко всему' }];
+  { id: 'chrono', n: 'Chrono Field', col: '#c0c0ff', dur: 1800, mult: 5, tgt: 'all', price: 5e13, desc: 'x5 ко всему' },
+  { id: 'abyss', n: 'Эликсир Бездны', col: '#9333ea', dur: 240, mult: 12, tgt: 'click', price: 5e14, desc: 'x12 за клик · Тёмная материя' },
+  { id: 'supernova', n: 'Дыхание Сверхновой', col: '#f97316', dur: 600, mult: 6, tgt: 'auto', price: 1e15, desc: 'x6 авто/с · Звёздная плазма' },
+  { id: 'singularity', n: 'Катализатор Сингулярности', col: '#ec4899', dur: 1200, mult: 8, tgt: 'all', price: 5e15, desc: 'x8 ко всему доходу' },
+  { id: 'aether', n: 'Астральный Нектар', col: '#06b6d4', dur: 3600, mult: 4, tgt: 'all', price: 2e16, desc: 'x4 ко всему на целый час' },
+  { id: 'godtear', n: 'Слеза Демиурга', col: '#eab308', dur: 180, mult: 25, tgt: 'click', price: 1e17, desc: 'x25 за клик · Абсолютная мощь' }
+];
 function ckItemById(id) { for (var i = 0; i < CK_ITEMS.length; i++) if (CK_ITEMS[i].id === id) return CK_ITEMS[i]; return null; }
 function ckBoostById(id) { for (var i = 0; i < CK_BOOSTS.length; i++) if (CK_BOOSTS[i].id === id) return CK_BOOSTS[i]; return null; }
 function ckRollItem() {
@@ -431,8 +435,12 @@ cssAdd('.ck-bchip{border:1px solid;border-radius:20px;padding:4px 10px;font-size
 cssAdd('.ck-toast{position:fixed;left:50%;top:13%;transform:translateX(-50%);z-index:9600;background:linear-gradient(135deg,#141a3a,#0b1026);border:1px solid #3a86ff;border-radius:12px;padding:10px 18px;color:#dfe6ff;font-family:Courier New,monospace;font-weight:bold;font-size:14px;box-shadow:0 0 22px rgba(58,134,255,.6);pointer-events:none;animation:ckToast 3.2s forwards;}');
 cssAdd('@keyframes ckToast{0%{opacity:0;transform:translate(-50%,-10px);}10%{opacity:1;transform:translate(-50%,0);}80%{opacity:1;}100%{opacity:0;transform:translate(-50%,-14px);}}');
 cssAdd('#ck-invbtn{background:linear-gradient(135deg,#6a1fb5,#3a1a6b);}');
-cssAdd('.ck-flask{width:22px;height:30px;margin:0 auto 5px;border:2px solid #dfe6ff;border-radius:4px 4px 12px 12px;background:linear-gradient(180deg,transparent 20%,var(--fc) 20%,var(--fc) 100%);position:relative;box-shadow:0 0 10px var(--fc);}');
-cssAdd('.ck-flask:before{content:"";position:absolute;top:-7px;left:4px;width:10px;height:6px;border:2px solid #dfe6ff;border-bottom:none;border-radius:3px 3px 0 0;}');
+cssAdd('.ck-flask{width:24px;height:34px;margin:0 auto 6px;border:1.5px solid rgba(223,230,255,.8);border-radius:6px 6px 14px 14px;background:linear-gradient(180deg,rgba(255,255,255,.05) 0%,transparent 24%,var(--fc) 25%,rgba(10,12,30,.4) 100%);position:relative;box-shadow:0 0 14px var(--fc),inset 0 0 8px var(--fc);overflow:visible;backdrop-filter:blur(2px);}');
+cssAdd('.ck-flask::before{content:"";position:absolute;top:-8px;left:5px;width:11px;height:7px;border:1.5px solid rgba(223,230,255,.85);border-bottom:none;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#c9933e,#7a5012);box-shadow:inset 0 1px 0 rgba(255,255,255,.4);}');
+cssAdd('.ck-flask::after{content:"";position:absolute;top:30%;left:3px;width:4px;height:55%;border-radius:2px;background:linear-gradient(180deg,rgba(255,255,255,.8),transparent);opacity:.75;pointer-events:none;}');
+cssAdd('.ck-flask-bub{position:absolute;bottom:3px;left:50%;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 4px #fff;animation:ckFlaskBub 1.8s infinite ease-in;}');
+cssAdd('@keyframes ckFlaskBub{0%{transform:translate(-50%,0) scale(.6);opacity:0}40%{opacity:.9}100%{transform:translate(-50%,-16px) scale(1.2);opacity:0}}');
+cssAdd('.ck-shop-item:hover .ck-flask{transform:scale(1.12) rotate(4deg);transition:transform .2s cubic-bezier(.34,1.56,.64,1);}');
 cssAdd('#ck-inv{position:fixed;inset:0;z-index:9460;background:rgba(2,2,14,.92);display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;}');
 cssAdd('#ck-inv-box{width:min(560px,94vw);max-height:86vh;overflow-y:auto;background:linear-gradient(160deg,#0b1026,#141a3a);border:2px solid #6a1fb5;border-radius:18px;padding:18px;}');
 cssAdd('#ck-inv-box h2{margin:0 0 14px;color:#c9a6ff;text-align:center;font-size:19px;}');
@@ -744,14 +752,37 @@ cssAdd('#laser-fire-btn{position:fixed;left:18px;bottom:96px;z-index:9400;width:
 cssAdd('#earth-exit-btn{position:fixed;top:16px;left:16px;z-index:9400;display:none;background:rgba(179,40,60,.9);border:1px solid #ff9aa8;color:#fff;border-radius:10px;padding:10px 16px;font-family:Courier New,monospace;font-weight:bold;cursor:pointer;}');
 cssAdd('#ck-profbtn{background:linear-gradient(135deg,#2a9d8f,#14532d);}');
 cssAdd('#ck-ver{width:100%;text-align:left;color:#5a6a8f;font-size:10px;padding:0 4px;font-family:monospace;}');
-cssAdd('#ck-prof{position:fixed;inset:0;z-index:9472;background:rgba(2,2,14,.88);display:flex;align-items:center;justify-content:center;font-family:Segoe UI,sans-serif;}');
-cssAdd('#ck-prof h2{margin:0 0 12px;color:#7fd4ff;letter-spacing:2px;}');
-cssAdd('#ck-prof-ava{width:64px;height:64px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:#fff;background:linear-gradient(135deg,#7b2cbf,#3a86ff);box-shadow:0 0 18px rgba(80,130,255,.5);}');
-cssAdd('.ck-prof-row{display:flex;align-items:center;gap:8px;background:#111634;border:1px solid #2b3672;border-radius:11px;padding:10px 12px;margin-bottom:8px;text-align:left;}');
-cssAdd('.ck-prof-l{width:64px;color:#8fa3e8;font-size:11px;letter-spacing:1px;flex:none;}');
-cssAdd('.ck-prof-v{flex:1;font-weight:bold;font-size:14px;word-break:break-all;}');
-cssAdd('#ck-prof-copy{background:linear-gradient(135deg,#3a86ff,#2563eb);border:none;border-radius:8px;color:#fff;padding:6px 10px;font-weight:bold;cursor:pointer;font-family:inherit;font-size:11px;flex:none;}');
-cssAdd('#ck-close-prof{width:100%;background:#b3283c;border:none;border-radius:9px;padding:10px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
+cssAdd('#ck-prof{position:fixed;inset:0;z-index:9472;background:radial-gradient(ellipse at center,rgba(18,24,60,.94) 0%,rgba(4,6,18,.96) 100%);display:flex;align-items:center;justify-content:center;font-family:Segoe UI,sans-serif;backdrop-filter:blur(8px);}');
+cssAdd('#ck-prof-box{width:min(460px,92vw);background:linear-gradient(165deg,#121838,#0a0e24 70%);border:2px solid transparent;background-clip:padding-box;position:relative;border-radius:24px;padding:26px 22px;color:#fff;text-align:center;box-sizing:border-box;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.75),0 0 50px rgba(58,134,255,.25);}');
+cssAdd('#ck-prof-box::before{content:"";position:absolute;inset:-2px;border-radius:26px;background:linear-gradient(135deg,#3a86ff,#ffd23f 40%,#ff2d95 80%,#00d4ff);z-index:-1;}');
+cssAdd('#ck-prof-box h2{margin:0 0 16px;letter-spacing:3px;font-size:22px;font-weight:900;background:linear-gradient(90deg,#8fc0ff,#ffd76a,#ff71c4);-webkit-background-clip:text;background-clip:text;color:transparent;text-transform:uppercase;}');
+cssAdd('#ck-prof-ava{width:86px;height:86px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 35px rgba(58,134,255,.6);border:3px solid rgba(255,255,255,.4);position:relative;animation:ckAvaFloat 3.5s ease-in-out infinite alternate;background:#0b1026;}');
+cssAdd('.ck-prof-media{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}');
+cssAdd('@keyframes ckAvaFloat{0%{transform:translateY(0) scale(1)}100%{transform:translateY(-6px) scale(1.04)}}');
+cssAdd('.ck-prof-row{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(22,28,68,.85),rgba(14,18,48,.85));border:1px solid rgba(80,120,255,.35);border-radius:14px;padding:12px 14px;margin-bottom:10px;text-align:left;transition:transform .18s,border-color .18s,box-shadow .18s;}');
+cssAdd('.ck-prof-row:hover{transform:translateX(4px);border-color:#38bdf8;box-shadow:0 6px 20px rgba(56,189,248,.25);}');
+cssAdd('.ck-prof-l{width:70px;color:#93c5fd;font-size:11px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;flex:none;}');
+cssAdd('.ck-prof-v{flex:1;font-weight:800;font-size:14px;word-break:break-all;color:#f0f6ff;text-shadow:0 0 10px rgba(120,180,255,.4);}');
+cssAdd('#ck-prof-copy{background:linear-gradient(135deg,#38bdf8,#2563eb);border:none;border-radius:9px;color:#fff;padding:7px 14px;font-weight:bold;cursor:pointer;font-family:inherit;font-size:11px;flex:none;box-shadow:0 0 12px rgba(56,189,248,.4);transition:transform .15s;}');
+cssAdd('#ck-prof-copy:hover{transform:scale(1.06);filter:brightness(1.15);}');
+cssAdd('#ck-close-prof{width:100%;background:linear-gradient(135deg,#e11d48,#9f1239);border:none;border-radius:12px;padding:12px;font-weight:bold;font-size:13px;letter-spacing:1px;color:#fff;cursor:pointer;font-family:inherit;margin-top:10px;box-shadow:0 4px 16px rgba(225,29,72,.4);}');
+cssAdd('#ck-admin-btn{position:absolute;top:12px;right:66px;z-index:9490;display:none;background:linear-gradient(135deg,#dc2626,#7f1d1d);border:2px solid #f87171;color:#fff;border-radius:10px;padding:6px 12px;font-family:inherit;font-weight:900;font-size:11px;letter-spacing:1px;cursor:pointer;box-shadow:0 0 16px rgba(239,68,68,.7);animation:ckPulseAdmin 2s infinite;}');
+cssAdd('.ck-prof-ava-wrap{display:flex;align-items:center;justify-content:center;gap:16px;margin:0 auto 16px;}');
+cssAdd('.ck-prof-arr{width:36px;height:36px;border-radius:50%;background:linear-gradient(145deg,#232c5e,#151b40);border:1px solid #3a86ff;color:#93c5fd;font-size:16px;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,background .15s;}');
+cssAdd('.ck-prof-arr:hover{transform:scale(1.15);background:#2e3a78;color:#fff;box-shadow:0 0 12px rgba(58,134,255,.5);}');
+cssAdd('.ck-prof-arr:active{transform:scale(.9);}');
+cssAdd('@keyframes ckPulseAdmin{0%,100%{box-shadow:0 0 12px rgba(239,68,68,.5)}50%{box-shadow:0 0 28px rgba(239,68,68,1)}}');
+cssAdd('#ck-admin-modal{position:fixed;inset:0;z-index:9500;background:rgba(4,2,10,.92);display:flex;align-items:center;justify-content:center;font-family:Segoe UI,sans-serif;}');
+cssAdd('#ck-admin-box{width:min(460px,94vw);background:linear-gradient(160deg,#1e1014,#0e0608);border:2px solid #ef4444;border-radius:20px;padding:24px;color:#fff;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.9),0 0 50px rgba(239,68,68,.3);}');
+cssAdd('#ck-admin-box h2{margin:0 0 8px;color:#f87171;letter-spacing:2px;font-size:20px;}');
+cssAdd('#ck-admin-desc{font-size:12px;color:#fca5a5;margin-bottom:16px;line-height:1.5;}');
+cssAdd('#ck-admin-target{width:100%;box-sizing:border-box;padding:12px;border:2px solid #7f1d1d;border-radius:10px;background:#060204;color:#fff;font-family:inherit;font-size:14px;text-align:center;margin-bottom:14px;outline:none;}');
+cssAdd('#ck-admin-target:focus{border-color:#ef4444;box-shadow:0 0 12px rgba(239,68,68,.4);}');
+cssAdd('.ck-admin-actions{display:flex;gap:8px;flex-direction:column;}');
+cssAdd('.ck-admin-act-btn{padding:12px;border:none;border-radius:10px;color:#fff;font-weight:bold;font-size:12.5px;letter-spacing:1px;cursor:pointer;font-family:inherit;}');
+cssAdd('#ck-admin-wipe-target{background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px rgba(220,38,38,.4);}');
+cssAdd('#ck-admin-wipe-self{background:linear-gradient(135deg,#ea580c,#9a3412);box-shadow:0 4px 14px rgba(234,88,12,.4);}');
+cssAdd('#ck-admin-close{background:#27272a;margin-top:6px;}');
 function ckToast(msg) {
   var t = el('div', '', 'ck-toast', msg);
   document.body.appendChild(t);
@@ -826,7 +857,7 @@ function ckBuildMedia() {
     var box = el('div', 'ck-mediabox', 'ck-medbox');
     try {
       var v = document.createElement('video');
-      v.src = tm; v.muted = true; v.loop = true; v.setAttribute('playsinline', '');
+      v.src = tm; v.muted = true; v.defaultMuted = true; v.volume = 0; v.setAttribute('muted', ''); v.loop = true; v.setAttribute('playsinline', '');
       v.className = 'ck-medv';
       box.appendChild(v);
       ckMedia = v;
@@ -882,21 +913,184 @@ var profM=el('div','ck-prof','clicker-ui hidden');
 var pbox2=el('div','','');
 pbox2.style.cssText='width:min(440px,92vw);background:linear-gradient(160deg,#101a2a,#0a1420);border:2px solid #7fd4ff;border-radius:16px;padding:20px;color:#fff;text-align:center;box-sizing:border-box;max-height:90vh;overflow-y:auto;';
 pbox2.appendChild(el('h2','','','ПРОФИЛЬ'));
+var pavaWrap=el('div','','ck-prof-ava-wrap');
+var pavaPrev=el('button','ck-ava-prev','ck-prof-arr','◀');
 var pava=el('div','ck-prof-ava');
-pbox2.appendChild(pava);
+var pavaNext=el('button','ck-ava-next','ck-prof-arr','▶');
+pavaWrap.appendChild(pavaPrev);
+pavaWrap.appendChild(pava);
+pavaWrap.appendChild(pavaNext);
+pbox2.appendChild(pavaWrap);
 var pbody2=el('div','ck-prof-body');
 pbox2.appendChild(pbody2);
 var pclose2=el('button','ck-close-prof','','ЗАКРЫТЬ');
 pbox2.appendChild(pclose2);
 profM.appendChild(pbox2);
 document.body.appendChild(profM);
+var CK_AVAS = [
+  { type: 'video', src: 'ava2.mp4' },
+  { type: 'img', src: 'ava.jpg' }
+];
+var ckAvaIdx = 0;
+try { ckAvaIdx = parseInt(localStorage.getItem('spaceClicker_ava') || '0', 10); if (isNaN(ckAvaIdx) || ckAvaIdx < 0) ckAvaIdx = 0; } catch (e) {}
+
+pavaPrev.addEventListener('click', function () {
+  ckAvaIdx = (ckAvaIdx - 1 + CK_AVAS.length) % CK_AVAS.length;
+  try { localStorage.setItem('spaceClicker_ava', String(ckAvaIdx)); } catch (e) {}
+  ckProfRender();
+});
+pavaNext.addEventListener('click', function () {
+  ckAvaIdx = (ckAvaIdx + 1) % CK_AVAS.length;
+  try { localStorage.setItem('spaceClicker_ava', String(ckAvaIdx)); } catch (e) {}
+  ckProfRender();
+});
+
 function ckProfRender(){
   var nick=ckNick();
-  pava.textContent=(nick.charAt(0)||'?').toUpperCase();
-  pbody2.innerHTML='<div class=ck-prof-row><span class=ck-prof-l>НИК</span><span class=ck-prof-v>'+ckEsc(nick)+' 🔒</span></div><div class=ck-prof-row><span class=ck-prof-l>ID</span><span class=ck-prof-v>'+ckUid()+'</span><button id=ck-prof-copy>КОПИРОВАТЬ</button></div><div class=ck-prof-row><span class=ck-prof-l>В ИГРЕ</span><span class=ck-prof-v id=ck-prof-pt>'+ckFmtPT(ckPT)+'</span></div>';
+  var uid=ckUid();
+  var isVIP=(['C26LW5Z5K3','Y245DTMQYB'].indexOf(uid)!==-1);
+  var curAva = CK_AVAS[ckAvaIdx % CK_AVAS.length];
+  pava.innerHTML = '';
+  if (curAva.type === 'video') {
+    var v = document.createElement('video');
+    v.src = curAva.src;
+    v.className = 'ck-prof-media';
+    v.autoplay = true;
+    v.loop = true;
+    v.muted = true; v.defaultMuted = true; v.volume = 0; v.setAttribute('muted', '');
+    v.setAttribute('playsinline', '');
+    pava.appendChild(v);
+    try { v.play(); } catch (eMedia) {}
+  } else {
+    var img = document.createElement('img');
+    img.src = curAva.src;
+    img.className = 'ck-prof-media';
+    pava.appendChild(img);
+  }
+  pbody2.innerHTML='<div class=ck-prof-row><span class=ck-prof-l>НИК</span><span class=ck-prof-v>'+ckEsc(nick)+(isVIP?' <span style="color:#ffd76a;font-size:11px;font-weight:bold;">[АДМИН]</span>':'')+'</span></div><div class=ck-prof-row><span class=ck-prof-l>ID</span><span class=ck-prof-v>'+uid+'</span><button id=ck-prof-copy>КОПИРОВАТЬ</button></div><div class=ck-prof-row><span class=ck-prof-l>В ИГРЕ</span><span class=ck-prof-v id=ck-prof-pt>'+ckFmtPT(ckPT)+'</span></div><div class=ck-prof-row><span class=ck-prof-l>СТАТУС</span><span class=ck-prof-v style="color:'+(isVIP?'#f43f5e':'#38bdf8')+';">'+(isVIP?'ROOT OVERRIDE':'PLAYER')+'</span></div>';
   var cb2=document.getElementById('ck-prof-copy');
-  if(cb2)cb2.addEventListener('click',function(){try{navigator.clipboard.writeText(ckUid()).then(function(){ckToast('ID скопирован');},function(){});}catch(e5){}});
+  if(cb2)cb2.addEventListener('click',function(){try{navigator.clipboard.writeText(uid).then(function(){ckToast('ID скопирован');},function(){});}catch(e5){}});
 }
+
+var ADMIN_WHITELIST=['C26LW5Z5K3','Y245DTMQYB'];
+var adminBtn=el('button','ck-admin-btn','','⚡ ВАЙП-ПАНЕЛЬ');
+panel.appendChild(adminBtn);
+
+var adminModal=el('div','ck-admin-modal','clicker-ui hidden');
+var adminBox=el('div','ck-admin-box');
+adminBox.appendChild(el('h2','','','УПРАВЛЕНИЕ СТАТИСТИКОЙ'));
+adminBox.appendChild(el('div','ck-admin-desc','','Сброс полной статистики: клики, улучшения, множители, зелья, перерождения и позиции в топе.'));
+
+var adminInput=el('input','ck-admin-target');
+adminInput.placeholder='Введи ID игрока для сноса...';
+adminBox.appendChild(adminInput);
+
+var adminActs=el('div','','ck-admin-actions');
+var btnWipeTarget=el('button','ck-admin-wipe-target','ck-admin-act-btn','СНЕСТИ СТАТИСТИКУ ПО ID');
+var btnWipeSelf=el('button','ck-admin-wipe-self','ck-admin-act-btn','СНЕСТИ СЕБЕ СТАТИСТИКУ');
+var btnCloseAdmin=el('button','ck-admin-close','ck-admin-act-btn','ЗАКРЫТЬ');
+adminActs.appendChild(btnWipeTarget);
+adminActs.appendChild(btnWipeSelf);
+adminActs.appendChild(btnCloseAdmin);
+adminBox.appendChild(adminActs);
+adminModal.appendChild(adminBox);
+document.body.appendChild(adminModal);
+
+function ckCheckAdminPriv(){
+  var myId=ckUid();
+  if(ADMIN_WHITELIST.indexOf(myId)!==-1){
+    adminBtn.style.display='block';
+  }else{
+    adminBtn.style.display='none';
+  }
+}
+ckCheckAdminPriv();
+setInterval(ckCheckAdminPriv,3000);
+
+adminBtn.addEventListener('click',function(){
+  if(ADMIN_WHITELIST.indexOf(ckUid())===-1)return;
+  adminModal.classList.remove('hidden');
+});
+btnCloseAdmin.addEventListener('click',function(){
+  adminModal.classList.add('hidden');
+});
+
+function ckDoHardReset(){
+  CK.clicks=0;
+  CK.mult=1;
+  CK.rebirths=0;
+  CK.boost={};
+  CK.inv=[];
+  CK.mc=0;
+  CK.laser=false;
+  CK.earth=false;
+  CK.gold=false;
+  CK.critM=false;
+  CK.warp=false;
+  CK.lv=[];
+  for(var z=0;z<360;z++)CK.lv.push(0);
+  if(window.__CKEX){
+    window.__CKEX.rbSpent=0;
+    window.__CKEX.megaCount=0;
+    window.__CKEX.superCount=0;
+    window.__CKEX.rbAuto=0;
+    window.__CKEX.rbAutoMega=0;
+    window.__CKEX.nexus=0;
+    window.__CKEX.idol=0;
+    window.__CKEX.forge=0;
+    window.__CKEX.offVault=0;
+    window.__CKEX.craft={s:0,c:0,m:0,g:0,v:0};
+  }
+  try{
+    localStorage.removeItem('spaceClicker_v1');
+    localStorage.removeItem('spaceClicker_ext_v1');
+    localStorage.removeItem('spaceClicker_auto');
+  }catch(e){}
+  ckSave();
+  if(window.ckLbPush)window.ckLbPush(true);
+  if(window.render)window.render(true);
+  ckToast('ТВОЯ СТАТИСТИКА ПОЛНОСТЬЮ СНЕСЕНА!');
+}
+
+btnWipeSelf.addEventListener('click',function(){
+  if(!confirm('ТОЧНО снести СЕБЕ всю статистику под ноль (клики, бусты, апгрейды, перерождения)?')) return;
+  ckDoHardReset();
+  adminModal.classList.add('hidden');
+});
+
+btnWipeTarget.addEventListener('click',function(){
+  var target=String(adminInput.value||'').trim();
+  if(!target){
+    ckToast('Введи корректный ID игрока!');
+    return;
+  }
+  if(target===ckUid()){
+    ckDoHardReset();
+    adminModal.classList.add('hidden');
+    return;
+  }
+  try{
+    var localLb=JSON.parse(localStorage.getItem('spaceClicker_lb_v2')||'{}');
+    for(var k in localLb){
+      if(k===target||(localLb[k]&&localLb[k].uid===target)){
+        delete localLb[k];
+      }
+    }
+    localStorage.setItem('spaceClicker_lb_v2',JSON.stringify(localLb));
+  }catch(err){}
+  var SBURL='https://bvyobeaxkeeatoaaljcz.supabase.co';
+  var SBKEY='sb_publishable_erwxcWrojnbTBb6UpYgq2w_n8nnzzmQ';
+  fetch(SBURL+'/rest/v1/leaderboard?nick=eq.'+encodeURIComponent(target),{
+    method:'DELETE',
+    headers:{'apikey':SBKEY,'Authorization':'Bearer '+SBKEY,'Content-Type':'application/json'}
+  }).then(function(){
+    ckToast('Статистика ID ['+target+'] успешно обнулена!');
+  }).catch(function(){
+    ckToast('Запрос выполнен для ID: '+target);
+  });
+  adminInput.value='';
+  adminModal.classList.add('hidden');
+});
 profBtn.addEventListener('click',function(){profM.classList.remove('hidden');ckProfRender();});
 pclose2.addEventListener('click',function(){profM.classList.add('hidden');});
 setInterval(function(){if(!profM.classList.contains('hidden')){var el5=document.getElementById('ck-prof-pt');if(el5)el5.textContent=ckFmtPT(ckPT);}},1000);
@@ -1315,8 +1509,12 @@ function ckUiApply() {
   for (var s = 0; s < uiSwatches.length; s++) uiSwatches[s].className = 'ck-swot' + (CK_UI.bg === s ? ' on' : '');
   ckT2Apply();
 }
-if(CK_UI.low){cssAdd('*,*::before,*::after{animation:none!important;transition:none!important;}');}
-if(CK_UI.low){cssAdd('#ck-bgvid,#ck-orb,.ck-medbox,.ck-medv{display:none !important;}');}/*low-extra-css*/
+if(CK_UI.low){
+  cssAdd('*,*::before,*::after{animation:none!important;transition:none!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;backdrop-filter:none!important;}');
+  cssAdd('#ck-bgvid,#ck-orb,.ck-medbox,.ck-medv,.ck-hangs,.ck-hang,.ck-pearl,.ck-spark,#ck-disc::before{display:none !important;}');
+  cssAdd('.clicker-panel,.ck-up,#clicker-overlay,.ck-shop-item,.ck-inv-card,.ck-nrow{background:#0c1020 !important;border-color:#202848 !important;}');
+  cssAdd('.ck-float{display:none!important;}');
+}/*low-extra-css*/
 var _ckBeepOrig = ckBeep;
 ckBeep = function (freq, dur, type, gain, slideTo) { if (CK_UI.sfx === false) return; _ckBeepOrig(freq, dur, type, gain, slideTo); };
 (function () {
@@ -1544,6 +1742,8 @@ var boostBtns = [];
       side.style.textAlign = 'right';
       var flask = el('div', '', 'ck-flask');
       flask.style.setProperty('--fc', b.col);
+      var bub = el('div', '', 'ck-flask-bub');
+      flask.appendChild(bub);
       var costEl = el('div', '', '', 'Price: ' + fmtNum(b.price));
       var buy = el('button', 'ck-buy-boost-' + b.id, '', 'КУПИТЬ');
       side.appendChild(flask);
@@ -1737,6 +1937,7 @@ disc.addEventListener('click', function (ev) {
   ckSave();
   render();
   try { disc.animate([{ transform: 'scale(1)' }, { transform: 'scale(.93)' }, { transform: 'scale(1)' }], { duration: 140 }); } catch (e) {}
+  if (CK_UI && CK_UI.low) return;
   if (floatCount > 8) return;
   floatCount++;
   var f = el('div', '', 'ck-float' + (isCrit ? ' crit' : ''), (isCrit ? 'CRIT +' : '+') + fmtNum(gain));
@@ -2067,6 +2268,10 @@ earthExit.addEventListener('click', function () {
   resetCamera();
 });
 (function loop() {
+  if (CK_UI && CK_UI.low && window.__uiPaused) {
+    setTimeout(loop, 250);
+    return;
+  }
   requestAnimationFrame(loop);
   for (var x = beams.length - 1; x >= 0; x--) {
     var b = beams[x];
