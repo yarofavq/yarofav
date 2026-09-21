@@ -1,4 +1,4 @@
-﻿// ==================== PLANET CLICKER MODULE ====================
+﻿﻿﻿// ==================== PLANET CLICKER MODULE ====================
 (function () {
 'use strict';
 var CK_TRACKS = [
@@ -150,6 +150,7 @@ var CK_BOOSTS = [
   { id: 'aether', n: 'Астральный Нектар', col: '#06b6d4', dur: 3600, mult: 4, tgt: 'all', price: 2e16, desc: 'x4 ко всему на целый час' },
   { id: 'godtear', n: 'Слеза Демиурга', col: '#eab308', dur: 180, mult: 25, tgt: 'click', price: 1e17, desc: 'x25 за клик · Абсолютная мощь' }
 ];
+var CK_BW = { frenzy: 10, surge: 10, gold: 8, novaflask: 10, quasar: 8, hyperion: 6, voidflask: 6, pstorm: 5, chrono: 5, abyss: 3, supernova: 3, singularity: 2, aether: 2, godtear: 1 };
 function ckItemById(id) { for (var i = 0; i < CK_ITEMS.length; i++) if (CK_ITEMS[i].id === id) return CK_ITEMS[i]; return null; }
 function ckBoostById(id) { for (var i = 0; i < CK_BOOSTS.length; i++) if (CK_BOOSTS[i].id === id) return CK_BOOSTS[i]; return null; }
 function ckRollItem() {
@@ -196,7 +197,10 @@ function ckManualClick() {
   var ev = [];
   CK.mc = (CK.mc || 0) + 1;
   if (CK.mc % CK_BOOST_EVERY === 0) {
-    var b = CK_BOOSTS[Math.floor(Math.random() * CK_BOOSTS.length)];
+    var _bw = 0, _bi;
+    for (_bi = 0; _bi < CK_BOOSTS.length; _bi++) _bw += (CK_BW[CK_BOOSTS[_bi].id] || 10);
+    var _br = Math.random() * _bw, b = CK_BOOSTS[0];
+    for (_bi = 0; _bi < CK_BOOSTS.length; _bi++) { _br -= (CK_BW[CK_BOOSTS[_bi].id] || 10); if (_br <= 0) { b = CK_BOOSTS[_bi]; break; } }
     ckBoostGrant(b.id, b.dur);
     ev.push('BOOST:' + b.id);
   }
@@ -1554,6 +1558,7 @@ if(CK_UI.low){
   cssAdd('.clicker-panel,.ck-up,#clicker-overlay,.ck-shop-item,.ck-inv-card,.ck-nrow{background:#0c1020 !important;border-color:#202848 !important;}');
   cssAdd('.ck-float{display:none!important;}');
 }/*low-extra-css*/
+setInterval(function () { try { var ov = document.getElementById('clicker-overlay'); var open = !!(ov && !ov.classList.contains('hidden')); var vs = document.querySelectorAll('video'); for (var vi = 0; vi < vs.length; vi++) { var vd = vs[vi]; if (!vd || vd.paused) continue; var inc = vd.closest ? vd.closest('.clicker-ui,#clicker-overlay') : null; if (open && !inc) { vd.pause(); continue; } if (!open && getComputedStyle(vd).display === 'none') vd.pause(); } } catch (e) {} }, 2500);
 var _ckBeepOrig = ckBeep;
 ckBeep = function (freq, dur, type, gain, slideTo) { if (CK_UI.sfx === false) return; _ckBeepOrig(freq, dur, type, gain, slideTo); };
 (function () {

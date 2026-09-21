@@ -76,7 +76,7 @@ close.textContent='ЗАКРЫТЬ';
 box.appendChild(close);
 pm.appendChild(box);
 document.body.appendChild(pm);
-function avail(){try{return Math.max(0,Math.floor((window.CK.rebirths||0)/10)-((window.__CKEX&&window.__CKEX.rbSpent)||0));}catch(e){return 0;}}
+function avail(){try{var _x=window.__CKEX||{};return Math.max(0,(_x.megaCount||0)-(_x.pmSpent||0));}catch(e){return 0;}}
 function pmRender(){
 if(pm.classList.contains('hidden'))return;
 res.textContent='Доступно МЕГА-перерождений: '+avail();
@@ -101,7 +101,7 @@ if((window.__CKEX.rebirthGain||0)>=50)buy.textContent='МАКСИМУМ';
 buy.addEventListener('click',function(){
 var av=avail();
 if(av<100||(window.__CKEX.rebirthGain||0)>=50)return;
-window.__CKEX.rbSpent=(window.__CKEX.rbSpent||0)+100;
+window.__CKEX.pmSpent=(window.__CKEX.pmSpent||0)+100;
 window.CK.rbSpent=window.__CKEX.rbSpent;
 window.__CKEX.rebirthGain=(window.__CKEX.rebirthGain||0)+1;
 if(window.ckSndPlay)window.ckSndPlay('meg');

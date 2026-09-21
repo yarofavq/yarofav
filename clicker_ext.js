@@ -25,6 +25,7 @@ var svd=null;
 try{svd=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){}
 if(svd&&typeof svd==='object'){
 EX.rbSpent=Number(svd.rbSpent)||0;EX.rbAuto=0;/*na1*/EX.rbAutoMega=0;/*na2*/EX.nexus=!!svd.nexus;EX.idol=!!svd.idol;EX.forge=!!svd.forge;EX.offVault=!!svd.offVault;
+EX.megaCount=Number(svd.megaCount)||0;EX.superCount=Number(svd.superCount)||0;EX.pmSpent=Number(svd.pmSpent)||0;
 if(svd.craft&&typeof svd.craft==='object')EX.craft={s:Number(svd.craft.s)||0,c:Number(svd.craft.c)||0,m:Number(svd.craft.m)||0,g:Number(svd.craft.g)||0,v:Number(svd.craft.v)||0};
 }
 CK.rbSpent=EX.rbSpent;CK.nexus=EX.nexus;CK.idol=EX.idol;CK.forge=EX.forge;CK.offVault=EX.offVault;CK.craft=EX.craft;
@@ -390,3 +391,25 @@ console.log('[LB-DBG] 5.LOCAL-LB='+localStorage.getItem('spaceClicker_lb_v2'));
 console.log('[LB-DBG] 6.NICK-REG='+localStorage.getItem('spaceClicker_nick_reg'));
 console.log('[LB-DBG] === END ===');
 /*__CKEXT__*/
+(function(){function admGrant(){
+if(!window.CK||!document.getElementById('ck-admin-modal')){setTimeout(admGrant,300);return;}
+if(document.getElementById('ck-give-box'))return;
+var CK=window.CK;
+var IT=['shard','core','prism','nova','void'];
+var BS=['frenzy','surge','gold','novaflask','quasar','hyperion','voidflask','pstorm','chrono','abyss','supernova','singularity','aether','godtear'];
+function num(v){var s=String(v||'').trim().toUpperCase();if(!s)return 0;var m=1,l=s.charAt(s.length-1);if(l<'0'||l>'9'){m=({K:1e3,M:1e6,B:1e9,T:1e12,Q:1e15})[l]||1;s=s.slice(0,-1);}var n=parseFloat(s);return isNaN(n)?0:Math.floor(n*m);}
+function gs(){try{window.ckSave();}catch(e){}try{window.render(true);}catch(e2){}}
+function row(lbl,f1,f2){var r=document.createElement('div');r.style.cssText='display:flex;gap:6px;align-items:center;margin:7px 0;flex-wrap:wrap;';var s=document.createElement('span');s.style.cssText='flex:1;min-width:130px;font:bold 12px monospace;color:#e5e7eb;';s.textContent=lbl;var i1=document.createElement('input');i1.type='text';i1.style.cssText='flex:1;min-width:90px;max-width:150px;padding:6px 8px;border:1px solid #4b5563;border-radius:8px;background:#0b1026;color:#fff;font:12px Consolas;';var i2=null;if(f2){i2=document.createElement('input');i2.type='text';i2.placeholder=f2;i2.style.cssText=i1.style.cssText;}var b=document.createElement('button');b.textContent='ВЫДАТЬ';b.style.cssText='background:linear-gradient(135deg,#3a86ff,#7b2cbf);border:none;border-radius:8px;padding:7px 12px;font-weight:bold;color:#fff;cursor:pointer;';b.addEventListener('click',function(){if(f2){f1(i1.value,i2.value);i2.value='';}else{f1(i1.value);i1.value='';}});r.appendChild(s);r.appendChild(i1);if(i2)r.appendChild(i2);r.appendChild(b);return r;}
+var box=document.createElement('div');box.id='ck-give-box';box.style.cssText='border-top:1px solid #4b5563;margin-top:14px;padding-top:10px;';
+var h=document.createElement('div');h.style.cssText='text-align:center;font:900 14px monospace;color:#fca5a5;margin-bottom:6px;';h.textContent='ВЫДАЧА РЕСУРСОВ';box.appendChild(h);
+var nt=document.createElement('div');nt.style.cssText='text-align:center;font:10px monospace;color:#9ca3af;margin-bottom:6px;';nt.textContent='число или 100K/5M/2B/1T; апгрейд ID 0-359; предметы shard/core/prism/nova/void; буст id+сек (макс 3600)';box.appendChild(nt);
+box.appendChild(row('Клики',function(v){var n=num(v);if(n>0){CK.clicks=(CK.clicks||0)+n;gs();}}));
+box.appendChild(row('Перерождения (+2x)',function(v){var n=num(v);if(n>0){CK.rebirths=(CK.rebirths||0)+n;CK.mult=(CK.mult||1)+2*n;gs();}}));
+box.appendChild(row('ИКСЫ (+множитель)',function(v){var n=num(v);if(n>0){CK.mult=(CK.mult||1)+n;gs();}}));
+box.appendChild(row('МЕГА x50 (+1)',function(v){var n=num(v);if(n>0){var X=window.__CKEX=window.__CKEX||{};X.megaCount=(X.megaCount||0)+n;CK.mult=(CK.mult||1)+50*n;gs();}}));
+box.appendChild(row('СУПЕР x10000 (+1)',function(v){var n=num(v);if(n>0){var X=window.__CKEX=window.__CKEX||{};X.superCount=(X.superCount||0)+n;CK.mult=(CK.mult||1)+10000*n;gs();}}));
+box.appendChild(row('Апгрейд ID + ур.',function(a,b){var id=parseInt(a,10),n=num(b);if(!(id>=0&&id<360)||n<=0)return;CK.lv[id]=(CK.lv[id]||0)+n;gs();},'уровней'));
+box.appendChild(row('Предмет ID + шт.',function(a,b){var id=String(a||'').trim().toLowerCase(),n=num(b)||1;if(IT.indexOf(id)<0)return;var q;for(q=0;q<Math.min(n,2000);q++)CK.inv.push(id);if(CK.inv.length>2000)CK.inv=CK.inv.slice(-2000);gs();try{window.ckInvRender();}catch(e3){}},'шт'));
+box.appendChild(row('Буст ID + сек.',function(a,b){var id=String(a||'').trim().toLowerCase(),n=num(b);if(BS.indexOf(id)<0||n<=0)return;var now=Date.now();CK.boost=CK.boost||{};CK.boost[id]=Math.min(now+Math.min(n,3600)*1000,now+3600*1000);gs();},'сек'));
+var ab=document.getElementById('ck-admin-box');(ab||document.getElementById('ck-admin-modal')).appendChild(box);}
+admGrant();})();

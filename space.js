@@ -2380,6 +2380,10 @@ document.addEventListener("touchend",audioResume);
 document.addEventListener("click",audioStart);document.addEventListener("touchstart",audioStart);
 function animate() {
   requestAnimationFrame(animate);
+  var _ckOv = document.getElementById('clicker-overlay');
+  if (_ckOv && !_ckOv.classList.contains('hidden')) return;
+  var _ckOv = document.getElementById('clicker-overlay');
+  if (_ckOv && !_ckOv.classList.contains('hidden')) return;
   if (window.__uiPaused) {
     // Арена открыта: плавно глушим весь звук космоса (ЧД, ERRORR, станции).
     // Раньше return стоял до обновления громкости — gain застревал на последнем значении.
