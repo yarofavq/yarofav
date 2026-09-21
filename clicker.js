@@ -380,9 +380,22 @@ cssAdd('.ck-tabs{display:flex;gap:6px;padding:8px 8px 0;flex-wrap:wrap;}');
 cssAdd('.ck-tab{flex:1;padding:8px 6px;border:1px solid #2b3672;border-radius:9px;background:#111634;color:#8fa3e8;font-family:inherit;font-weight:bold;font-size:12px;cursor:pointer;min-width:86px;}');
 cssAdd('.ck-tab.on{background:linear-gradient(135deg,#3a86ff,#7b2cbf);color:#fff;border-color:#3a86ff;}');
 cssAdd('#ck-autop{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 8px 0;}');
-cssAdd('.ck-apbtn{flex:1;min-width:110px;padding:7px 8px;border:1px solid #2b3672;border-radius:9px;background:#111634;color:#8fa3e8;font-family:inherit;font-weight:bold;font-size:11px;cursor:pointer;}');
+cssAdd('.ck-apbtn{flex:1;min-width:96px;padding:7px 8px;border:1px solid #2b3672;border-radius:9px;background:#111634;color:#8fa3e8;font-family:inherit;font-weight:bold;font-size:11px;cursor:pointer;}');
 cssAdd('.ck-apbtn.on{background:linear-gradient(135deg,#1f9d55,#0e5c2f);color:#fff;border-color:#37e08a;}');
-cssAdd('.ck-apin{width:120px;padding:7px 8px;border:1px solid #2b3672;border-radius:9px;background:#0b1026;color:#fff;font-family:inherit;font-size:12px;}');
+cssAdd('.ck-apcfg-btn{flex:none;width:34px;height:32px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2b3672,#1a224a);border:1px solid #3a86ff;border-radius:9px;color:#ffd76a;cursor:pointer;font-size:16px;transition:transform .15s,filter .15s;}');
+cssAdd('.ck-apcfg-btn:hover{filter:brightness(1.2);transform:rotate(25deg);}');
+cssAdd('#ck-auto-modal{position:fixed;inset:0;z-index:9480;background:rgba(2,2,14,.88);display:flex;align-items:center;justify-content:center;font-family:inherit;}');
+cssAdd('#ck-auto-modal-box{width:min(580px,94vw);max-height:90vh;overflow-y:auto;background:linear-gradient(160deg,#101a2a,#0a1420);border:2px solid #3a86ff;border-radius:16px;padding:18px;color:#fff;box-sizing:border-box;}');
+cssAdd('#ck-auto-modal-box h2{margin:0 0 10px;text-align:center;color:#7fd4ff;letter-spacing:1.5px;font-size:18px;}');
+cssAdd('.ck-ap-card{background:#111634;border:1px solid #2b3672;border-radius:12px;padding:10px 12px;margin-bottom:10px;}');
+cssAdd('.ck-ap-card-title{font-weight:bold;font-size:13px;color:#ffd76a;margin-bottom:6px;}');
+cssAdd('.ck-ap-inputs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}');
+cssAdd('.ck-ap-inputs label{font-size:11.5px;color:#8fa3e8;display:flex;align-items:center;gap:4px;}');
+cssAdd('.ck-ap-inputs input{width:90px;padding:5px 7px;border:1px solid #2b3672;border-radius:7px;background:#0b1026;color:#fff;font-family:inherit;font-size:11px;}');
+cssAdd('.ck-ap-subtypes{display:flex;gap:6px;flex-wrap:wrap;}');
+cssAdd('.ck-ap-subbtn{background:#1a224a;border:1px solid #33407f;color:#8fa3e8;border-radius:7px;padding:4px 9px;font-size:11px;font-family:inherit;cursor:pointer;font-weight:bold;}');
+cssAdd('.ck-ap-subbtn.on{background:linear-gradient(135deg,#37e08a,#1d9d5f);border-color:#37e08a;color:#04121c;}');
+cssAdd('#ck-close-auto-modal{width:100%;background:#b3283c;border:none;border-radius:9px;padding:10px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
 cssAdd('.ck-setp{padding:10px 8px;overflow-y:auto;}');
 cssAdd('.ck-seth{color:#ffd76a;font-weight:bold;font-size:13px;letter-spacing:1px;margin:4px 0 10px;}');
 cssAdd('.ck-setrow{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}');
@@ -1006,7 +1019,15 @@ if (ckOfflineGain >= 1) {
 }
 var right = el('div', 'clicker-right');
 right.appendChild(el('h3', '', '', 'АПГРЕЙДЫ'));
-var CK_AUTO = { t: [ { on: false, thr: 0 }, { on: false, thr: 0 }, { on: false, thr: 0 }, { on: false, thr: 0 } ], scroll: true };
+var CK_AUTO = {
+  t: [
+    { on: false, min: 0, max: 0, subs: { auto: true, power: true } },
+    { on: false, min: 0, max: 0, subs: { crit: true, gold: true } },
+    { on: false, min: 0, max: 0, subs: { critx: true, mega: true } },
+    { on: false, min: 0, max: 0, subs: { boost: true, drop: true } }
+  ],
+  scroll: true
+};
 var ckAutoUserScroll = 0;
 function ckAutoSave() { try { localStorage.setItem('spaceClicker_auto', JSON.stringify({ t: CK_AUTO.t, scroll: CK_AUTO.scroll })); } catch (e) {} }
 function ckAutoScroll() {
@@ -1019,6 +1040,24 @@ function ckAutoScroll() {
   }
 }
 (function () {
+  function ckParseAmt(v) {
+    var st = String(v || '').trim().toUpperCase();
+    if (!st) return 0;
+    var mult = 1;
+    var last = st.charAt(st.length - 1);
+    if (!(last >= '0' && last <= '9')) { var mp = { K: 1e3, M: 1e6, B: 1e9, T: 1e12, Q: 1e15, QI: 1e18 }; mult = mp[last] || 1; st = st.slice(0, -1); }
+    var nn = parseFloat(st);
+    if (isNaN(nn)) return 0;
+    return Math.floor(nn * mult);
+  }
+  function ckFmtAmt(n) {
+    if (!n) return '';
+    var u = [[1e18, 'Qi'], [1e15, 'Qa'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+    for (var xi = 0; xi < u.length; xi++) {
+      if (n >= u[xi][0]) { var vv = n / u[xi][0]; return parseFloat(vv >= 100 ? vv.toFixed(0) : vv >= 10 ? vv.toFixed(1) : vv.toFixed(2)) + u[xi][1]; }
+    }
+    return '' + n;
+  }
   try {
     var s = JSON.parse(localStorage.getItem('spaceClicker_auto') || 'null');
     if (s && typeof s === 'object') {
@@ -1026,67 +1065,139 @@ function ckAutoScroll() {
       if (s.t && typeof s.t === 'object') {
         for (var tk = 0; tk < 4; tk++) {
           var tc = s.t[tk];
-          if (tc) { CK_AUTO.t[tk].on = !!tc.on; CK_AUTO.t[tk].thr = Math.max(0, Number(tc.thr) || 0); }
+          if (tc) {
+            CK_AUTO.t[tk].on = !!tc.on;
+            CK_AUTO.t[tk].min = Math.max(0, Number(tc.min || tc.thr) || 0);
+            CK_AUTO.t[tk].max = Math.max(0, Number(tc.max) || 0);
+            if (tc.subs && typeof tc.subs === 'object') {
+              for (var sk in tc.subs) CK_AUTO.t[tk].subs[sk] = !!tc.subs[sk];
+            }
+          }
         }
       }
     }
   } catch (e) {}
+
   var ap = el('div', 'ck-autop');
   var scl = el('button', 'ck-ap-scl', 'ck-apbtn apb-scl' + (CK_AUTO.scroll ? ' on' : ''), 'АВТО-СКРОЛЛ: ' + (CK_AUTO.scroll ? 'ВКЛ' : 'ВЫКЛ'));
-  function ckParseAmt(v) {
-    var st = String(v || '').trim().toUpperCase();
-    if (!st) return 0;
-    var mult = 1;
-    var last = st.charAt(st.length - 1);
-    if (!(last >= '0' && last <= '9')) { var mp = { K: 1e3, M: 1e6, B: 1e9, T: 1e12, Q: 1e15 }; mult = mp[last] || 1; st = st.slice(0, -1); }
-    var nn = parseFloat(st);
-    if (isNaN(nn)) return 0;
-    return Math.floor(nn * mult);
-  }
-  function ckFmtAmt(n) {
-    var u = [[1e18, 'Qi'], [1e15, 'Qa'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
-    for (var xi = 0; xi < u.length; xi++) {
-      if (n >= u[xi][0]) { var vv = n / u[xi][0]; return parseFloat(vv >= 100 ? vv.toFixed(0) : vv >= 10 ? vv.toFixed(1) : vv.toFixed(2)) + u[xi][1]; }
-    }
-    return '' + n;
-  }
   scl.addEventListener('click', function () { CK_AUTO.scroll = !CK_AUTO.scroll; scl.className = 'ck-apbtn apb-scl' + (CK_AUTO.scroll ? ' on' : ''); scl.textContent = 'АВТО-СКРОЛЛ: ' + (CK_AUTO.scroll ? 'ВКЛ' : 'ВЫКЛ'); ckAutoSave(); });
   ap.appendChild(scl);
+
+  var cfgBtn = el('button', 'ck-ap-cfg', 'ck-apcfg-btn', '⚙');
+  cfgBtn.title = 'Настройки автопокупки';
+  ap.appendChild(cfgBtn);
+
   var ANAMES = ['ДОХОД', 'КРИТ/ГОЛД', 'МНОЖ', 'НОВЫЕ'];
   var ACLS = ['apb-buy', 'apb-lb', 'apb-mg', 'apb-gr'];
   var ASTRAT = ['last', 'cheapest', 'last', 'cheapest'];
+  var ASUBS = [
+    [{ k: 'auto', n: 'Автоклик' }, { k: 'power', n: 'Клик' }],
+    [{ k: 'crit', n: 'Крит шанс' }, { k: 'gold', n: 'Голд' }],
+    [{ k: 'critx', n: 'Крит множ' }, { k: 'mega', n: 'Мега ядро' }],
+    [{ k: 'boost', n: 'Хронизатор' }, { k: 'drop', n: 'Дроп' }]
+  ];
+
   for (var t3i = 0; t3i < 4; t3i++) {
     (function (tix) {
       var cfg = CK_AUTO.t[tix];
       var b = el('button', 'ck-ap-t' + tix, 'ck-apbtn ' + ACLS[tix] + (cfg.on ? ' on' : ''), ANAMES[tix] + ': ' + (cfg.on ? 'ВКЛ' : 'ВЫКЛ'));
-      var inp = el('input', 'ck-ap-i' + tix, 'ck-apin');
-      inp.type = 'text'; inp.placeholder = '100K / 2M / 1B'; inp.value = cfg.thr ? ckFmtAmt(cfg.thr) : '';
       b.addEventListener('click', function () { cfg.on = !cfg.on; b.className = 'ck-apbtn ' + ACLS[tix] + (cfg.on ? ' on' : ''); b.textContent = ANAMES[tix] + ': ' + (cfg.on ? 'ВКЛ' : 'ВЫКЛ'); ckAutoSave(); });
-      inp.addEventListener('input', function () { cfg.thr = ckParseAmt(inp.value); ckAutoSave(); });
-      ap.appendChild(b); ap.appendChild(inp);
+      ap.appendChild(b);
     })(t3i);
   }
   right.appendChild(ap);
+
+  var autoModal = el('div', 'ck-auto-modal', 'clicker-ui hidden');
+  var autoBox = el('div', 'ck-auto-modal-box');
+  autoBox.appendChild(el('h2', '', '', 'НАСТРОЙКИ АВТОПОКУПКИ'));
+  var cardsWrap = el('div', 'ck-auto-cards');
+
+  function renderAutoModalCards() {
+    cardsWrap.innerHTML = '';
+    for (var mi = 0; mi < 4; mi++) {
+      (function (idx) {
+        var c = CK_AUTO.t[idx];
+        var card = el('div', '', 'ck-ap-card');
+        card.appendChild(el('div', '', 'ck-ap-card-title', ANAMES[idx]));
+
+        var inpRow = el('div', '', 'ck-ap-inputs');
+        var lblMin = el('label'); lblMin.textContent = 'От: ';
+        var inMin = el('input'); inMin.type = 'text'; inMin.placeholder = '0 / 100K'; inMin.value = ckFmtAmt(c.min);
+        lblMin.appendChild(inMin);
+
+        var lblMax = el('label'); lblMax.textContent = 'До: ';
+        var inMax = el('input'); inMax.type = 'text'; inMax.placeholder = '∞ / 10M'; inMax.value = ckFmtAmt(c.max);
+        lblMax.appendChild(inMax);
+
+        inMin.addEventListener('input', function () { c.min = ckParseAmt(inMin.value); ckAutoSave(); });
+        inMax.addEventListener('input', function () { c.max = ckParseAmt(inMax.value); ckAutoSave(); });
+
+        inpRow.appendChild(lblMin);
+        inpRow.appendChild(lblMax);
+        card.appendChild(inpRow);
+
+        var subRow = el('div', '', 'ck-ap-subtypes');
+        var subList = ASUBS[idx];
+        for (var si = 0; si < subList.length; si++) {
+          (function (sb) {
+            var isAct = (c.subs[sb.k] !== false);
+            var sbtn = el('button', '', 'ck-ap-subbtn' + (isAct ? ' on' : ''), sb.n + ': ' + (isAct ? 'ВКЛ' : 'ВЫКЛ'));
+            sbtn.addEventListener('click', function () {
+              var nxt = !c.subs[sb.k];
+              c.subs[sb.k] = nxt;
+              sbtn.className = 'ck-ap-subbtn' + (nxt ? ' on' : '');
+              sbtn.textContent = sb.n + ': ' + (nxt ? 'ВКЛ' : 'ВЫКЛ');
+              ckAutoSave();
+            });
+            subRow.appendChild(sbtn);
+          })(subList[si]);
+        }
+        card.appendChild(subRow);
+        cardsWrap.appendChild(card);
+      })(mi);
+    }
+  }
+
+  autoBox.appendChild(cardsWrap);
+  var closeAutoBtn = el('button', 'ck-close-auto-modal', '', 'ЗАКРЫТЬ');
+  closeAutoBtn.addEventListener('click', function () { autoModal.classList.add('hidden'); });
+  autoBox.appendChild(closeAutoBtn);
+  autoModal.appendChild(autoBox);
+  document.body.appendChild(autoModal);
+
+  cfgBtn.addEventListener('click', function () {
+    renderAutoModalCards();
+    autoModal.classList.remove('hidden');
+  });
+
   setInterval(function () {
     if (window.__CKEX && window.__CKEX.rbAuto && CK.clicks >= 1e14) { CK.mult += 2; CK.rebirths++; sfxRebirth(); CK.clicks = 0; CK.lv = []; for (var zr = 0; zr < 360; zr++) CK.lv[zr] = 0; ckSave(); render(true); return; }
     for (var t4 = 0; t4 < 4; t4++) {
       var cfg2 = CK_AUTO.t[t4];
       if (!cfg2.on) continue;
       var bought = 0;
-      while (bought < (CK_UI.low?15:50)) {
+      while (bought < (CK_UI.low ? 15 : 50)) {
         var pick = -1, pcost = 0;
         if (ASTRAT[t4] === 'last') {
           for (var xa = 359; xa >= 0; xa--) {
             if (ckUpgGrp(xa) !== t4) continue;
+            var utype = CK_UPG[xa].type;
+            if (cfg2.subs && cfg2.subs[utype] === false) continue;
             var ca = ckUpgCost(xa);
-            if (CK.clicks - ca >= cfg2.thr) { pick = xa; pcost = ca; break; }
+            if (cfg2.max > 0 && ca > cfg2.max) continue;
+            if (ca < cfg2.min) continue;
+            if (CK.clicks >= ca) { pick = xa; pcost = ca; break; }
           }
         } else {
           var bc = Infinity;
           for (var xb2 = 0; xb2 < 360; xb2++) {
             if (ckUpgGrp(xb2) !== t4) continue;
+            var utype2 = CK_UPG[xb2].type;
+            if (cfg2.subs && cfg2.subs[utype2] === false) continue;
             var cb = ckUpgCost(xb2);
-            if (CK.clicks - cb >= cfg2.thr && cb < bc) { bc = cb; pick = xb2; }
+            if (cfg2.max > 0 && cb > cfg2.max) continue;
+            if (cb < cfg2.min) continue;
+            if (CK.clicks >= cb && cb < bc) { bc = cb; pick = xb2; }
           }
           if (pick >= 0) pcost = bc;
         }
@@ -1095,7 +1206,7 @@ function ckAutoScroll() {
         CK.lv[pick]++;
         bought++;
       }
-      if (bought) { sfxBuy(); ckSave(); if(CK_UI.low){render();}else{render(true);} }
+      if (bought) { sfxBuy(); ckSave(); if (CK_UI.low) { render(); } else { render(true); } }
     }
   }, 100);
 })();
