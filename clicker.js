@@ -12,7 +12,10 @@ var CK_TRACKS = [
   { f: 'clicker-music-8.mp3', n: 'Антикобыла - daybe' },
   { f: 'clicker-music-9.mp3', n: 'Полка, YASMI - Омут' },
   { f: 'clicker-music-10.mp3', n: 'ТАБЛЕТКА - плохой парень' },
-  { f: 'clicker-music-11.mp3', n: 'Voskresenskii - Еду по Москве' }
+  { f: 'clicker-music-11.mp3', n: 'Voskresenskii - Еду по Москве' },
+  { f: 'clicker-music-12.mp3', n: 'Кобыла - daybe' },
+  { f: 'clicker-music-13.mp3', n: 'Кобыла (Remix) - daybe' },
+  { f: 'clicker-music-14.mp3', n: 'ahhnahh - заряжаю свой мобильный' }
 ];
 var CK_MUSIC_KEY = 'spaceClicker_music';
 var CK_MVOL_KEY = 'spaceClicker_mvol';
@@ -493,6 +496,12 @@ cssAdd('#ck-track-name.ck-trk10{background:linear-gradient(90deg,#14b8a6,#e879f9
 cssAdd('@keyframes ckT10{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
 cssAdd('#ck-track-name.ck-trk11{background:linear-gradient(90deg,#a3e635,#22d3ee,#a3e635);background-size:200% 200%;animation:ckT11 3s ease infinite;-webkit-background-clip:text;background-clip:text;color:transparent;}');
 cssAdd('@keyframes ckT11{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
+cssAdd('#ck-track-name.ck-trk12{background:linear-gradient(90deg,#f43f5e,#fb7185,#f43f5e);background-size:200% 200%;animation:ckT12 3s ease infinite;-webkit-background-clip:text;background-clip:text;color:transparent;}');
+cssAdd('@keyframes ckT12{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
+cssAdd('#ck-track-name.ck-trk13{background:linear-gradient(90deg,#8b5cf6,#ec4899,#8b5cf6);background-size:200% 200%;animation:ckT13 3s ease infinite;-webkit-background-clip:text;background-clip:text;color:transparent;}');
+cssAdd('@keyframes ckT13{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
+cssAdd('#ck-track-name.ck-trk14{background:linear-gradient(90deg,#10b981,#f59e0b,#10b981);background-size:200% 200%;animation:ckT14 3s ease infinite;-webkit-background-clip:text;background-clip:text;color:transparent;}');
+cssAdd('@keyframes ckT14{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
 cssAdd('#ck-bgvid{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:.85;pointer-events:none;}');
 cssAdd('.t2-theme{background:#f4f6fb !important;border-color:#c9d2e8 !important;}');
 cssAdd('.t2-theme #clicker-left{position:relative;}');
@@ -784,7 +793,7 @@ player.className = ckMusicOn ? 'ck-on' : '';
 var pInfo = el('div', 'ck-player-info');
 var pName = el('div', 'ck-track-name', '', CK_TRACKS[ckTrack].n);
 pName.id = 'ck-track-name';
-var TPALETTE = ['ck-trk1','ck-trk2','ck-trk3','ck-trk4','ck-trk5','ck-trk6','ck-trk7','ck-trk8','ck-trk9','ck-trk10','ck-trk11'];
+var TPALETTE = ['ck-trk1','ck-trk2','ck-trk3','ck-trk4','ck-trk5','ck-trk6','ck-trk7','ck-trk8','ck-trk9','ck-trk10','ck-trk11','ck-trk12','ck-trk13','ck-trk14'];
 function ckTrackPaint() {
   pName.className = 'ck-track-name ' + (TPALETTE[ckTrack] || 'ck-trk1');
 }
@@ -793,7 +802,7 @@ var pNum = el('div', 'ck-track-num', '', (ckTrack + 1) + '/' + CK_TRACKS.length)
 pNum.id = 'ck-track-num';
 pInfo.appendChild(pName);
 pInfo.appendChild(pNum);
-var TMEDIA = { 5: 'vid4.mp4', 6: 'vid1.mp4', 7: 'vid2.mp4', 8: 'vid3.mp4', 9: 'vid5.mp4', 10: 'vid6.mp4' };
+var TMEDIA = { 5: 'vid4.mp4', 6: 'vid1.mp4', 7: 'vid2.mp4', 8: 'vid3.mp4', 9: 'vid5.mp4', 10: 'vid6.mp4', 11: 'vid9.mp4', 12: 'vid8.mp4', 13: 'vid7.mp4' };
 var ckMedia = null;
 function ckBuildMedia() {
   var tgt = pInfo;
