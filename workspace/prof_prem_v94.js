@@ -1,0 +1,30 @@
+var fs=require('fs');
+var Q=String.fromCharCode(39);
+var NL=String.fromCharCode(10);
+var B='C:/Users/YAROFAV/Downloads/tg_landing_v6/yarofav/';
+var f=B+'clicker.js';
+var s=fs.readFileSync(f,'utf8');
+if(s.indexOf('ckProfPrem')!==-1){console.log('ALREADY');process.exit(0);}
+var css=[];
+css.push('#ck-prof{background:radial-gradient(ellipse 500px 300px at 10% 0%,rgba(255,210,63,.1),transparent 60%),radial-gradient(ellipse 500px 300px at 90% 100%,rgba(176,67,214,.12),transparent 60%),rgba(6,4,14,.94) !important;}');
+css.push('#ck-prof-box{background:linear-gradient(165deg,#141028,#0d0a1c 60%,#0a0716) !important;border-radius:22px !important;box-shadow:0 30px 90px rgba(0,0,0,.8),0 0 80px rgba(255,210,63,.1) !important;position:relative !important;}');
+css.push('#ck-prof-box::before{content:"";position:absolute;inset:-2px;border-radius:24px;padding:2px;background:linear-gradient(135deg,#ffd23f,#ff2d95 40%,#38bdf8 70%,#ffd23f);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}');
+css.push('#ck-prof-box h2{font-family:Georgia,serif;font-size:26px;font-weight:900;letter-spacing:5px;display:flex;align-items:center;gap:12px;background:linear-gradient(100deg,#fff3c4,#ffd23f 30%,#ff9de2 55%,#ffd23f 80%,#fff3c4);background-size:220% 220%;-webkit-background-clip:text;background-clip:text;color:transparent !important;animation:ckProfT 4s ease infinite;}');
+css.push('@keyframes ckProfT{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
+css.push('#ck-prof-ava{width:84px !important;height:84px !important;font-size:38px !important;background:linear-gradient(135deg,#ffd23f,#ff2d95 55%,#b243d6) !important;border:3px solid #fff3c4 !important;box-shadow:0 0 30px rgba(255,210,63,.5) !important;position:relative !important;}');
+css.push('#ck-prof-ava::after{content:"";position:absolute;inset:-12px;border-radius:50%;border:1.5px dashed rgba(255,210,63,.5);animation:ckProfOrb 12s linear infinite;}');
+css.push('@keyframes ckProfOrb{to{transform:rotate(360deg)}}');
+css.push('.ck-prof-row{background:linear-gradient(135deg,rgba(30,22,55,.92),rgba(15,10,30,.92)) !important;border:1px solid rgba(255,210,63,.3) !important;border-left:3px solid #ffd23f !important;border-radius:12px !important;padding:13px 15px !important;transition:transform .2s,border-color .2s !important;}');
+css.push('.ck-prof-row:hover{border-color:#ffd23f88 !important;transform:translateX(4px) !important;}');
+css.push('.ck-prof-l{font-family:Georgia,serif !important;color:#c9a44a !important;}');
+css.push('.ck-prof-v{color:#fff8e8 !important;text-shadow:0 0 8px rgba(255,210,63,.25) !important;}');
+css.push('#ck-prof-copy{background:linear-gradient(135deg,#ffd23f,#e0a52e) !important;color:#241c04 !important;box-shadow:0 4px 12px rgba(255,210,63,.35) !important;}');
+css.push('#ck-close-prof{background:linear-gradient(135deg,#3a1245,#1a0b2e) !important;border:1.5px solid #ffd23f66 !important;color:#ffe9a8 !important;font-weight:800 !important;letter-spacing:3px !important;}');
+css.push('#ck-prof-pt{font-family:Consolas,monospace !important;}');
+var add=NL;
+for(var k=0;k<css.length;k++)add+='cssAdd('+Q+css[k]+Q+');'+NL;
+var anchor='window.addEventListener('+Q+'resize'+Q+', function () { ckUiApply(); });';
+if(s.indexOf(anchor)===-1){console.log('ANCHOR MISS');process.exit(1);}
+s=s.split(anchor).join(anchor+add+NL+'window.cssAdd('+Q+'/*ckProfPrem*/'+Q+');');
+fs.writeFileSync(f,s);
+console.log('prof-prem rules='+css.length);
