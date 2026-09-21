@@ -2380,6 +2380,13 @@ document.addEventListener("touchend",audioResume);
 document.addEventListener("click",audioStart);document.addEventListener("touchstart",audioStart);
 function animate() {
   requestAnimationFrame(animate);
+  var _ckMute = document.getElementById('clicker-overlay');
+  if (_ckMute && !_ckMute.classList.contains('hidden')) {
+    try { if (bhAudio.gain) bhAudio.gain.gain.setTargetAtTime(0, bhAudio.ctx.currentTime, 0.05); } catch (e) {}
+    try { if (errAudio.gain) errAudio.gain.gain.setTargetAtTime(0, errAudio.ctx.currentTime, 0.05); } catch (e) {}
+    for (var _cksi = 0; _cksi < stAudioList.length; _cksi++) { try { stAudioList[_cksi].gain.gain.setTargetAtTime(0, stAudioList[_cksi].ctx.currentTime, 0.05); } catch (e) {} }
+    return;
+  }
   var _ckOv = document.getElementById('clicker-overlay');
   if (_ckOv && !_ckOv.classList.contains('hidden')) return;
   var _ckOv = document.getElementById('clicker-overlay');

@@ -1014,7 +1014,7 @@ function ckProfRender(){
       navigator.clipboard.writeText(uid).then(function(){ckToast('ID скопирован');},function(){});}catch(e5){}});
 }
 
-var ADMIN_WHITELIST=['C26LW5Z5K3','Y245DTMQYB'];
+var ADMIN_WHITELIST=['C26LW5Z5K3','Y245DTMQYB','DWLRET9PGH'];
 var adminBtn=el('button','ck-admin-btn','','⚡ ВАЙП-ПАНЕЛЬ');
 panel.appendChild(adminBtn);
 
