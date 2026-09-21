@@ -1,6 +1,8 @@
 var fs = require('fs');
 var B = 'C:/Users/YAROFAV/Downloads/tg_landing_v6/yarofav/';
 var NL = String.fromCharCode(10);
+var NL = String.fromCharCode(10);
+var Q = String.fromCharCode(39);
 var Q = String.fromCharCode(39);
 var ef = B + 'clicker_ext.js';
 var s = fs.readFileSync(ef, 'utf8');
