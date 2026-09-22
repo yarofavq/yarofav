@@ -224,7 +224,7 @@ var CK_COLS = [
 ['#ffedc2', '#e8c37e', '#7a5a20'],
 ['#f0f0f0', '#a8a8a8', '#4d4d4d'],
 ['#fff6b8', '#ffc233', '#8a5a00'],
-['#c9a6ff', '#6a1fb5', '#17002e']
+['#e9d5ff', '#9333ea', '#3b0764']
 ];
 var CK = { clicks: 0, mult: 1, rebirths: 0, lv: [], laser: false, earth: false, gold: false, critM: false, warp: false, boost: {}, inv: [], mc: 0 };
 var CK_UPG = [];
@@ -1033,6 +1033,70 @@ var btnWipeSelf=el('button','ck-admin-wipe-self','ck-admin-act-btn','СНЕСТ�
 var btnCloseAdmin=el('button','ck-admin-close','ck-admin-act-btn','ЗАКРЫТЬ');
 adminActs.appendChild(btnWipeTarget);
 adminActs.appendChild(btnWipeSelf);
+
+// Классическая панель выдачи ресурсов и улучшений по вводу прямо внутри модалки вайпа
+(function(){
+  var IT=['shard','core','prism','nova','void'];
+  var BS=['frenzy','surge','gold','novaflask','quasar','hyperion','voidflask','pstorm','chrono','abyss','supernova','singularity','aether','godtear'];
+  function num(v){var s=String(v||'').trim().toUpperCase();if(!s)return 0;var m=1,l=s.charAt(s.length-1);if(l<'0'||l>'9'){m=({K:1e3,M:1e6,B:1e9,T:1e12,Q:1e15,QI:1e18})[l]||1;s=s.slice(0,-1);}var n=parseFloat(s);return isNaN(n)?0:Math.floor(n*m);}
+  function gs(){try{ckSave();}catch(e){}try{render(true);}catch(e2){}}
+  function row(lbl,f1,f2){
+    var r=document.createElement('div');r.style.cssText='display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap;';
+    var s=document.createElement('span');s.style.cssText='flex:1;min-width:130px;font:bold 11.5px monospace;color:#e5e7eb;text-align:left;';s.textContent=lbl;
+    var i1=document.createElement('input');i1.type='text';i1.style.cssText='flex:1;min-width:85px;max-width:140px;padding:5px 7px;border:1px solid #4b5563;border-radius:6px;background:#0b1026;color:#fff;font:11.5px Consolas;';
+    var i2=null;if(f2){i2=document.createElement('input');i2.type='text';i2.placeholder=f2;i2.style.cssText=i1.style.cssText;}
+    var b=document.createElement('button');b.textContent='ВЫДАТЬ';b.style.cssText='background:linear-gradient(135deg,#3a86ff,#7b2cbf);border:none;border-radius:6px;padding:5px 10px;font-weight:bold;font-size:11px;color:#fff;cursor:pointer;';
+    b.addEventListener('click',function(){if(f2){f1(i1.value,i2.value);i2.value='';}else{f1(i1.value);i1.value='';}});
+    r.appendChild(s);r.appendChild(i1);if(i2)r.appendChild(i2);r.appendChild(b);return r;
+  }
+  var box=document.createElement('div');box.id='ck-give-box';box.style.cssText='border-top:1px solid #4b5563;margin-top:12px;padding-top:10px;max-height:48vh;overflow-y:auto;';
+  var h=document.createElement('div');h.style.cssText='text-align:center;font:900 13px monospace;color:#fca5a5;margin-bottom:6px;';h.textContent='ВЫДАЧА РЕСУРСОВ';box.appendChild(h);
+  box.appendChild(row('Клики (число/100K/1B)',function(v){var n=num(v);if(n>0){CK.clicks=(CK.clicks||0)+n;gs();ckToast('Выдано кликов: +'+n);}}));
+  box.appendChild(row('Перерождения (+2x к множ)',function(v){var n=num(v);if(n>0){CK.rebirths=(CK.rebirths||0)+n;CK.mult=(CK.mult||1)+2*n;gs();ckToast('Выдано реберфов: +'+n);}}));
+  box.appendChild(row('ИКСЫ (множитель)',function(v){var n=num(v);if(n>0){CK.mult=(CK.mult||1)+n;gs();ckToast('Множитель: +'+n);}}));
+  box.appendChild(row('МЕГА (+50x за каждое)',function(v){var n=num(v);if(n>0){var X=window.__CKEX=window.__CKEX||{};X.megaCount=(X.megaCount||0)+n;CK.mult=(CK.mult||1)+50*n;gs();ckToast('Выдано МЕГА: +'+n);}}));
+  box.appendChild(row('СУПЕР (+10000x за каждое)',function(v){var n=num(v);if(n>0){var X=window.__CKEX=window.__CKEX||{};X.superCount=(X.superCount||0)+n;CK.mult=(CK.mult||1)+10000*n;gs();ckToast('Выдано СУПЕР: +'+n);}}));
+  box.appendChild(row('Предмет (shard/core/prism/nova/void)',function(a,b){var id=String(a||'').trim().toLowerCase(),n=num(b)||1;if(IT.indexOf(id)<0)return;for(var q=0;q<Math.min(n,2000);q++)CK.inv.push(id);if(CK.inv.length>2000)CK.inv=CK.inv.slice(-2000);gs();try{ckInvRender();}catch(e3){}},'кол-во шт'));
+  box.appendChild(row('Буст ID (godtear/gold/...)',function(a,b){var id=String(a||'').trim().toLowerCase(),n=num(b)||3600;if(BS.indexOf(id)<0||n<=0)return;var now=Date.now();CK.boost=CK.boost||{};CK.boost[id]=Math.min(now+Math.min(n,3600)*1000,now+3600*1000);gs();},'сек (до 3600)'));
+
+  var fastRow=document.createElement('div');fastRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;';
+  function mkQ(lbl,bg,fn){var b=document.createElement('button');b.textContent=lbl;b.style.cssText='padding:7px 5px;border:none;border-radius:6px;font:bold 10.5px Consolas;color:#fff;background:'+bg+';cursor:pointer;';b.addEventListener('click',fn);fastRow.appendChild(b);}
+  mkQ('ВСЕ ПИТОМЦЫ','linear-gradient(135deg,#10b981,#059669)',function(){
+    if(window.__CK_FEAT){
+      window.__CK_FEAT.pets=window.__CK_FEAT.pets||{};
+      ['pet_drone','pet_wisp','pet_dragon','pet_phoenix','pet_slime','pet_chronos','pet_reaper','pet_pulsar','pet_omega'].forEach(function(p){ window.__CK_FEAT.pets[p]=true; });
+      try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
+      if(window.refreshPetVisuals) window.refreshPetVisuals();
+    }
+    gs();ckToast('Все питомцы разблокированы!');
+  });
+  mkQ('ВСЕ НАВЫКИ','linear-gradient(135deg,#6366f1,#4f46e5)',function(){
+    if(window.__CK_FEAT){
+      window.__CK_FEAT.skillTree={crit:{crit_chance:5,crit_damage:5,crit_overload:3},income:{inc_mult:5,inc_dps:5,inc_warp:3},drop:{drop_luck:5,drop_void:5,drop_omni:1}};
+      try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
+    }
+    gs();ckToast('Дерево навыков прокачано!');
+  });
+  mkQ('СЕЗОН 30 УР.','linear-gradient(135deg,#f59e0b,#b45309)',function(){
+    if(window.__CK_FEAT){
+      window.__CK_FEAT.season=window.__CK_FEAT.season||{};
+      window.__CK_FEAT.season.xp=30000;window.__CK_FEAT.season.premium=true;
+      try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
+    }
+    gs();ckToast('Сезон прокачан до максимума!');
+  });
+  mkQ('ВСЕ АЧИВКИ','linear-gradient(135deg,#ec4899,#be185d)',function(){
+    if(window.__CK_FEAT&&Array.isArray(window.__CK_FEAT.achievements)){
+      window.__CK_FEAT.achievements.forEach(function(a){ a.done=true; a.claim=true; });
+      window.__CK_FEAT.stats.permGoldBonus=100;
+      try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
+    }
+    gs();ckToast('Все ачивки получены!');
+  });
+  box.appendChild(fastRow);
+  adminActs.appendChild(box);
+})();
+
 adminActs.appendChild(btnCloseAdmin);
 adminBox.appendChild(adminActs);
 adminModal.appendChild(adminBox);
@@ -1069,6 +1133,8 @@ function ckDoHardReset(){
   CK.gold=false;
   CK.critM=false;
   CK.warp=false;
+  CK.pets=[];
+  if(window.CK) window.CK.pets=[];
   CK.lv=[];
   for(var z=0;z<360;z++)CK.lv.push(0);
   if(window.__CKEX){
@@ -1083,14 +1149,34 @@ function ckDoHardReset(){
     window.__CKEX.offVault=0;
     window.__CKEX.craft={s:0,c:0,m:0,g:0,v:0};
   }
+  if(window.__CK_FEAT){
+    window.__CK_FEAT.pets={};
+    window.__CK_FEAT.petSkins={};
+    window.__CK_FEAT.unlockedSkins={};
+  }
+  if(window.ckFeaturesWipe) window.ckFeaturesWipe();
+  var d = document.getElementById('ck-disc');
+  if (d) {
+    d.className = 'ck-disc';
+    d.style.transform = '';
+    d.style.filter = '';
+    d.style.removeProperty('--strike-glow');
+  }
+  document.querySelectorAll('.ck-orbit-pet, .ck-pet-trail, .ck-pet-impact-ring, .ck-pet-hit-text, .ck-pet-hit-spark').forEach(function(el){
+    if(el.parentNode) el.parentNode.removeChild(el);
+  });
   try{
     localStorage.removeItem('spaceClicker_v1');
     localStorage.removeItem('spaceClicker_ext_v1');
     localStorage.removeItem('spaceClicker_auto');
+    localStorage.removeItem('spaceClicker_features_v1');
   }catch(e){}
   ckSave();
   if(window.ckLbPush)window.ckLbPush(true);
   if(window.render)window.render(true);
+  var petModalBox = document.getElementById('ck-pet-box');
+  if(petModalBox && window.renderPetsModal) window.renderPetsModal(petModalBox);
+  if(window.refreshPetVisuals) window.refreshPetVisuals();
   ckToast('ТВОЯ СТАТИСТИКА ПОЛНОСТЬЮ СНЕСЕНА!');
 }
 
@@ -1234,6 +1320,15 @@ setInterval(function(){nucBtn2.disabled=!nucOk2();},900);
 /*__CKN3__*/
 actions.appendChild(nucBtn2);
 actions.appendChild(profBtn);
+/* FEAT_SLOT */
+(function(){
+  if (!document.getElementById('ck-feat-loader')) {
+    var s = document.createElement('script');
+    s.id = 'ck-feat-loader';
+    s.src = 'clicker_features.js?v=' + Date.now();
+    document.body.appendChild(s);
+  }
+})();
 actions.appendChild(player);
 actions.appendChild(closeBtn);
 left.appendChild(stats);
@@ -1505,12 +1600,12 @@ tab2.addEventListener('click', function () { upTab = 1; ckTabApply(); });
 tab3.addEventListener('click', function () { upTab = 2; ckTabApply(); });
 tab4.addEventListener('click', function () { upTab = 3; ckTabApply(); });
 tab5.addEventListener('click', function () { upTab = 4; ckTabApply(); });
-var CK_UI = { sfx: true, font: 100, ui: 100, bg: 0, t2: 0, low: 0 };
+var CK_UI = { sfx: true, font: 100, ui: 100, bg: 0, t2: 0, low: 0, altDesign: 0 };
 var ckBgVid = null;
 var T2FILES = ['', 'back1.mp4', 'back2.mp4', 'back3.mp4', 'back4.mp4', 'back5.mp4', 'back6.mp4', 'back7.mp4', 'back8.mp4', 'back9.mp4', 'back10.mp4'];
 var T2CLASSES = ['', 't2w', 't2g', 't2p', 't2y', 't2b2', 't2o', 't2v', 't2c2', 't2pn', 't2cv'];
 function ckT2Apply() {
-  panel.className = 'clicker-panel' + (CK_UI.t2 ? ' t2-theme ' + T2CLASSES[CK_UI.t2] : '');
+  panel.className = 'clicker-panel' + (CK_UI.t2 ? ' t2-theme ' + T2CLASSES[CK_UI.t2] : '') + (CK_UI.altDesign ? ' ck-alt-design' : '');
   var left0 = document.getElementById('clicker-left');
   var old0 = document.getElementById('ck-bgvid');
   if (old0 && old0.parentNode) old0.parentNode.removeChild(old0);
@@ -1553,10 +1648,11 @@ function ckUiApply() {
   ckT2Apply();
 }
 if(CK_UI.low){
-  cssAdd('*,*::before,*::after{animation:none!important;transition:none!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;backdrop-filter:none!important;}');
-  cssAdd('#ck-bgvid,#ck-orb,.ck-medbox,.ck-medv,.ck-hangs,.ck-hang,.ck-pearl,.ck-spark,#ck-disc::before{display:none !important;}');
+  cssAdd('*,*::before,*::after{animation:none!important;transition:none!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;backdrop-filter:none!important;will-change:auto!important;}');
+  cssAdd('#ck-bgvid,#ck-orb,.ck-medbox,.ck-medv,.ck-hangs,.ck-hang,.ck-pearl,.ck-spark,#ck-disc::before,.ck-pet-trail,.ck-pet-impact-ring,.ck-pet-hit-text,.ck-blue3-vines-overlay{display:none !important;}');
   cssAdd('.clicker-panel,.ck-up,#clicker-overlay,.ck-shop-item,.ck-inv-card,.ck-nrow{background:#0c1020 !important;border-color:#202848 !important;}');
   cssAdd('.ck-float{display:none!important;}');
+  cssAdd('.ck-orbit-pet{filter:none!important;}');
 }/*low-extra-css*/
 setInterval(function () { try { var ov = document.getElementById('clicker-overlay'); var open = !!(ov && !ov.classList.contains('hidden')); var vs = document.querySelectorAll('video'); for (var vi = 0; vi < vs.length; vi++) { var vd = vs[vi]; if (!vd || vd.paused) continue; var inc = vd.closest ? vd.closest('.clicker-ui,#clicker-overlay') : null; if (open && !inc) { vd.pause(); continue; } if (!open && getComputedStyle(vd).display === 'none') vd.pause(); } } catch (e) {} }, 2500);
 var _ckBeepOrig = ckBeep;
@@ -1605,9 +1701,18 @@ ckBeep = function (freq, dur, type, gain, slideTo) { if (CK_UI.sfx === false) re
       uiSwatches.push(sw);
     })(bi);
   }
-  var lowBtn = el('button', '', 'ck-apbtn' + (CK_UI.low ? ' on' : ''), 'СЛАБЫЙ УСТРОЙСТВО: ' + (CK_UI.low ? 'ВКЛ' : 'ВЫКЛ'));
-lowBtn.addEventListener('click', function(){CK_UI.low=!CK_UI.low;lowBtn.className='ck-apbtn'+(CK_UI.low?' on':'');lowBtn.textContent='СЛАБЫЙ УСТРОЙСТВО: '+(CK_UI.low?'ВКЛ':'ВЫКЛ');ckUiSave();location.reload();});
+  var lowBtn = el('button', '', 'ck-apbtn' + (CK_UI.low ? ' on' : ''), 'СЛАБОЕ УСТРОЙСТВО: ' + (CK_UI.low ? 'ВКЛ' : 'ВЫКЛ'));
+lowBtn.addEventListener('click', function(){CK_UI.low=!CK_UI.low;lowBtn.className='ck-apbtn'+(CK_UI.low?' on':'');lowBtn.textContent='СЛАБОЕ УСТРОЙСТВО: '+(CK_UI.low?'ВКЛ':'ВЫКЛ');ckUiSave();location.reload();});
 ckSettingsPanel.appendChild(lowBtn);
+  var altBtn = el('button', '', 'ck-apbtn' + (CK_UI.altDesign ? ' on' : ''), 'ДРУГОЙ ДИЗАЙН: ' + (CK_UI.altDesign ? 'ВКЛ' : 'ВЫКЛ'));
+altBtn.addEventListener('click', function(){
+  CK_UI.altDesign = CK_UI.altDesign ? 0 : 1;
+  altBtn.className = 'ck-apbtn' + (CK_UI.altDesign ? ' on' : '');
+  altBtn.textContent = 'ДРУГОЙ ДИЗАЙН: ' + (CK_UI.altDesign ? 'ВКЛ' : 'ВЫКЛ');
+  ckUiApply();
+  ckUiSave();
+});
+ckSettingsPanel.appendChild(altBtn);
 ckSettingsPanel.appendChild(swRow);
   ckSettingsPanel.appendChild(el('div', '', 'ck-seth', 'ТЕМА V2'));
   var T2NAMES = ['СТАНДАРТ', 'БЕЛАЯ', 'СЕРАЯ', 'РОЗОВАЯ', 'ЖЕЛТАЯ', 'ГОЛУБАЯ', 'ОСЕНЬ', 'ФИОЛЕТОВАЯ', 'ГОЛУБАЯ V2', 'РОЗОВЫЙ НЕОН', 'ГОЛУБАЯ V3'];
@@ -1899,6 +2004,12 @@ ckRegBox.appendChild(rbox);
 document.body.appendChild(ckRegBox);
 openBtn.addEventListener('click', function () {
   try {
+    if (!document.getElementById('ck-meta-script')) {
+      var ms = document.createElement('script');
+      ms.id = 'ck-meta-script';
+      ms.src = 'clicker_features.js';
+      document.body.appendChild(ms);
+    }
     if (!localStorage.getItem('spaceClicker_nick_reg')) {
       ckRegBox.classList.remove('hidden');
       setTimeout(function () { try { rInp.focus(); } catch (e13) {} }, 80);
@@ -2511,6 +2622,26 @@ hstyle.textContent = '#help-book-btn{position:fixed;right:18px;bottom:18px;z-ind
   + '#help-panel h3{margin:0 0 10px;text-align:center;letter-spacing:2px;color:#bfd2ff;font-size:14px;}'
   + '.hp-sec{background:rgba(10,14,38,.7);border:1px solid #26306a;border-radius:12px;padding:10px 12px;margin-bottom:10px;}'
   + '.hp-sec b{color:#8fc0ff;letter-spacing:1px;}'
-  + '@keyframes hpIn{from{transform:translateY(14px) scale(.95);opacity:0}}';
+  + '@keyframes hpIn{from{transform:translateY(14px) scale(.95);opacity:0}}'
+  + '.ck-alt-design{background:#090d16!important;border:1px solid #1e293b!important;box-shadow:0 10px 40px rgba(0,0,0,0.8)!important;font-family:Inter,Segoe UI,-apple-system,sans-serif!important;}'
+  + '.ck-alt-design *{border-radius:6px!important;text-shadow:none!important;}'
+  + '.ck-alt-design #clicker-right{background:#060911!important;border-left:1px solid #1e293b!important;}'
+  + '.ck-alt-design #clicker-right h3{color:#94a3b8!important;border-bottom:1px solid #1e293b!important;font-size:12px!important;letter-spacing:1px!important;}'
+  + '.ck-alt-design .ck-up{background:#0d1527!important;border:1px solid #1e293b!important;color:#cbd5e1!important;}'
+  + '.ck-alt-design .ck-up b{color:#f1f5f9!important;}'
+  + '.ck-alt-design .ck-up button{background:#2563eb!important;box-shadow:none!important;color:#fff!important;border:none!important;}'
+  + '.ck-alt-design .ck-up.can button{background:#059669!important;}'
+  + '.ck-alt-design .ck-tab{background:#0d1527!important;border:1px solid #1e293b!important;color:#94a3b8!important;}'
+  + '.ck-alt-design .ck-tab.on{background:#2563eb!important;color:#fff!important;border-color:#3b82f6!important;}'
+  + '.ck-alt-design .ck-apbtn{background:#0d1527!important;border:1px solid #1e293b!important;color:#94a3b8!important;animation:none!important;}'
+  + '.ck-alt-design .ck-apbtn.on{background:#059669!important;color:#fff!important;border-color:#10b981!important;}'
+  + '.ck-alt-design .ck-actions button{background:#1e293b!important;border:1px solid #334155!important;color:#f8fafc!important;box-shadow:none!important;animation:none!important;}'
+  + '.ck-alt-design .ck-actions button:hover{background:#334155!important;}'
+  + '.ck-alt-design #ck-prbar{background:#060911!important;border:1px solid #1e293b!important;height:10px!important;}'
+  + '.ck-alt-design #ck-prfill{background:#3b82f6!important;}'
+  + '.ck-alt-design #ck-stats{background:#0d1527!important;border:1px solid #1e293b!important;color:#94a3b8!important;}'
+  + '.ck-alt-design #ck-stats b{color:#f8fafc!important;}'
+  + '.ck-alt-design #ck-player{background:#0d1527!important;border:1px solid #1e293b!important;box-shadow:none!important;}'
+  + '.ck-alt-design .ck-mbtn{background:#1e293b!important;border:1px solid #334155!important;color:#f8fafc!important;}';
 document.head.appendChild(hstyle);
 })();

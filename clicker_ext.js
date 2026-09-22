@@ -403,13 +403,80 @@ function row(lbl,f1,f2){var r=document.createElement('div');r.style.cssText='dis
 var box=document.createElement('div');box.id='ck-give-box';box.style.cssText='border-top:1px solid #4b5563;margin-top:14px;padding-top:10px;';
 var h=document.createElement('div');h.style.cssText='text-align:center;font:900 14px monospace;color:#fca5a5;margin-bottom:6px;';h.textContent='ВЫДАЧА РЕСУРСОВ';box.appendChild(h);
 var nt=document.createElement('div');nt.style.cssText='text-align:center;font:10px monospace;color:#9ca3af;margin-bottom:6px;';nt.textContent='число или 100K/5M/2B/1T; апгрейд ID 0-359; предметы shard/core/prism/nova/void; буст id+сек (макс 3600)';box.appendChild(nt);
-box.appendChild(row('Клики',function(v){var n=num(v);if(n>0){CK.clicks=(CK.clicks||0)+n;gs();}}));
-box.appendChild(row('Перерождения (+2x)',function(v){var n=num(v);if(n>0){CK.rebirths=(CK.rebirths||0)+n;CK.mult=(CK.mult||1)+2*n;gs();}}));
-box.appendChild(row('ИКСЫ (+множитель)',function(v){var n=num(v);if(n>0){CK.mult=(CK.mult||1)+n;gs();}}));
-box.appendChild(row('МЕГА x50 (+1)',function(v){var n=num(v);if(n>0){var X=window.__CKEX=window.__CKEX||{};X.megaCount=(X.megaCount||0)+n;CK.mult=(CK.mult||1)+50*n;gs();}}));
-box.appendChild(row('СУПЕР x10000 (+1)',function(v){var n=num(v);if(n>0){var X=window.__CKEX=window.__CKEX||{};X.superCount=(X.superCount||0)+n;CK.mult=(CK.mult||1)+10000*n;gs();}}));
-box.appendChild(row('Апгрейд ID + ур.',function(a,b){var id=parseInt(a,10),n=num(b);if(!(id>=0&&id<360)||n<=0)return;CK.lv[id]=(CK.lv[id]||0)+n;gs();},'уровней'));
-box.appendChild(row('Предмет ID + шт.',function(a,b){var id=String(a||'').trim().toLowerCase(),n=num(b)||1;if(IT.indexOf(id)<0)return;var q;for(q=0;q<Math.min(n,2000);q++)CK.inv.push(id);if(CK.inv.length>2000)CK.inv=CK.inv.slice(-2000);gs();try{window.ckInvRender();}catch(e3){}},'шт'));
-box.appendChild(row('Буст ID + сек.',function(a,b){var id=String(a||'').trim().toLowerCase(),n=num(b);if(BS.indexOf(id)<0||n<=0)return;var now=Date.now();CK.boost=CK.boost||{};CK.boost[id]=Math.min(now+Math.min(n,3600)*1000,now+3600*1000);gs();},'сек'));
+box.appendChild(row('Клики (число/100K/1B/100Qi)',function(v){var n=num(v);if(n>0){CK.clicks=(CK.clicks||0)+n;gs();if(window.ckToast)window.ckToast('Выдано кликов: +'+n);}}));
+box.appendChild(row('Перерождения (+2x к множ)',function(v){var n=num(v);if(n>0){CK.rebirths=(CK.rebirths||0)+n;CK.mult=(CK.mult||1)+2*n;gs();if(window.ckToast)window.ckToast('Выдано реберфов: +'+n);}}));
+box.appendChild(row('ИКСЫ (чистый множитель)',function(v){var n=num(v);if(n>0){CK.mult=(CK.mult||1)+n;gs();if(window.ckToast)window.ckToast('Множитель увеличен на: +'+n);}}));
+box.appendChild(row('МЕГА (+50x за каждое)',function(v){var n=num(v);if(n>0){var X=window.__CKEX=window.__CKEX||{};X.megaCount=(X.megaCount||0)+n;CK.mult=(CK.mult||1)+50*n;gs();if(window.ckToast)window.ckToast('Выдано МЕГА: +'+n);}}));
+box.appendChild(row('СУПЕР (+10000x за каждое)',function(v){var n=num(v);if(n>0){var X=window.__CKEX=window.__CKEX||{};X.superCount=(X.superCount||0)+n;CK.mult=(CK.mult||1)+10000*n;gs();if(window.ckToast)window.ckToast('Выдано СУПЕР: +'+n);}}));
+box.appendChild(row('Апгрейд ID + уровни',function(a,b){var id=parseInt(a,10),n=num(b);if(!(id>=0&&id<360)||n<=0)return;CK.lv[id]=(CK.lv[id]||0)+n;gs();},'уровней'));
+box.appendChild(row('Предмет (shard/core/prism/nova/void)',function(a,b){var id=String(a||'').trim().toLowerCase(),n=num(b)||1;if(IT.indexOf(id)<0)return;var q;for(q=0;q<Math.min(n,2000);q++)CK.inv.push(id);if(CK.inv.length>2000)CK.inv=CK.inv.slice(-2000);gs();try{window.ckInvRender();}catch(e3){}},'кол-во шт'));
+box.appendChild(row('Буст ID (godtear/gold/abyss/...)',function(a,b){var id=String(a||'').trim().toLowerCase(),n=num(b)||3600;if(BS.indexOf(id)<0||n<=0)return;var now=Date.now();CK.boost=CK.boost||{};CK.boost[id]=Math.min(now+Math.min(n,3600)*1000,now+3600*1000);gs();},'сек (до 3600)'));
+
+/* БЫСТРЫЕ ЧИТЫ И РЕСУРСЫ НОВЫХ СИСТЕМ */
+var fastRow=document.createElement('div');
+fastRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;';
+function mkQuickBtn(lbl,bg,fn){
+  var b=document.createElement('button');
+  b.textContent=lbl;
+  b.style.cssText='padding:8px 6px;border:none;border-radius:8px;font:bold 11px Consolas;color:#fff;background:'+bg+';cursor:pointer;transition:transform .12s;';
+  b.addEventListener('click',fn);
+  fastRow.appendChild(b);
+}
+mkQuickBtn('ВСЕ ПРЕДМЕТЫ ПО x50','linear-gradient(135deg,#06b6d4,#0284c7)',function(){
+  ['shard','core','prism','nova','void'].forEach(function(it){
+    for(var i=0;i<50;i++)CK.inv.push(it);
+  });
+  gs();try{window.ckInvRender();}catch(e){}
+  if(window.ckToast)window.ckToast('Выдано по 50 шт каждого предмета!');
+});
+mkQuickBtn('ВСЕ БУСТЕРЫ НА 1 ЧАС','linear-gradient(135deg,#eab308,#ca8a04)',function(){
+  var now=Date.now();CK.boost=CK.boost||{};
+  BS.forEach(function(bId){ CK.boost[bId]=now+3600*1000; });
+  gs();if(window.ckToast)window.ckToast('Активированы ВСЕ 14 бустеров!');
+});
+mkQuickBtn('ОТКРЫТЬ ВСЕХ ПИТОМЦЕВ','linear-gradient(135deg,#10b981,#059669)',function(){
+  if(window.__CK_FEAT){
+    window.__CK_FEAT.pets=window.__CK_FEAT.pets||{};
+    ['pet_drone','pet_wisp','pet_dragon','pet_phoenix'].forEach(function(p){ window.__CK_FEAT.pets[p]=true; });
+    try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
+  }
+  gs();if(window.ckToast)window.ckToast('Все 3D-питомцы разблокированы!');
+});
+mkQuickBtn('МАКС. ДЕРЕВО НАВЫКОВ','linear-gradient(135deg,#6366f1,#4f46e5)',function(){
+  if(window.__CK_FEAT){
+    window.__CK_FEAT.skillTree={
+      crit:{crit_chance:5,crit_damage:5,crit_overload:3},
+      income:{inc_mult:5,inc_dps:5,inc_warp:3},
+      drop:{drop_luck:5,drop_void:5,drop_omni:1}
+    };
+    try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
+  }
+  gs();if(window.ckToast)window.ckToast('Дерево навыков прокачано на максимум!');
+});
+mkQuickBtn('СЕЗОН: 30 УР + ПРЕМИУМ','linear-gradient(135deg,#f59e0b,#b45309)',function(){
+  if(window.__CK_FEAT){
+    window.__CK_FEAT.season=window.__CK_FEAT.season||{};
+    window.__CK_FEAT.season.xp=30000;
+    window.__CK_FEAT.season.premium=true;
+    try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
+  }
+  gs();if(window.ckToast)window.ckToast('Сезонный пропуск: 30 ур. и Премиум открыт!');
+});
+mkQuickBtn('ЗАКРЫТЬ ВСЕ АЧИВКИ','linear-gradient(135deg,#ec4899,#be185d)',function(){
+  if(window.__CK_FEAT&&Array.isArray(window.__CK_FEAT.achievements)){
+    window.__CK_FEAT.achievements.forEach(function(a){ a.done=true; a.claim=true; });
+    window.__CK_FEAT.stats.permGoldBonus=100;
+    try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
+  }
+  gs();if(window.ckToast)window.ckToast('Все достижения выполнены и получены!');
+});
+box.appendChild(fastRow);
 var ab=document.getElementById('ck-admin-box');(ab||document.getElementById('ck-admin-modal')).appendChild(box);}
-admGrant();})();
+admGrant();
+setInterval(function(){
+  var m=document.getElementById('ck-admin-modal');
+  if(m && !m.classList.contains('hidden') && !document.getElementById('ck-give-box')){
+    admGrant();
+  }
+},800);
+})();
