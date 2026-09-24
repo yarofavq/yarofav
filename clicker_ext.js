@@ -453,6 +453,19 @@ mkQuickBtn('МАКС. ДЕРЕВО НАВЫКОВ','linear-gradient(135deg,#6366
   }
   gs();if(window.ckToast)window.ckToast('Дерево навыков прокачано на максимум!');
 });
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+mkQuickBtn('СЕЗОН: 100 УР + ПРЕМИУМ','linear-gradient(135deg,#f59e0b,#b45309)',function(){
+  if(window.__CK_FEAT){
+    window.__CK_FEAT.season=window.__CK_FEAT.season||{};
+    window.__CK_FEAT.season.xp=10000000;
+    window.__CK_FEAT.season.premium=true;
+    try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
+  }
+  gs();if(window.ckToast)window.ckToast('Сезонный пропуск: 100 ур. и Премиум открыт!');
+=======
+>>>>>>> Stashed changes
 mkQuickBtn('СЕЗОН: 30 УР + ПРЕМИУМ','linear-gradient(135deg,#f59e0b,#b45309)',function(){
   if(window.__CK_FEAT){
     window.__CK_FEAT.season=window.__CK_FEAT.season||{};
@@ -461,6 +474,10 @@ mkQuickBtn('СЕЗОН: 30 УР + ПРЕМИУМ','linear-gradient(135deg,#f59e0
     try{localStorage.setItem('spaceClicker_features_v1',JSON.stringify(window.__CK_FEAT));}catch(e){}
   }
   gs();if(window.ckToast)window.ckToast('Сезонный пропуск: 30 ур. и Премиум открыт!');
+<<<<<<< Updated upstream
+=======
+>>>>>>> 136d541ab1ffce30fa1d0ce5b50512e530cb8740
+>>>>>>> Stashed changes
 });
 mkQuickBtn('ЗАКРЫТЬ ВСЕ АЧИВКИ','linear-gradient(135deg,#ec4899,#be185d)',function(){
   if(window.__CK_FEAT&&Array.isArray(window.__CK_FEAT.achievements)){
