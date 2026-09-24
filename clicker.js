@@ -1022,15 +1022,21 @@ function ckPlaceBossShopBtn() {
   for (var i = 0; i < btns.length; i++) {
     var txt = btns[i].textContent ? btns[i].textContent.trim() : '';
     if (txt === 'ПРЕМИУМ') {
-      if (btns[i].nextSibling !== bossShopBtn) {
-        btns[i].parentNode.insertBefore(bossShopBtn, btns[i].nextSibling);
+      var pBtn = btns[i];
+      if (pBtn.nextSibling !== bossShopBtn) {
+        pBtn.parentNode.insertBefore(bossShopBtn, pBtn.nextSibling);
       }
-      if (btns[i].offsetWidth > 0) {
-        bossShopBtn.style.width = btns[i].offsetWidth + 'px';
-        bossShopBtn.style.minWidth = btns[i].offsetWidth + 'px';
-        bossShopBtn.style.maxWidth = btns[i].offsetWidth + 'px';
-        bossShopBtn.style.height = btns[i].offsetHeight + 'px';
-        bossShopBtn.style.minHeight = btns[i].offsetHeight + 'px';
+      if (pBtn.offsetWidth > 0) {
+        var cs = window.getComputedStyle(pBtn);
+        bossShopBtn.style.width = pBtn.offsetWidth + 'px';
+        bossShopBtn.style.minWidth = pBtn.offsetWidth + 'px';
+        bossShopBtn.style.maxWidth = pBtn.offsetWidth + 'px';
+        bossShopBtn.style.height = pBtn.offsetHeight + 'px';
+        bossShopBtn.style.minHeight = pBtn.offsetHeight + 'px';
+        bossShopBtn.style.maxHeight = pBtn.offsetHeight + 'px';
+        bossShopBtn.style.marginTop = cs.marginTop;
+        bossShopBtn.style.marginBottom = cs.marginBottom;
+        bossShopBtn.style.verticalAlign = cs.verticalAlign;
       }
       return;
     }
@@ -1038,7 +1044,8 @@ function ckPlaceBossShopBtn() {
 }
 setInterval(ckPlaceBossShopBtn, 250);
 
-cssAdd('#ck-boss-shop-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:0!important;margin:0!important;vertical-align:top!important;border:2px outset #888!important;background:linear-gradient(180deg,#c084fc 0%,#7c3aed 100%)!important;color:#000!important;font-family:inherit!important;font-size:8.5px!important;font-weight:inherit!important;line-height:1!important;padding:0 1px!important;cursor:pointer!important;box-shadow:none!important;box-sizing:border-box!important;text-shadow:none!important;white-space:nowrap!important;overflow:hidden!important;letter-spacing:-0.2px!important;}');
+cssAdd('#ck-boss-shop-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:0!important;margin:0!important;border:2px outset #7e7e7e!important;background:linear-gradient(180deg,#b37feb 0%,#8744d4 100%)!important;color:#000!important;font-family:inherit!important;font-size:7.2px!important;font-weight:inherit!important;line-height:1!important;padding:0 2px!important;cursor:pointer!important;box-shadow:none!important;box-sizing:border-box!important;text-shadow:none!important;white-space:nowrap!important;overflow:hidden!important;letter-spacing:-0.4px!important;}');
+cssAdd('#ck-boss-shop-btn:active{border:2px inset #7e7e7e!important;}');
 cssAdd('#ck-boss-shop-btn:active{border-style:inset!important;}');
 var player = el('div', 'ck-player');
 player.className = ckMusicOn ? 'ck-on' : '';

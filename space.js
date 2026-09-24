@@ -1,12 +1,18 @@
 const canvas = document.getElementById('bg-canvas');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 700000); // ЧАСТЬ 1 v2: мир сильно расширен
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 6000000); // Расширенный фрустум для дальнего космоса
 camera.position.set(0, 30, 70);
 
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent), powerPreference: 'high-performance' });
-renderer.shadowMap.enabled = false;
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 1 : 1.5));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+if (THREE.SRGBColorSpace) {
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+} else if (renderer.outputEncoding !== undefined) {
+  renderer.outputEncoding = THREE.sRGBEncoding;
+}
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -23,75 +29,203 @@ const mouse = new THREE.Vector2();
 // Определение устройства
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// Light
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+// Кинематографичный свет глубокого космоса
+const ambientLight = new THREE.AmbientLight(0x141829, 0.8);
 scene.add(ambientLight);
-const sunLight = new THREE.PointLight(0xfff5ea, 3, 500);
+
+// Центральное светило
+const sunLight = new THREE.PointLight(0xfffaed, 4.5, 2000, 1.2);
+sunLight.position.set(0, 0, 0);
 scene.add(sunLight);
 
-// Enormous Deep Space Stars Field
-const starsGeometry = new THREE.BufferGeometry();
-const starsCount = isMobile ? 12000 : 26000;
-const starPositions = new Float32Array(starsCount * 3);
-for (let i = 0; i < starsCount * 3; i++) {
-  starPositions[i] = (Math.random() - 0.5) * 400000; // ЧАСТЬ 1 v2: широкое поле звёзд
+// Мягкий диффузный контражур Млечного Пути
+const galaxyBackLight = new THREE.DirectionalLight(0x7367f0, 0.45);
+galaxyBackLight.position.set(-3000, 1200, -4000).normalize();
+scene.add(galaxyBackLight);
+
+// Звёздная подсветка с противоположной стороны для рельефа
+const rimSpaceLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
+rimSpaceLight.position.set(2000, -800, 3000).normalize();
+scene.add(rimSpaceLight);
+
+// Многослойное звёздное поле с температурным спектром (OBAFGKM)
+function createStarField() {
+  const starsGeo = new THREE.BufferGeometry();
+  const count = isMobile ? 16000 : 38000;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+
+  const starPalette = [
+    new THREE.Color(0xaec9ff), // O/B: Голубые гиганты
+    new THREE.Color(0xdce7ff), // A: Бело-голубые
+    new THREE.Color(0xffffff), // F: Чисто белые
+    new THREE.Color(0xfff4e8), // G: Жёлто-белые (как Солнце)
+    new THREE.Color(0xffddb4), // K: Оранжевые субгиганты
+    new THREE.Color(0xffbb8b), // M: Красные карлики
+    new THREE.Color(0x90b0ff)  // Неоновые далёкие звёзды
+  ];
+
+  for (let i = 0; i < count; i++) {
+    // Сферическое распределение по глубокому космосу
+    const u = Math.random();
+    const v = Math.random();
+    const theta = u * 2.0 * Math.PI;
+    const phi = Math.acos(2.0 * v - 1.0);
+    const r = 80000 + Math.cbrt(Math.random()) * 280000;
+
+    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+
+    const col = starPalette[Math.floor(Math.random() * starPalette.length)];
+    const brightness = 0.65 + Math.random() * 0.55;
+    colors[i * 3] = col.r * brightness;
+    colors[i * 3 + 1] = col.g * brightness;
+    colors[i * 3 + 2] = col.b * brightness;
+  }
+
+  starsGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  starsGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  // Сглаженная круглая альфа-текстура для звёзд
+  const sCanvas = document.createElement('canvas');
+  sCanvas.width = 32;
+  sCanvas.height = 32;
+  const sCtx = sCanvas.getContext('2d');
+  const sGrad = sCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  sGrad.addColorStop(0.0, 'rgba(255,255,255,1)');
+  sGrad.addColorStop(0.3, 'rgba(255,255,255,0.85)');
+  sGrad.addColorStop(0.65, 'rgba(255,255,255,0.25)');
+  sGrad.addColorStop(1.0, 'rgba(255,255,255,0)');
+  sCtx.fillStyle = sGrad;
+  sCtx.fillRect(0, 0, 32, 32);
+  const starDiscTex = new THREE.CanvasTexture(sCanvas);
+
+  const starsMat = new THREE.PointsMaterial({
+    size: 2.2,
+    map: starDiscTex,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+
+  return new THREE.Points(starsGeo, starsMat);
 }
-starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0.85 });
-const starField = new THREE.Points(starsGeometry, starsMaterial);
+const starField = createStarField();
 scene.add(starField);
 
-// Massive Milky Way Galaxy
+// ==================== ВЕЛИЧЕСТВЕННЫЙ МЛЕЧНЫЙ ПУТЬ ====================
 const milkyWayGroup = new THREE.Group();
-const particlesCount = isMobile ? 15000 : 40000;
+const particlesCount = isMobile ? 32000 : 75000;
 const mwGeometry = new THREE.BufferGeometry();
 const mwPositions = new Float32Array(particlesCount * 3);
 const mwColors = new Float32Array(particlesCount * 3);
 
-const cCore = new THREE.Color(0xffeaad);
-const cInner = new THREE.Color(0xff2a8d);
-const cOuter = new THREE.Color(0x7b2cbf);
-const cDust = new THREE.Color(0x3a86ff);
+// Спектральная палитра спиральной галактики
+const colCoreBright = new THREE.Color(0xfffae0); // Сверхгорячий центр
+const colCoreBulge  = new THREE.Color(0xffd180); // Старые звёзды балджа
+const colArmInner   = new THREE.Color(0xf472b6); // Зоны звездообразования H II
+const colArmMid     = new THREE.Color(0x818cf8); // Молодые звёздные скопления
+const colArmOuter   = new THREE.Color(0x38bdf8); // Голубые гиганты края
+const colDustLane   = new THREE.Color(0x475569); // Темные пылевые рукава
 
 for (let i = 0; i < particlesCount; i++) {
-  const distRatio = Math.random();
-  const r = distRatio * 1500;
-  const arms = 4;
-  const armAngle = (i % arms) * ((Math.PI * 2) / arms);
-  const theta = armAngle + (r * 0.002) + (Math.random() - 0.5) * 0.3;
-  
-  const x = Math.cos(theta) * r + (Math.random() - 0.5) * (50 + r * 0.1);
-  const y = (Math.random() - 0.5) * (40 + r * 0.05);
-  const z = Math.sin(theta) * r + (Math.random() - 0.5) * (50 + r * 0.1);
+  let x, y, z, col;
 
-  mwPositions[i * 3] = x;
+  if (i < particlesCount * 0.22) {
+    // 1. Сфероидальный балдж ядра (высокая плотность в центре)
+    const u = Math.random();
+    const r = Math.pow(u, 2.4) * 380;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2.0 * Math.random() - 1.0);
+    
+    x = r * Math.sin(phi) * Math.cos(theta);
+    y = r * Math.cos(phi) * 0.42; // Сплюснутость ядра
+    z = r * Math.sin(phi) * Math.sin(theta);
+
+    const tCore = r / 380;
+    col = colCoreBright.clone().lerp(colCoreBulge, tCore);
+  } else {
+    // 2. Логарифмические спиральные рукава (4 рукава + рукава-перемычки)
+    const arms = 4;
+    const armIndex = i % arms;
+    const armOffset = (armIndex * (Math.PI * 2)) / arms;
+    
+    // Плотность распределения звёзд вдоль радиуса рукава
+    const distFactor = Math.pow(Math.random(), 0.72);
+    const r = 240 + distFactor * 1650;
+    
+    // Логарифмическое закручивание рукавов
+    const spiralAngle = Math.log(r / 200) * 2.85 + armOffset;
+    const spread = (Math.random() - 0.5) * (60 + r * 0.16);
+    const angle = spiralAngle + (Math.random() - 0.5) * 0.28;
+
+    x = Math.cos(angle) * r + spread;
+    y = (Math.random() - 0.5) * (36 + (1650 - r) * 0.04);
+    z = Math.sin(angle) * r + spread;
+
+    // Градация цвета от балджа к внешним звёздным полям
+    if (r < 600) {
+      col = colCoreBulge.clone().lerp(colArmInner, (r - 240) / 360);
+    } else if (r < 1100) {
+      col = colArmInner.clone().lerp(colArmMid, (r - 600) / 500);
+    } else if (r < 1550) {
+      col = colArmMid.clone().lerp(colArmOuter, (r - 1100) / 450);
+    } else {
+      col = (Math.random() > 0.4) ? colArmOuter : colDustLane;
+    }
+  }
+
+  mwPositions[i * 3]     = x;
   mwPositions[i * 3 + 1] = y;
   mwPositions[i * 3 + 2] = z;
 
-  let color;
-  if (r < 200) color = cCore;
-  else if (r < 550) color = cInner;
-  else if (r < 1000) color = cOuter;
-  else color = cDust;
-
-  mwColors[i * 3] = color.r;
-  mwColors[i * 3 + 1] = color.g;
-  mwColors[i * 3 + 2] = color.b;
+  const vBright = 0.75 + Math.random() * 0.45;
+  mwColors[i * 3]     = col.r * vBright;
+  mwColors[i * 3 + 1] = col.g * vBright;
+  mwColors[i * 3 + 2] = col.b * vBright;
 }
 
 mwGeometry.setAttribute('position', new THREE.BufferAttribute(mwPositions, 3));
 mwGeometry.setAttribute('color', new THREE.BufferAttribute(mwColors, 3));
 
 const mwMaterial = new THREE.PointsMaterial({
-  size: 2.5,
+  size: 3.2,
   vertexColors: true,
   transparent: true,
-  opacity: 0.85,
-  blending: THREE.AdditiveBlending
+  opacity: 0.96,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false
 });
 
 const milkyWay = new THREE.Points(mwGeometry, mwMaterial);
 milkyWayGroup.add(milkyWay);
+
+// Центральное сверхсветящееся гало ядра галактики
+const coreHaloC = document.createElement('canvas');
+coreHaloC.width = 128;
+coreHaloC.height = 128;
+const chCtx = coreHaloC.getContext('2d');
+const chGrad = chCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+chGrad.addColorStop(0.0, 'rgba(255, 250, 220, 0.95)');
+chGrad.addColorStop(0.2, 'rgba(255, 200, 110, 0.6)');
+chGrad.addColorStop(0.55, 'rgba(210, 80, 160, 0.25)');
+chGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+chCtx.fillStyle = chGrad;
+chCtx.fillRect(0, 0, 128, 128);
+const mwCoreGlow = new THREE.Sprite(
+  new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(coreHaloC),
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false
+  })
+);
+mwCoreGlow.scale.set(450, 450, 1);
+milkyWayGroup.add(mwCoreGlow);
 
 const mwHitboxGeo = new THREE.SphereGeometry(800, 16, 16);
 const mwHitboxMat = new THREE.MeshBasicMaterial({ visible: false });
@@ -131,26 +265,30 @@ const lensingMat = new THREE.ShaderMaterial({
       vec2 centered = vUv - 0.5;
       float dist = length(centered) * 2.0;
       float rEvent = 0.225;
-      float rPhoton = 0.245;
+      float rPhoton = 0.252;
       
+      // Горизонт событий: абсолютная сингулярность
       if (dist < rEvent) {
         gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         return;
       }
       
-      // Тонкое сверхъяркое фотонное кольцо Эйнштейна
+      // Фотонная сфера Эйнштейна с релятивистским свечением
       float photonRing = 0.0;
       if (dist >= rEvent && dist <= rPhoton) {
         float t = (dist - rEvent) / (rPhoton - rEvent);
-        photonRing = sin(t * 3.14159265);
+        photonRing = pow(sin(t * 3.14159265), 1.2);
       }
       
-      // Оптическое гало и преломление
-      float halo = pow(clamp(1.0 - (dist - rPhoton) * 1.5, 0.0, 1.0), 3.5);
-      vec3 ringColor = vec3(1.0, 0.95, 0.8) * photonRing * 2.5;
-      vec3 haloColor = vec3(1.0, 0.5, 0.15) * halo * 0.45;
+      // Гравитационное искажение пространства и световое гало
+      float halo = pow(clamp(1.0 - (dist - rPhoton) * 1.35, 0.0, 1.0), 4.2);
+      // Релятивистский доплеровский сдвиг спектра (левая сторона смещена в синюю область)
+      float dopplerShift = clamp(centered.x * 1.4, -0.4, 0.4);
+      vec3 baseRingCol = mix(vec3(1.0, 0.96, 0.88), vec3(0.5, 0.85, 1.0), dopplerShift + 0.35);
+      vec3 ringColor = baseRingCol * photonRing * 3.2;
+      vec3 haloColor = vec3(1.0, 0.45, 0.1) * halo * 0.65;
       
-      float alpha = clamp(photonRing + halo * 0.4, 0.0, 1.0);
+      float alpha = clamp(photonRing * 1.1 + halo * 0.55, 0.0, 1.0);
       gl_FragColor = vec4(ringColor + haloColor, alpha);
     }
   `
@@ -158,40 +296,108 @@ const lensingMat = new THREE.ShaderMaterial({
 const lensingBillboard = new THREE.Mesh(lensingGeo, lensingMat);
 blackHoleGroup.add(lensingBillboard);
 
-// 3. Реалистичный аккреционный диск с релятивистским градиентом Доплера
-function createAccretionDiskTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 128;
-  const ctx = canvas.getContext('2d');
-  
-  const grad = ctx.createLinearGradient(0, 0, 1024, 0);
-  grad.addColorStop(0.0, 'rgba(255, 255, 255, 0)');
-  grad.addColorStop(0.05, 'rgba(255, 255, 240, 1.0)');
-  grad.addColorStop(0.18, 'rgba(255, 170, 40, 0.95)');
-  grad.addColorStop(0.45, 'rgba(220, 60, 10, 0.8)');
-  grad.addColorStop(0.75, 'rgba(90, 15, 5, 0.4)');
-  grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1024, 128);
-  
-  // Добавление динамических волокон плазмы
-  for (let i = 0; i < 400; i++) {
-    const x = Math.random() * 800 + 40;
-    const y = Math.random() * 128;
-    ctx.fillStyle = Math.random() > 0.4 ? 'rgba(255,200,80,0.15)' : 'rgba(20,0,0,0.3)';
-    ctx.fillRect(x, y, Math.random() * 20 + 5, 2);
-  }
-  return new THREE.CanvasTexture(canvas);
-}
+// 3. Кинематографичный процедурный аккреционный диск с кеплеровским дифференциальным вращением
+const diskGeo = new THREE.RingGeometry(18.2, 115, 220, 8);
+const diskUniforms = {
+  uTime: { value: 0 },
+  uInnerRadius: { value: 18.2 },
+  uOuterRadius: { value: 115.0 }
+};
 
-const diskGeo = new THREE.RingGeometry(18.5, 82, 128);
-const diskMat = new THREE.MeshBasicMaterial({
-  map: createAccretionDiskTexture(),
+const diskMat = new THREE.ShaderMaterial({
+  uniforms: diskUniforms,
   side: THREE.DoubleSide,
   transparent: true,
-  opacity: 0.96,
-  blending: THREE.AdditiveBlending
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  vertexShader: `
+    varying vec2 vUv;
+    varying vec3 vWorldPos;
+    void main() {
+      vUv = uv;
+      vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float uTime;
+    uniform float uInnerRadius;
+    uniform float uOuterRadius;
+    varying vec2 vUv;
+    
+    // Псевдослучайный шум плазмы
+    float hash(vec2 p) {
+      p = fract(p * vec2(123.34, 456.21));
+      p += dot(p, p + 45.32);
+      return fract(p.x * p.y);
+    }
+    
+    float noise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      float a = hash(i);
+      float b = hash(i + vec2(1.0, 0.0));
+      float c = hash(i + vec2(0.0, 1.0));
+      float d = hash(i + vec2(1.0, 1.0));
+      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+    
+    float fbm(vec2 p) {
+      float v = 0.0;
+      float a = 0.55;
+      for (int i = 0; i < 4; i++) {
+        v += a * noise(p);
+        p *= 2.08;
+        a *= 0.5;
+      }
+      return v;
+    }
+    
+    void main() {
+      vec2 uv = (vUv - 0.5) * 2.0;
+      float r = length(uv);
+      
+      // Нормализованный радиус аккреционного диска [0 .. 1]
+      float normR = clamp((r - 0.22) / 0.78, 0.0, 1.0);
+      if (normR <= 0.0 || normR >= 0.98) discard;
+      
+      float angle = atan(uv.y, uv.x);
+      
+      // Дифференциальное кеплеровское вращение
+      float keplerSpeed = 1.0 / sqrt(normR + 0.08);
+      float rot = angle + uTime * keplerSpeed * 0.8;
+      
+      // Бесшовные тригонометрические координаты: устраняют радиальный шов на 100%
+      vec2 seamlessUv = vec2(cos(rot * 2.0), sin(rot * 2.0)) * (normR * 5.0 + 1.2);
+      float plasmaDensity = fbm(seamlessUv + vec2(uTime * 0.22, -uTime * 0.12));
+      plasmaDensity = pow(plasmaDensity * 1.32, 1.5);
+      
+      // Плавный релятивистский биминг Доплера без шва
+      float dopplerBeam = 1.0 + 0.55 * sin(angle + 0.5);
+      
+      // Плавное угасание у горизонта событий и на внешнем крае
+      float edgeFade = sin(normR * 3.14159265);
+      edgeFade = pow(edgeFade, 0.7);
+      
+      // Градиент излучения черного тела (от 10000K до глубокого карминового)
+      vec3 colHot  = vec3(1.0, 0.98, 0.92);
+      vec3 colMid  = vec3(1.0, 0.55, 0.12);
+      vec3 colCool = vec3(0.85, 0.18, 0.04);
+      vec3 colDark = vec3(0.35, 0.03, 0.01);
+      
+      vec3 baseCol = mix(colHot, colMid, smoothstep(0.0, 0.35, normR));
+      baseCol = mix(baseCol, colCool, smoothstep(0.35, 0.75, normR));
+      baseCol = mix(baseCol, colDark, smoothstep(0.75, 1.0, normR));
+      
+      // Внутреннее сверхъяркое фотонное свечение
+      float photonPeak = exp(-normR * 9.5) * 1.8;
+      vec3 finalColor = (baseCol * plasmaDensity + colHot * photonPeak) * dopplerBeam * 1.4;
+      float alpha = clamp((plasmaDensity * 0.85 + photonPeak) * edgeFade * dopplerBeam, 0.0, 1.0);
+      
+      gl_FragColor = vec4(finalColor, alpha);
+    }
+  `
 });
 const mainDisk = new THREE.Mesh(diskGeo, diskMat);
 mainDisk.rotation.x = Math.PI / 2.35;
@@ -245,6 +451,7 @@ scene.add(blackHoleGroup);
 
 let isConsuming = false;
 let consumeTimer = 0;
+let isBlackHoleActive = false;
 
 // VERY SCARY HORROR DARK ROOM
 const darkRoomGroup = new THREE.Group();
@@ -300,10 +507,7 @@ function createScaryWallTexture() {
     ctx.fill();
   }
 
-  ctx.font = 'bold 70px Courier New';
-  ctx.fillStyle = '#aa0000';
-  ctx.fillText('НЕТ ВЫХОДА', 280, 200);
-  ctx.fillText('ОНИ СМОТРЯТ', 250, 850);
+  // Очищено от плоских 2D надписей
 
   return new THREE.CanvasTexture(canvas);
 }
@@ -327,6 +531,7 @@ darkRoomGroup.add(doorLight);
 darkRoomGroup.position.set(15000, 15000, 15000);
 scene.add(darkRoomGroup);
 let inDarkRoom = false;
+let inBlackHoleMode = false;
 let darkRoomPressLock = false;
 
 // COSMIC ANGEL EASTER EGG
@@ -640,54 +845,313 @@ function createStatue(index) {
 
 for (let i = 0; i < 3; i++) createStatue(i);
 
-// ==================== HATSUNE MIKU ====================
+// ==================== УЛЬТРА-ДЕТАЛИЗИРОВАННАЯ HATSUNE MIKU + DANCE ====================
 const mikuGroup = new THREE.Group();
 let isMikuTriggered = false;
-const mHairMat = new THREE.MeshBasicMaterial({ color: 0x39c5bb });
-const mSkinMat = new THREE.MeshBasicMaterial({ color: 0xffe0c2 });
-const mShirtMat = new THREE.MeshBasicMaterial({ color: 0xf2f2f2 });
-const mDarkMat = new THREE.MeshBasicMaterial({ color: 0x1a1a2e });
-const mHead = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), mSkinMat);
-mHead.position.y = 10;
-mikuGroup.add(mHead);
-const mBang = new THREE.Mesh(new THREE.BoxGeometry(3.3, 1.1, 3.3), mHairMat);
-mBang.position.set(0, 11.3, 0);
-mikuGroup.add(mBang);
-const mTailL = new THREE.Mesh(new THREE.BoxGeometry(0.9, 9, 0.9), mHairMat);
-mTailL.position.set(-2.4, 7.5, -1.2);
-mTailL.rotation.x = 0.35;
-mikuGroup.add(mTailL);
-const mTailR = mTailL.clone();
-mTailR.position.x = 2.4;
-mikuGroup.add(mTailR);
-const mBody = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 2.2), mShirtMat);
-mBody.position.y = 5.8;
-mikuGroup.add(mBody);
-const mTie = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.4, 0.3), mHairMat);
-mTie.position.set(0, 6.2, 1.25);
-mikuGroup.add(mTie);
-const mSkirt = new THREE.Mesh(new THREE.BoxGeometry(4.4, 2, 2.6), mDarkMat);
-mSkirt.position.y = 2.6;
-mikuGroup.add(mSkirt);
-const mLegL = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.6, 0.9), mDarkMat);
-mLegL.position.set(-1, -2.3, 0);
-mikuGroup.add(mLegL);
-const mLegR = mLegL.clone();
-mLegR.position.x = 1;
-mikuGroup.add(mLegR);
-const mArmL = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4, 0.8), mShirtMat);
-mArmL.position.set(-2.6, 6, 0);
-mArmL.rotation.z = 0.25;
-mikuGroup.add(mArmL);
-const mArmR = mArmL.clone();
-mArmR.position.x = 2.6;
-mArmR.rotation.z = -0.25;
-mikuGroup.add(mArmR);
-const mikuHitbox = new THREE.Mesh(new THREE.SphereGeometry(10, 10, 10), new THREE.MeshBasicMaterial({ visible: false }));
+
+// Палитра материалов PBR
+const mMikuTeal = new THREE.MeshStandardMaterial({ color: 0x00f5d4, roughness: 0.25, metalness: 0.15 });
+const mMikuGlow = new THREE.MeshBasicMaterial({ color: 0x39ffea });
+const mMikuPink = new THREE.MeshBasicMaterial({ color: 0xff007f });
+const mSkinMat  = new THREE.MeshStandardMaterial({ color: 0xffe5d9, roughness: 0.65 });
+const mShirtMat = new THREE.MeshStandardMaterial({ color: 0xecf0f1, metalness: 0.25, roughness: 0.35 });
+const mDarkMat  = new THREE.MeshStandardMaterial({ color: 0x111625, roughness: 0.2, metalness: 0.4 });
+const mTrimTeal = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+const mGold     = new THREE.MeshBasicMaterial({ color: 0xffd166 });
+
+// Сцена и голографический танцпол
+const mikuStage = new THREE.Group();
+const stageDisc = new THREE.Mesh(new THREE.CylinderGeometry(14, 15, 1.2, 32), mDarkMat);
+stageDisc.position.y = -6.2;
+const stageRing = new THREE.Mesh(new THREE.TorusGeometry(14.2, 0.35, 16, 48), mTrimTeal);
+stageRing.rotation.x = Math.PI / 2;
+stageRing.position.y = -5.6;
+mikuStage.add(stageDisc, stageRing);
+mikuGroup.add(mikuStage);
+
+// Торс и верхняя часть тела
+const mikuUpperBody = new THREE.Group();
+mikuUpperBody.position.y = 4.0;
+mikuGroup.add(mikuUpperBody);
+
+const mTorso = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4.4, 2.1), mShirtMat);
+mTorso.position.y = 2.2;
+mikuUpperBody.add(mTorso);
+
+// Воротничок и галстук
+const mCollar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.45, 2.25), mDarkMat);
+mCollar.position.y = 4.45;
+const mTie = new THREE.Mesh(new THREE.BoxGeometry(0.65, 3.4, 0.3), mMikuTeal);
+mTie.position.set(0, 2.4, 1.15);
+const mPin = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.2, 0.36), mGold);
+mPin.position.set(0, 3.4, 1.18);
+mikuUpperBody.add(mCollar, mTie, mPin);
+
+// Юбка с ремнем и неоновым паттерном
+const mSkirtGroup = new THREE.Group();
+const mSkirt = new THREE.Mesh(new THREE.ConeGeometry(3.6, 2.4, 24, 1, true), mDarkMat);
+mSkirt.rotation.y = Math.PI;
+mSkirt.position.y = -0.2;
+const mBelt = new THREE.Mesh(new THREE.CylinderGeometry(1.95, 1.95, 0.4, 24), mTrimTeal);
+mBelt.position.y = 0.9;
+mSkirtGroup.add(mSkirt, mBelt);
+mikuUpperBody.add(mSkirtGroup);
+
+// Голова с деталями лица
+const mHeadGroup = new THREE.Group();
+mHeadGroup.position.set(0, 5.8, 0);
+mikuUpperBody.add(mHeadGroup);
+
+const mHead = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.8, 2.6), mSkinMat);
+mHead.position.y = 1.4;
+mHeadGroup.add(mHead);
+
+// Глаза с бликами
+const mikuEyeGeo = new THREE.PlaneGeometry(0.55, 0.7);
+const mikuEyeMat = new THREE.MeshBasicMaterial({ color: 0x00bbba, side: THREE.DoubleSide });
+const eyeL = new THREE.Mesh(mikuEyeGeo, mikuEyeMat);
+eyeL.position.set(-0.68, 1.5, 1.32);
+const eyeR = eyeL.clone();
+eyeR.position.x = 0.68;
+mHeadGroup.add(eyeL, eyeR);
+
+// Челка и объемные волосы
+const mBang = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.3, 2.85), mMikuTeal);
+mBang.position.set(0, 2.65, 0.1);
+mHeadGroup.add(mBang);
+
+// Наушники с гарнитурой
+const hpBand = new THREE.Mesh(new THREE.TorusGeometry(1.65, 0.2, 8, 24, Math.PI), mDarkMat);
+hpBand.position.set(0, 2.4, 0);
+hpBand.rotation.x = -Math.PI / 2;
+const hpCupL = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.5, 16), mDarkMat);
+hpCupL.rotation.z = Math.PI / 2;
+hpCupL.position.set(-1.6, 1.5, 0);
+const hpGlowL = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.55, 16), mMikuPink);
+hpGlowL.rotation.z = Math.PI / 2;
+hpGlowL.position.set(-1.65, 1.5, 0);
+const hpCupR = hpCupL.clone();
+hpCupR.position.x = 1.6;
+const hpGlowR = hpGlowL.clone();
+hpGlowR.position.x = 1.65;
+const mic = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.6, 8), mDarkMat);
+mic.rotation.z = Math.PI / 3;
+mic.position.set(1.4, 0.9, 0.9);
+const micTip = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), mMikuPink);
+micTip.position.set(0.7, 0.5, 1.5);
+mHeadGroup.add(hpBand, hpCupL, hpCupR, hpGlowL, hpGlowR, mic, micTip);
+
+// Двойные хвосты (Twin Tails) для динамического раскачивания
+function createMikuTail(isRight) {
+  const tailRoot = new THREE.Group();
+  const dir = isRight ? 1 : -1;
+  const ribBox = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), mDarkMat);
+  const ribCore = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.45, 0.45), mMikuPink);
+  tailRoot.add(ribBox, ribCore);
+  
+  let prev = tailRoot;
+  const segs = [];
+  for (let s = 0; s < 6; s++) {
+    const node = new THREE.Group();
+    const w = 1.1 - s * 0.12;
+    const h = 2.4;
+    const segMesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, w * 0.9), (s >= 4) ? mMikuGlow : mMikuTeal);
+    segMesh.position.y = -h / 2;
+    node.add(segMesh);
+    node.position.y = (s === 0) ? -0.4 : -2.3;
+    node.position.x = dir * 0.15;
+    prev.add(node);
+    prev = node;
+    segs.push(node);
+  }
+  tailRoot.position.set(dir * 1.8, 2.5, -0.6);
+  tailRoot.userData = { segs, dir };
+  return tailRoot;
+}
+const mikuTailL = createMikuTail(false);
+const mikuTailR = createMikuTail(true);
+mHeadGroup.add(mikuTailL, mikuTailR);
+
+// Руки с суставами для танцевальных движений
+function createDancingArm(isRight) {
+  const shoulder = new THREE.Group();
+  const dir = isRight ? 1 : -1;
+  shoulder.position.set(dir * 2.0, 3.8, 0);
+  
+  const armUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 2.2, 12), mSkinMat);
+  armUpper.position.y = -1.1;
+  shoulder.add(armUpper);
+  
+  const forearm = new THREE.Group();
+  forearm.position.y = -2.2;
+  const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.8, 2.4, 12), mDarkMat);
+  sleeve.position.y = -1.2;
+  const trim = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.08, 8, 16), mTrimTeal);
+trim.rotation.x = Math.PI / 2;
+trim.position.y = -2.3;
+  const hand = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 12), mSkinMat);
+hand.position.y = -2.5;
+  forearm.add(sleeve, trim, hand);
+  shoulder.add(forearm);
+  
+  return { shoulder, forearm };
+}
+const armL = createDancingArm(false);
+const armR = createDancingArm(true);
+mikuUpperBody.add(armL.shoulder, armR.shoulder);
+
+// Ноги для танцевальных шагов
+function createDancingLeg(isRight) {
+  const hip = new THREE.Group();
+  const dir = isRight ? 1 : -1;
+  hip.position.set(dir * 1.1, 0.2, 0);
+  
+  const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 2.4, 12), mSkinMat);
+thigh.position.y = -1.2;
+  hip.add(thigh);
+  
+  const lowerLeg = new THREE.Group();
+  lowerLeg.position.y = -2.4;
+  const boot = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.75, 3.2, 12), mDarkMat);
+  boot.position.y = -1.6;
+  const sole = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.35, 1.8), mTrimTeal);
+  sole.position.set(0, -3.2, 0.25);
+  lowerLeg.add(boot, sole);
+  hip.add(lowerLeg);
+  
+  return { hip, lowerLeg };
+}
+const legL = createDancingDancingLeg = createDancingLeg(false);
+const legR = createDancingLeg(true);
+mikuGroup.add(legL.hip, legR.hip);
+
+const mikuHitbox = new THREE.Mesh(new THREE.SphereGeometry(15, 10, 10), new THREE.MeshBasicMaterial({ visible: false }));
+mikuHitbox.position.y = 4;
 mikuGroup.add(mikuHitbox);
+
 mikuGroup.position.set(1500, 40, -1200);
-mikuGroup.scale.set(1.4, 1.4, 1.4);
+mikuGroup.scale.set(1.5, 1.5, 1.5);
 scene.add(mikuGroup);
+
+// ==================== ВЕЛИЧЕСТВЕННЫЕ НЕБЕСНЫЕ ВРАТА (CELESTIAL CHRONO-GATE) ====================
+const celestialGateGroup = new THREE.Group();
+
+// 1. Центральное эфирное ядро сверхновой и вихревой диск
+function createGateCoreTex() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 512;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(256, 256, 15, 256, 256, 256);
+  g.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+  g.addColorStop(0.18, 'rgba(130, 245, 255, 0.95)');
+  g.addColorStop(0.42, 'rgba(195, 80, 255, 0.55)');
+  g.addColorStop(0.75, 'rgba(45, 15, 110, 0.2)');
+  g.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 512, 512);
+  return new THREE.CanvasTexture(c);
+}
+
+const gateCoreSprite = new THREE.Sprite(
+  new THREE.SpriteMaterial({
+    map: createGateCoreTex(),
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    opacity: 0.98,
+    depthWrite: false
+  })
+);
+gateCoreSprite.scale.set(220, 220, 1);
+celestialGateGroup.add(gateCoreSprite);
+
+// Вихревой полупрозрачный аккреционный диск врат
+const gatePortalGeo = new THREE.RingGeometry(12, 82, 64);
+const gatePortalMat = new THREE.MeshBasicMaterial({
+  color: 0x8a2be2,
+  side: THREE.DoubleSide,
+  transparent: true,
+  opacity: 0.4,
+  blending: THREE.AdditiveBlending
+});
+const gatePortalMesh = new THREE.Mesh(gatePortalGeo, gatePortalMat);
+celestialGateGroup.add(gatePortalMesh);
+
+// 2. Древние хроно-кольца с рунической подсветкой
+const gateRingMat1 = new THREE.MeshStandardMaterial({
+  color: 0x241d3b,
+  metalness: 0.92,
+  roughness: 0.18,
+  emissive: 0x6c2ebd,
+  emissiveIntensity: 0.65
+});
+const gateRingMat2 = new THREE.MeshStandardMaterial({
+  color: 0x122c3d,
+  metalness: 0.95,
+  roughness: 0.15,
+  emissive: 0x00d4ff,
+  emissiveIntensity: 0.8
+});
+const gateGlowLineMat = new THREE.MeshBasicMaterial({
+  color: 0x38bdf8,
+  wireframe: true,
+  transparent: true,
+  opacity: 0.45,
+  blending: THREE.AdditiveBlending
+});
+
+const gateRing1 = new THREE.Mesh(new THREE.TorusGeometry(85, 3.2, 16, 96), gateRingMat1);
+const gateRing2 = new THREE.Mesh(new THREE.TorusGeometry(105, 2.4, 16, 96), gateRingMat2);
+const gateRing3 = new THREE.Mesh(new THREE.TorusGeometry(125, 1.8, 12, 64), gateGlowLineMat);
+gateRing2.rotation.x = Math.PI / 4;
+gateRing3.rotation.y = Math.PI / 3;
+celestialGateGroup.add(gateRing1, gateRing2, gateRing3);
+
+// 3. 4 древних монолитных обелиска-пилона по краям Врат
+const pylonGeo = new THREE.BoxGeometry(7, 36, 12);
+const pylonMat = new THREE.MeshStandardMaterial({
+  color: 0x181a28,
+  metalness: 0.92,
+  roughness: 0.22,
+  emissive: 0x1a0933
+});
+const pylonGlowMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+
+for (let pi = 0; pi < 4; pi++) {
+  const pylonGroup = new THREE.Group();
+  const pAng = (pi / 4) * Math.PI * 2;
+  const pylon = new THREE.Mesh(pylonGeo, pylonMat);
+  const runeStrip = new THREE.Mesh(new THREE.BoxGeometry(0.8, 30, 12.4), pylonGlowMat);
+  pylonGroup.add(pylon, runeStrip);
+  pylonGroup.position.set(Math.cos(pAng) * 115, Math.sin(pAng) * 115, 0);
+  pylonGroup.rotation.z = pAng + Math.PI / 2;
+  celestialGateGroup.add(pylonGroup);
+}
+
+// 4. Парящие звездные кристаллы-ретрансляторы
+const gateCrystals = [];
+const gCrystGeo = new THREE.OctahedronGeometry(6.5, 0);
+const gCrystMat = new THREE.MeshStandardMaterial({
+  color: 0x00ffff,
+  emissive: 0x9333ea,
+  emissiveIntensity: 1.4,
+  roughness: 0.1,
+  metalness: 0.9,
+  transparent: true,
+  opacity: 0.92
+});
+
+for (let ci = 0; ci < 8; ci++) {
+  const ang = (ci / 8) * Math.PI * 2;
+  const cr = new THREE.Mesh(gCrystGeo, gCrystMat);
+  cr.userData = { angle: ang, radius: 105, speed: 0.008 + (ci % 2) * 0.004 };
+  celestialGateGroup.add(cr);
+  gateCrystals.push(cr);
+}
+
+// 4. Позиционирование в живописном секторе глубокого космоса
+celestialGateGroup.position.set(-2800, 950, 1800);
+celestialGateGroup.rotation.y = -Math.PI / 5;
+scene.add(celestialGateGroup);
 
 function triggerMikuConcert() {
   if (isMikuTriggered) return;
@@ -841,62 +1305,92 @@ function triggerDragonFire() {
   }, 5000);
 }
 
-// ==================== НАСТОЯЩИЙ КОСМИЧЕСКИЙ КОРАБЛЬ (не ракета) ====================
+// ==================== ФУТУРИСТИЧЕСКИЙ 3D КОРАБЛЬ (PBR материалы) ====================
 const shipGroup = new THREE.Group();
 
+const hullMat = new THREE.MeshStandardMaterial({ 
+  color: 0x334155, 
+  metalness: 0.85, 
+  roughness: 0.25 
+});
+const trimMat = new THREE.MeshStandardMaterial({ 
+  color: 0x0f172a, 
+  metalness: 0.9, 
+  roughness: 0.2 
+});
+const cockpitMat = new THREE.MeshPhysicalMaterial ? new THREE.MeshPhysicalMaterial({
+  color: 0x38bdf8,
+  metalness: 0.1,
+  roughness: 0.05,
+  transmission: 0.75,
+  transparent: true,
+  opacity: 0.85
+}) : new THREE.MeshStandardMaterial({
+  color: 0x38bdf8,
+  metalness: 0.6,
+  roughness: 0.1
+});
+
 // Основной диск (тарелка)
-const saucerGeo = new THREE.CylinderGeometry(5, 5, 1.2, 32);
-const saucerMat = new THREE.MeshBasicMaterial({ color: 0x8899aa });
-const saucer = new THREE.Mesh(saucerGeo, saucerMat);
+const saucerGeo = new THREE.CylinderGeometry(5.2, 4.4, 1.2, 48);
+const saucer = new THREE.Mesh(saucerGeo, hullMat);
 shipGroup.add(saucer);
 
-// Верхний купол
-const domeGeo = new THREE.SphereGeometry(2.2, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2);
-const domeMat = new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.7 });
-const dome = new THREE.Mesh(domeGeo, domeMat);
+// Верхний фонарь кокпита
+const domeGeo = new THREE.SphereGeometry(2.1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+const dome = new THREE.Mesh(domeGeo, cockpitMat);
 dome.position.y = 0.6;
 shipGroup.add(dome);
 
-// Нижний купол
-const bottomDome = new THREE.Mesh(domeGeo, new THREE.MeshBasicMaterial({ color: 0x445566 }));
+// Нижний резонатор
+const bottomDome = new THREE.Mesh(domeGeo, trimMat);
 bottomDome.rotation.x = Math.PI;
 bottomDome.position.y = -0.6;
 shipGroup.add(bottomDome);
 
-// Центральный корпус
-const coreGeo = new THREE.CylinderGeometry(1.5, 1.5, 2.5, 16);
-const coreMat = new THREE.MeshBasicMaterial({ color: 0xaabbcc });
-const core = new THREE.Mesh(coreGeo, coreMat);
+// Центральный реакторный сердечник
+const coreGeo = new THREE.CylinderGeometry(1.6, 1.6, 2.6, 24);
+const core = new THREE.Mesh(coreGeo, trimMat);
 shipGroup.add(core);
 
-// Кольцо вокруг
-const ringGeo = new THREE.TorusGeometry(5.5, 0.25, 8, 48);
-const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+// Неоновое фотонное кольцо стабилизации
+const ringGeo = new THREE.TorusGeometry(5.4, 0.16, 16, 64);
+const ringMat = new THREE.MeshStandardMaterial({
+  color: 0x00ffff,
+  emissive: 0x00b4d8,
+  emissiveIntensity: 2.2,
+  roughness: 0.1
+});
 const ring = new THREE.Mesh(ringGeo, ringMat);
 ring.rotation.x = Math.PI / 2;
 shipGroup.add(ring);
 
-// Двигатели (сзади)
-const engGeo = new THREE.CylinderGeometry(0.5, 0.7, 1.8, 8);
-const engMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+// Ионные дюзы двигателей
+const engGeo = new THREE.CylinderGeometry(0.5, 0.75, 1.8, 16);
+const engMat = new THREE.MeshStandardMaterial({
+  color: 0xff5500,
+  emissive: 0xff3300,
+  emissiveIntensity: 2.8,
+  roughness: 0.3
+});
 const eng1 = new THREE.Mesh(engGeo, engMat);
-eng1.position.set(-2.5, -0.3, -4);
+eng1.position.set(-2.5, -0.25, -3.8);
 eng1.rotation.x = Math.PI / 2;
 const eng2 = new THREE.Mesh(engGeo, engMat);
-eng2.position.set(2.5, -0.3, -4);
+eng2.position.set(2.5, -0.25, -3.8);
 eng2.rotation.x = Math.PI / 2;
 const eng3 = new THREE.Mesh(engGeo, engMat);
-eng3.position.set(0, -0.3, -4.5);
+eng3.position.set(0, -0.25, -4.3);
 eng3.rotation.x = Math.PI / 2;
 shipGroup.add(eng1, eng2, eng3);
 
-// Антенны
-const antGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.5, 6);
-const antMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+// Сенсорные шпили
+const antGeo = new THREE.CylinderGeometry(0.06, 0.06, 2.6, 8);
+const antMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
 const ant1 = new THREE.Mesh(antGeo, antMat);
-ant1.position.set(-1.5, 2.5, 0);
+ant1.position.set(-1.4, 2.4, 0);
 const ant2 = new THREE.Mesh(antGeo, antMat);
-ant2.position.set(1.5, 2.5, 0);
+ant2.position.set(1.4, 2.4, 0);
 shipGroup.add(ant1, ant2);
 
 // Хитбокс
@@ -923,12 +1417,12 @@ const stationHitboxes = [];
 // ==================== ASTEROIDS ====================
 (function () {
   const rockMats = [
-    new THREE.MeshBasicMaterial({ color: 0x8a7a6a }),
-    new THREE.MeshBasicMaterial({ color: 0x6e6052 }),
-    new THREE.MeshBasicMaterial({ color: 0x55493e })
+    new THREE.MeshStandardMaterial({ color: 0x85796f, roughness: 0.95, metalness: 0.05 }),
+    new THREE.MeshStandardMaterial({ color: 0x665c52, roughness: 0.92, metalness: 0.1 }),
+    new THREE.MeshStandardMaterial({ color: 0x4d433b, roughness: 0.98, metalness: 0.02 })
   ];
   function crater(parent, rr) {
-    const c = new THREE.Mesh(new THREE.SphereGeometry(rr, 7, 7), new THREE.MeshBasicMaterial({ color: 0x3a322b }));
+    const c = new THREE.Mesh(new THREE.SphereGeometry(rr, 7, 7), new THREE.MeshStandardMaterial({ color: 0x2e2722, roughness: 0.95 }));
     c.scale.set(1, 0.35, 1);
     const a = Math.random() * Math.PI * 2;
     const b = (Math.random() - 0.3) * Math.PI;
@@ -1044,26 +1538,30 @@ const stationHitboxes = [];
   ];
   cfgs.forEach(function (cf) {
     const st = new THREE.Group();
-    st.add(new THREE.Mesh(new THREE.TorusGeometry(60, 8, 10, 40), new THREE.MeshBasicMaterial({ color: 0x8d99ae })));
-    st.add(new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 34, 10), new THREE.MeshBasicMaterial({ color: 0xb8c2cc })));
+    const stMetal = new THREE.MeshStandardMaterial({ color: 0xa0aab5, metalness: 0.85, roughness: 0.3 });
+    const stDark = new THREE.MeshStandardMaterial({ color: 0x4b5563, metalness: 0.9, roughness: 0.4 });
+    const stSolar = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.2, metalness: 0.6 });
+    
+    st.add(new THREE.Mesh(new THREE.TorusGeometry(60, 8, 16, 64), stMetal));
+    st.add(new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 34, 24), stDark));
     for (let s = 0; s < 4; s++) {
-      const spoke = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 52), new THREE.MeshBasicMaterial({ color: 0x6e7a86 }));
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 52), stMetal);
       spoke.rotation.y = s * Math.PI / 2;
       spoke.position.set(Math.sin(s * Math.PI / 2) * 26, 0, Math.cos(s * Math.PI / 2) * 26);
       st.add(spoke);
     }
     for (let pn = 0; pn < 2; pn++) {
-      const panel = new THREE.Mesh(new THREE.BoxGeometry(70, 1.6, 22), new THREE.MeshBasicMaterial({ color: 0x1e3a6e, side: THREE.DoubleSide }));
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(70, 1.6, 22), stSolar);
       panel.position.x = pn === 0 ? -78 : 78;
       st.add(panel);
-      const arm = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 30, 6), new THREE.MeshBasicMaterial({ color: 0x9aa3ad }));
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 30, 8), stMetal);
       arm.rotation.z = Math.PI / 2;
       arm.position.x = pn === 0 ? -46 : 46;
       st.add(arm);
     }
-    const b1 = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff3b4f }));
+    const b1 = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), new THREE.MeshStandardMaterial({ color: 0xff3b4f, emissive: 0xff002b, emissiveIntensity: 2.0 }));
     b1.position.set(60, 8, 0);
-    const b2 = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), new THREE.MeshBasicMaterial({ color: 0x4fff8f }));
+    const b2 = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), new THREE.MeshStandardMaterial({ color: 0x4fff8f, emissive: 0x00ff66, emissiveIntensity: 2.0 }));
     b2.position.set(-60, -8, 0);
     st.add(b1, b2);
     st.userData.beacons = [b1, b2];
@@ -1377,11 +1875,167 @@ for (let i = 0; i < 120; i++) {
 rainCloudGroup.position.set(-4500, 800, 3200); // далеко
 scene.add(rainCloudGroup);
 
-// Sun & Planets
-const sunGeo = new THREE.SphereGeometry(4.5, 32, 32);
-const sunMat = new THREE.MeshBasicMaterial({ color: 0xffbb33 });
+// ==================== СОЛНЕЧНЫЕ БЛИКИ (LENS FLARE) И КИНЕМАТОГРАФИЧНОЕ СОЛНЦЕ ====================
+const sunGroup = new THREE.Group();
+
+// 2D-оверлей для оптических бликов в объективе
+const flareCanvas = document.createElement('canvas');
+flareCanvas.id = 'sun-lens-flare';
+// Размещаем строго под UI (z-index: 2), не перекрывая карточки и диалоги
+flareCanvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2;mix-blend-mode:screen;';
+document.body.appendChild(flareCanvas);
+const flareCtx = flareCanvas.getContext('2d');
+
+function resizeFlareCanvas() {
+  flareCanvas.width = window.innerWidth;
+  flareCanvas.height = window.innerHeight;
+}
+resizeFlareCanvas();
+window.addEventListener('resize', resizeFlareCanvas);
+
+function drawBokehDisc(ctx, x, y, r, innerCol, rimCol, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const g = ctx.createRadialGradient(x, y, r * 0.55, x, y, r);
+  g.addColorStop(0.0, innerCol);
+  g.addColorStop(0.85, rimCol);
+  g.addColorStop(1.0, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function renderSunGlare(screenX, screenY, intensity) {
+  flareCtx.clearRect(0, 0, flareCanvas.width, flareCanvas.height);
+  if (intensity <= 0.01) return;
+
+  const cx = flareCanvas.width / 2;
+  const cy = flareCanvas.height / 2;
+  const dx = cx - screenX;
+  const dy = cy - screenY;
+
+  // 1. Мягкое глубинное свечение вокруг Солнца (без полос и резких линий)
+  const haloR = Math.max(120, flareCanvas.width * 0.28) * intensity;
+  const haloGrad = flareCtx.createRadialGradient(screenX, screenY, 0, screenX, screenY, haloR);
+  haloGrad.addColorStop(0.0, 'rgba(255, 252, 235, ' + (0.75 * intensity).toFixed(3) + ')');
+  haloGrad.addColorStop(0.25, 'rgba(255, 205, 120, ' + (0.35 * intensity).toFixed(3) + ')');
+  haloGrad.addColorStop(0.6, 'rgba(255, 140, 50, ' + (0.12 * intensity).toFixed(3) + ')');
+  haloGrad.addColorStop(1.0, 'rgba(255, 100, 20, 0)');
+  flareCtx.fillStyle = haloGrad;
+  flareCtx.beginPath();
+  flareCtx.arc(screenX, screenY, haloR, 0, Math.PI * 2);
+  flareCtx.fill();
+
+  // 2. Реалистичные мягкие боке-кольца линзы фотоаппарата по оптической оси
+  const bokehElements = [
+    { dist: 0.18, r: 35, inCol: 'rgba(255,230,170,0.18)', rimCol: 'rgba(255,190,80,0.5)', a: 0.35 },
+    { dist: 0.38, r: 22, inCol: 'rgba(120,210,255,0.15)', rimCol: 'rgba(56,189,248,0.45)', a: 0.3 },
+    { dist: 0.62, r: 58, inCol: 'rgba(255,170,120,0.1)',  rimCol: 'rgba(251,146,60,0.35)', a: 0.25 },
+    { dist: 0.88, r: 18, inCol: 'rgba(220,150,255,0.2)',  rimCol: 'rgba(168,85,247,0.55)', a: 0.4 },
+    { dist: 1.15, r: 42, inCol: 'rgba(100,240,200,0.12)', rimCol: 'rgba(45,212,191,0.4)',  a: 0.28 },
+    { dist: 1.45, r: 75, inCol: 'rgba(255,120,160,0.08)', rimCol: 'rgba(244,63,94,0.3)',   a: 0.22 }
+  ];
+
+  for (let i = 0; i < bokehElements.length; i++) {
+    const b = bokehElements[i];
+    const px = screenX + dx * b.dist;
+    const py = screenY + dy * b.dist;
+    const pr = b.r * (0.8 + intensity * 0.4);
+    drawBokehDisc(flareCtx, px, py, pr, b.inCol, b.rimCol, b.a * intensity);
+  }
+}
+
+function createSunPlasmaTexture() {
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+  
+  // Раскаленная фотосфера с гранулированной плазмой
+  const grad = ctx.createLinearGradient(0, 0, 0, 512);
+  grad.addColorStop(0.0, '#ff7900');
+  grad.addColorStop(0.3, '#ffaa00');
+  grad.addColorStop(0.7, '#ffd000');
+  grad.addColorStop(1.0, '#ff5500');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1024, 512);
+
+  // Микрогрануляция и конвекционные ячейки
+  for (let i = 0; i < 800; i++) {
+    const x = Math.random() * 1024;
+    const y = Math.random() * 512;
+    const r = Math.random() * 26 + 6;
+    const cell = ctx.createRadialGradient(x, y, 0, x, y, r);
+    cell.addColorStop(0.0, 'rgba(255, 255, 240, 0.9)');
+    cell.addColorStop(0.35, 'rgba(255, 195, 45, 0.55)');
+    cell.addColorStop(0.8, 'rgba(255, 100, 10, 0.15)');
+    cell.addColorStop(1.0, 'rgba(200, 40, 0, 0)');
+    ctx.fillStyle = cell;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Солнечные пятна с темной полутенью
+  for (let s = 0; s < 18; s++) {
+    const sx = Math.random() * 1024;
+    const sy = 120 + Math.random() * 270;
+    const sr = Math.random() * 16 + 5;
+    const spot = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+    spot.addColorStop(0.0, 'rgba(80, 15, 0, 0.85)');
+    spot.addColorStop(0.5, 'rgba(160, 45, 0, 0.5)');
+    spot.addColorStop(1.0, 'rgba(255, 140, 0, 0)');
+    ctx.fillStyle = spot;
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
+}
+
+const sunGeo = new THREE.SphereGeometry(5.2, 48, 48);
+const sunMat = new THREE.MeshBasicMaterial({
+  map: createSunPlasmaTexture(),
+  color: 0xfffae0
+});
 const sun = new THREE.Mesh(sunGeo, sunMat);
-scene.add(sun);
+sunGroup.add(sun);
+
+// Ореол и свечение короны
+function createCoronaTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createRadialGradient(256, 256, 45, 256, 256, 256);
+  grad.addColorStop(0.00, 'rgba(255, 255, 240, 1.0)');
+  grad.addColorStop(0.18, 'rgba(255, 220, 110, 0.85)');
+  grad.addColorStop(0.42, 'rgba(255, 140, 30, 0.45)');
+  grad.addColorStop(0.70, 'rgba(255, 60, 10, 0.16)');
+  grad.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 512);
+  return new THREE.CanvasTexture(c);
+}
+const sunCorona = new THREE.Sprite(
+  new THREE.SpriteMaterial({
+    map: createCoronaTexture(),
+    color: 0xffd570,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false
+  })
+);
+sunCorona.scale.set(36, 36, 1);
+sunGroup.add(sunCorona);
+scene.add(sunGroup);
 
 function createCraterMap(colorBase, craterColor, isBump = false) {
   const canvas = document.createElement('canvas');
@@ -1526,41 +2180,61 @@ planetConfigs.forEach(cfg => {
   const pGeo = new THREE.SphereGeometry(cfg.radius, 64, 64);
   let pMat;
   const pName = cfg.name || '';
-  if (pName.includes('Нептун')) {
+  if (pName.includes('Меркурий')) {
     pMat = new THREE.MeshStandardMaterial({
-      color: 0xaaaaaa,
+      color: 0xa8a59b,
       bumpMap: createCraterMap('#888', '#222', true),
-      bumpScale: 0.06,
+      bumpScale: 0.08,
       roughness: 0.9,
+      metalness: 0.12
+    });
+  } else if (pName.includes('Венера')) {
+    pMat = new THREE.MeshStandardMaterial({
+      color: 0xe3bb76,
+      roughness: 0.4,
+      metalness: 0.05
+    });
+  } else if (pName.includes('Нептун')) {
+    pMat = new THREE.MeshStandardMaterial({
+      color: 0x2753a7,
+      roughness: 0.35,
+      metalness: 0.15
+    });
+  } else if (pName.includes('Уран')) {
+    pMat = new THREE.MeshStandardMaterial({
+      color: 0x4b70dd,
+      roughness: 0.4,
       metalness: 0.1
     });
   } else if (pName.includes('Марс')) {
     pMat = new THREE.MeshStandardMaterial({
-      color: 0xd14924,
+      color: 0xbf4b24,
       bumpMap: createCraterMap('#d14924', '#551505', true),
-      bumpScale: 0.04,
-      roughness: 0.85,
-      metalness: 0.05
+      bumpScale: 0.06,
+      roughness: 0.88,
+      metalness: 0.08
     });
   } else if (pName.includes('Земля')) {
     pMat = new THREE.MeshStandardMaterial({
       map: earthData.map,
       roughnessMap: earthData.roughnessMap,
-      metalness: 0.1,
-      roughness: 0.7
+      metalness: 0.15,
+      roughness: 0.65
     });
   } else if (pName.includes('Юпитер')) {
     pMat = new THREE.MeshStandardMaterial({
-      map: createGasGiantTexture(['#3f2010', '#8b5a2b', '#d2b48c', '#deb887', '#f4a460', '#a0522d']),
-      roughness: 0.5
+      map: createGasGiantTexture(['#4a2c16', '#87532a', '#d4a373', '#faedcd', '#bc6c25', '#dda15e']),
+      roughness: 0.45,
+      metalness: 0.05
     });
   } else if (pName.includes('Сатурн')) {
     pMat = new THREE.MeshStandardMaterial({
-      map: createGasGiantTexture(['#cbb17b', '#e6d3a3', '#b39860', '#f1e2b8']),
-      roughness: 0.5
+      map: createGasGiantTexture(['#bfa378', '#dfcb9f', '#9f8558', '#ebd8aa', '#8c734b']),
+      roughness: 0.48,
+      metalness: 0.05
     });
   } else {
-    pMat = new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.5, metalness: 0.1 });
+    pMat = new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.6, metalness: 0.1 });
   }
 
   const planet = new THREE.Mesh(pGeo, pMat);
@@ -1724,6 +2398,16 @@ if (!document.getElementById('crazy-styles')) {
     body.crazy-mode #bg-canvas {
       filter: contrast(1.4) saturate(2) hue-rotate(var(--hue, 0deg));
     }
+    body.battle-active #clicker-btn,
+    body.battle-active .clicker-btn,
+    body.battle-active #book-btn,
+    body.battle-active .book-btn,
+    body.battle-active #rules-btn,
+    body.battle-active #fly-overlay {
+      display: none !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -1764,6 +2448,8 @@ flyBtn.addEventListener('click', () => {
 });
 
 function resetCamera() {
+  isBlackHoleActive = false;
+  document.body.classList.remove('blackhole-active', 'in-subscene', 'battle-active');
   card.classList.remove('hidden-ui');
   telescopeOverlay.classList.add('hidden');
   flyOverlay.classList.add('hidden');
@@ -1771,6 +2457,134 @@ function resetCamera() {
   planetModal.classList.add('hidden');
   darkRoomOverlay.classList.add('hidden');
   pixelManOverlay.style.display = 'none';
+
+  // Жесткая фиксация исходной точки камеры и угла обзора
+  camera.position.set(0, 30, 70);
+  controls.target.set(0, 0, 0);
+  controls.minDistance = 1;
+  controls.maxDistance = Infinity;
+  controls.autoRotate = true;
+  controls.enableZoom = true;
+  controls.update();
+
+  // Окна регистрации, статистики и оверлей кликера ОСТАЮТСЯ скрытыми
+  const keepHidden = [
+    '#clicker-overlay', '.clicker-ui', '#rules-modal', '.book-modal', '#quest-book', '#guide-modal',
+    '#reg-modal', '.reg-modal', '#admin-modal', '#stats-modal', '.modal'
+  ];
+  keepHidden.forEach(sel => {
+    try {
+      document.querySelectorAll(sel).forEach(modal => {
+        modal.classList.add('hidden');
+        modal.style.setProperty('display', 'none', 'important');
+      });
+    } catch (e) {}
+  });
+
+  // Гарантированно возвращаем видимость кнопкам КЛИКЕР и КНИЖКА при выходе в открытый космос
+  function forceRestoreButtons() {
+    document.body.classList.remove('blackhole-active', 'in-subscene', 'crazy-mode');
+    document.documentElement.style.setProperty('--hue', '0deg');
+    
+    // 1. Восстанавливаем кнопку КЛИКЕР (со скриншота)
+    document.querySelectorAll('#clicker-btn, .clicker-btn, [id*="clicker-btn"], [class*="clicker-btn"]').forEach(btn => {
+      btn.classList.remove('hidden');
+      btn.style.removeProperty('display');
+      btn.style.removeProperty('opacity');
+      btn.style.removeProperty('pointer-events');
+      btn.style.removeProperty('visibility');
+      btn.style.display = '';
+    });
+    document.querySelectorAll('button, a, div').forEach(el => {
+      if (el.children.length <= 1 && (el.textContent || '').trim() === 'КЛИКЕР') {
+        el.classList.remove('hidden');
+        el.style.display = '';
+      }
+    });
+
+    // 2. Восстанавливаем кнопку КНИЖКА справа внизу (со скриншота)
+    document.querySelectorAll('#book-btn, .book-btn, #rules-btn, #journal-btn, [id*="book-btn"], [id*="rules-btn"]').forEach(btn => {
+      btn.classList.remove('hidden');
+      btn.style.removeProperty('display');
+      btn.style.removeProperty('opacity');
+      btn.style.removeProperty('pointer-events');
+      btn.style.removeProperty('visibility');
+      btn.style.display = '';
+    });
+
+    // 3. Восстанавливаем кнопку чата (иконка сообщения слева)
+    document.querySelectorAll('#chat-btn, .chat-btn, [id*="chat-toggle"], [class*="chat-toggle"]').forEach(btn => {
+      btn.classList.remove('hidden');
+      btn.style.display = '';
+    });
+
+    // 4. Восстанавливаем блок управления по центру 'Завершить исследование' и 'Управление: вращение...'
+    if (flyOverlay) {
+      flyOverlay.classList.remove('hidden');
+      flyOverlay.style.display = '';
+    }
+    const flyHintEl = document.getElementById('fly-hint');
+    if (flyHintEl) flyHintEl.style.display = '';
+    const closeFly = document.getElementById('close-fly');
+    if (closeFly) closeFly.style.display = '';
+  }
+  forceRestoreButtons();
+  window.__restoreSpaceButtons = forceRestoreButtons;
+
+  // Синхронизация видимости интерфейса в свободном космосе
+  setInterval(function () {
+    var ck = document.getElementById('clicker-overlay');
+    var isClickerOpen = !!(ck && !ck.classList.contains('hidden') && ck.style.display !== 'none');
+    var isBattleOpen = !!(window.inBlackHoleMode || document.body.classList.contains('battle-active') || document.body.classList.contains('blackhole-active') || document.querySelector('.battle-room-active, #battle-overlay:not(.hidden)'));
+    
+    if (!isClickerOpen && !isBattleOpen && !inDarkRoom && !isConsuming) {
+      const cBtn = document.getElementById('clicker-btn') || document.querySelector('.clicker-btn');
+      if (cBtn && (cBtn.classList.contains('hidden') || cBtn.style.display === 'none')) {
+        if (typeof setSpaceUIVisible === 'function') {
+          setSpaceUIVisible(true);
+        }
+      }
+    }
+  }, 350);
+
+  // Автоматический возврат кнопок при закрытии баттл-арены (отслеживание battle-active)
+  if (!window.__battleObserverAttached) {
+    window.__battleObserverAttached = true;
+    const bObserver = new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        if (m.attributeName === 'class') {
+          const isBattle = document.body.classList.contains('battle-active');
+          if (!isBattle && (document.body.classList.contains('blackhole-active') || document.body.classList.contains('in-subscene') || isConsuming)) {
+            isConsuming = false;
+            resetCamera();
+            forceRestoreButtons();
+          }
+        }
+      });
+    });
+    bObserver.observe(document.body, { attributes: true });
+
+    // Слушатель клика по любым элементам закрытия арены и ESC
+    document.addEventListener('click', function (e) {
+      const t = e.target;
+      if (t && (t.closest('.battle-close') || t.closest('#battle-close') || t.closest('[data-action="battle-exit"]') || t.closest('.battle-exit-btn') || t.closest('.battle-back-btn'))) {
+        setTimeout(function() {
+          resetCamera();
+          forceRestoreButtons();
+        }, 50);
+        setTimeout(function() {
+          resetCamera();
+          forceRestoreButtons();
+        }, 300);
+      }
+    }, true);
+
+    window.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        setTimeout(forceRestoreButtons, 60);
+      }
+    });
+  }
   artifactOverlay.style.display = 'none';
   document.body.classList.remove('crazy-mode');
   document.body.style.filter = '';
@@ -1786,9 +2600,15 @@ function resetCamera() {
   darkRoomPressLock = false;
   controls.autoRotate = true;
   controls.enableZoom = true;
+  controls.minDistance = 1;
+  controls.maxDistance = Infinity;
   camera.position.set(0, 30, 70);
   controls.target.set(0, 0, 0);
   controls.update();
+  
+  if (typeof forceRestoreButtons === 'function') {
+    forceRestoreButtons();
+  }
 }
 
 closeTelescopeBtn.addEventListener('click', resetCamera);
@@ -2063,11 +2883,27 @@ function enterDarkRoom() {
   inDarkRoom = true;
   darkRoomPressLock = true;
   mwPressCandidate = null;
+  document.body.classList.add('blackhole-active', 'in-subscene');
   card.classList.add('hidden-ui');
   telescopeOverlay.classList.add('hidden');
   flyOverlay.classList.add('hidden');
   controls.autoRotate = false;
   controls.enableZoom = false;
+  
+  const hideAllModals = [
+    '#clicker-overlay', '#clicker-btn', '.clicker-ui', '.clicker-btn',
+    '#book-btn', '.book-btn', '#rules-btn', '#journal-btn', '#quest-book',
+    '#rules-modal', '.book-modal', '#guide-modal', '#instructions-modal',
+    '#reg-modal', '.reg-modal', '#admin-modal', '#stats-modal', '.modal'
+  ];
+  hideAllModals.forEach(sel => {
+    try {
+      document.querySelectorAll(sel).forEach(el => {
+        el.style.setProperty('display', 'none', 'important');
+        el.classList.add('hidden');
+      });
+    } catch (e) {}
+  });
   
   darkRoomOverlay.classList.remove('hidden');
   camera.position.set(15000, 15000, 15040);
@@ -2075,25 +2911,82 @@ function enterDarkRoom() {
   controls.update();
 }
 
+function setSpaceUIVisible(visible) {
+  const uiTargets = document.querySelectorAll('#clicker-btn, .clicker-btn, [id*="clicker-btn"], #book-btn, .book-btn, #rules-btn, #journal-btn, [id*="book-btn"], #chat-btn, .chat-btn, [class*="chat-toggle"], #fly-overlay');
+  
+  if (visible) {
+    inBlackHoleMode = false;
+    document.body.classList.remove('battle-active', 'blackhole-active', 'in-subscene');
+    uiTargets.forEach(el => {
+      el.classList.remove('hidden');
+      el.style.removeProperty('display');
+      el.style.removeProperty('opacity');
+      el.style.removeProperty('visibility');
+      el.style.removeProperty('pointer-events');
+      el.style.display = '';
+    });
+    document.querySelectorAll('button, a, div').forEach(el => {
+      if (el.children.length <= 1 && (el.textContent || '').trim() === 'КЛИКЕР') {
+        el.classList.remove('hidden');
+        el.style.display = '';
+      }
+    });
+  } else {
+    inBlackHoleMode = true;
+    document.body.classList.add('battle-active', 'blackhole-active', 'in-subscene');
+    uiTargets.forEach(el => {
+      el.classList.add('hidden');
+      el.style.setProperty('display', 'none', 'important');
+    });
+    document.querySelectorAll('button, a, div').forEach(el => {
+      if (el.children.length <= 1 && (el.textContent || '').trim() === 'КЛИКЕР') {
+        el.classList.add('hidden');
+        el.style.setProperty('display', 'none', 'important');
+      }
+    });
+    if (card) { card.classList.add('hidden-ui'); }
+    if (telescopeOverlay) { telescopeOverlay.classList.add('hidden'); }
+  }
+}
+
 function triggerBlackHoleEvent() {
+  isBlackHoleActive = true;
   isConsuming = true;
   consumeTimer = 0;
-  card.classList.add('hidden-ui');
-  telescopeOverlay.classList.add('hidden');
-  flyOverlay.classList.add('hidden');
+  blackHoleGroup.position.set(300, 100, -400);
+  blackHoleGroup.scale.set(1, 1, 1);
   controls.autoRotate = false;
 
-  // Клик по чёрной дыре открывает «Кликер-арену» (battle.js).
-  // Ник берётся из той же авторизации, что и чат (sessionStorage: spaceChatNick).
+  // Жестко скрываем UI и блокируем его возврат до закрытия арены
+  setSpaceUIVisible(false);
+
   setTimeout(function () {
     isConsuming = false;
+    blackHoleGroup.scale.set(1, 1, 1);
+    blackHoleGroup.position.set(300, 100, -400);
+    
     if (window.BattleRoom && typeof window.BattleRoom.open === 'function') {
       var bn = '';
       try { bn = sessionStorage.getItem('spaceChatNick') || ''; } catch (e) {}
+      
+      if (!window.__battleClosePatched && typeof window.BattleRoom.close === 'function') {
+        window.__battleClosePatched = true;
+        var origClose = window.BattleRoom.close;
+        window.BattleRoom.close = function() {
+          origClose.apply(this, arguments);
+          isBlackHoleActive = false;
+          blackHoleGroup.scale.set(1, 1, 1);
+          blackHoleGroup.position.set(300, 100, -400);
+          resetCamera();
+          setSpaceUIVisible(true);
+        };
+      }
+      
       window.BattleRoom.open(bn);
     } else {
       console.warn('[battle] battle.js не загружен — арена недоступна');
       resetCamera();
+      setSpaceUIVisible(true);
     }
   }, 900);
 }
@@ -2421,9 +3314,50 @@ function animate() {
     earthClouds.forEach(c => c.rotation.y += 0.002);
   }
   
-  starField.rotation.y -= 0.00005;
+  starField.rotation.y -= 0.00004;
   milkyWayGroup.rotation.y += 0.0001;
-  mainDisk.rotation.z += 0.02;
+  mainDisk.rotation.z += 0.004;
+  if (typeof diskUniforms !== 'undefined') {
+    diskUniforms.uTime.value += 0.012;
+  }
+  if (typeof sun !== 'undefined') {
+    sun.rotation.y += 0.004;
+  }
+  if (typeof sunCorona !== 'undefined') {
+    const pulse = 36 + Math.sin(Date.now() * 0.002) * 1.5;
+    sunCorona.scale.set(pulse, pulse, 1);
+  }
+
+  // Расчет видимости Солнца и интенсивности оптических бликов с учетом дистанции
+  if (typeof sunGroup !== 'undefined' && typeof flareCanvas !== 'undefined') {
+    const camDist = camera.position.distanceTo(sunGroup.position);
+    // Блики плавно затухают на дистанции и полностью исчезают дальше 450 единиц
+    const maxGlareDist = 450;
+    const distFade = Math.max(0, Math.min(1, 1 - (camDist - 80) / (maxGlareDist - 80)));
+
+    if (distFade > 0.01 && !inDarkRoom) {
+      const camDir = new THREE.Vector3();
+      camera.getWorldDirection(camDir);
+      const toSun = sunGroup.position.clone().sub(camera.position).normalize();
+      const dot = camDir.dot(toSun);
+
+      if (dot > 0.52) {
+        const sunProj = sunGroup.position.clone().project(camera);
+        if (sunProj.z < 1.0) {
+          const sx = (sunProj.x * 0.5 + 0.5) * window.innerWidth;
+          const sy = (-(sunProj.y * 0.5) + 0.5) * window.innerHeight;
+          const baseIntensity = Math.pow((dot - 0.52) / 0.48, 2.0);
+          renderSunGlare(sx, sy, baseIntensity * distFade);
+        } else {
+          flareCtx.clearRect(0, 0, flareCanvas.width, flareCanvas.height);
+        }
+      } else {
+        flareCtx.clearRect(0, 0, flareCanvas.width, flareCanvas.height);
+      }
+    } else {
+      flareCtx.clearRect(0, 0, flareCanvas.width, flareCanvas.height);
+    }
+  }
   
   if (inDarkRoom) {
     doorLight.intensity = 2 + Math.sin(Date.now() * 0.008) * 2;
@@ -2464,8 +3398,83 @@ function animate() {
     s.group.rotation.y += 0.003;
   });
 
-  mikuGroup.position.y = 40 + Math.sin(Date.now() * 0.0011) * 6;
+  // Плавная и ритмичная процедурная хореография танца Хацунэ Мику
+  const mTime = Date.now() * 0.004;
+  mikuGroup.position.y = 40 + Math.abs(Math.sin(mTime * 2)) * 2.2;
   mikuGroup.rotation.y += 0.002;
+  
+  // Танцевальный бит: ритмичное покачивание корпуса и головы
+  if (typeof mikuUpperBody !== 'undefined') {
+    mikuUpperBody.rotation.z = Math.sin(mTime) * 0.12;
+    mikuUpperBody.rotation.x = 0.05 + Math.sin(mTime * 2) * 0.06;
+    mHeadGroup.rotation.z = -Math.sin(mTime) * 0.08;
+    mHeadGroup.rotation.y = Math.cos(mTime * 0.5) * 0.2;
+    mTie.rotation.z = -Math.sin(mTime) * 0.25;
+  }
+  
+  // Анимация рук в танце (плавные взмахи и сгибы в локтях)
+  if (typeof armL !== 'undefined' && typeof armR !== 'undefined') {
+    armL.shoulder.rotation.z = -0.4 + Math.sin(mTime) * 0.45;
+    armL.shoulder.rotation.x = Math.cos(mTime * 1.5) * 0.35;
+    armL.forearm.rotation.x = -0.5 - Math.sin(mTime * 2) * 0.4;
+    
+    armR.shoulder.rotation.z = 0.4 - Math.sin(mTime) * 0.45;
+    armR.shoulder.rotation.x = -Math.cos(mTime * 1.5) * 0.35;
+    armR.forearm.rotation.x = -0.5 + Math.sin(mTime * 2) * 0.4;
+  }
+  
+  // Шаги ногами в такт
+  if (typeof legL !== 'undefined' && typeof legR !== 'undefined') {
+    legL.hip.rotation.x = Math.sin(mTime) * 0.35;
+    legL.lowerLeg.rotation.x = Math.max(0, -Math.sin(mTime) * 0.45);
+    
+    legR.hip.rotation.x = -Math.sin(mTime) * 0.35;
+    legR.lowerLeg.rotation.x = Math.max(0, Math.sin(mTime) * 0.45);
+  }
+  
+  // Физика динамического покачивания хвостов Мику
+  if (typeof mikuTailL !== 'undefined' && typeof mikuTailR !== 'undefined') {
+    mikuTailL.rotation.z = -0.2 - Math.sin(mTime) * 0.2;
+    mikuTailL.rotation.x = 0.15 + Math.cos(mTime * 1.8) * 0.18;
+    mikuTailR.rotation.z = 0.2 - Math.sin(mTime) * 0.2;
+    mikuTailR.rotation.x = 0.15 - Math.cos(mTime * 1.8) * 0.18;
+    
+    mikuTailL.userData.segs.forEach((seg, idx) => {
+      seg.rotation.z = Math.sin(mTime - idx * 0.3) * 0.12;
+    });
+    mikuTailR.userData.segs.forEach((seg, idx) => {
+      seg.rotation.z = -Math.sin(mTime - idx * 0.3) * 0.12;
+    });
+  }
+  
+  // Вращение неонового кольца сцены
+  if (typeof stageRing !== 'undefined') {
+    stageRing.rotation.z += 0.015;
+  }
+
+  // Анимация величественных Небесных Врат (Хроно-Колец и кристаллов)
+  if (typeof celestialGateGroup !== 'undefined') {
+    gateRing1.rotation.z += 0.0035;
+    gateRing1.rotation.y += 0.0018;
+    gateRing2.rotation.z -= 0.0045;
+    gateRing2.rotation.x += 0.0022;
+    gateRing3.rotation.y += 0.006;
+    
+    const gPulse = 210 + Math.sin(Date.now() * 0.0025) * 30;
+    gateCoreSprite.scale.set(gPulse, gPulse, 1);
+    if (typeof gatePortalMesh !== 'undefined') {
+      gatePortalMesh.rotation.z += 0.012;
+    }
+    
+    gateCrystals.forEach((cr, i) => {
+      cr.userData.angle += cr.userData.speed;
+      cr.position.x = Math.cos(cr.userData.angle) * cr.userData.radius;
+      cr.position.y = Math.sin(cr.userData.angle) * cr.userData.radius * 0.7;
+      cr.position.z = Math.sin(cr.userData.angle * 2) * 25;
+      cr.rotation.x += 0.02;
+      cr.rotation.y += 0.03;
+    });
+  }
 
   asteroids.forEach(a => {
     a.rotation.x += a.userData.spin.x;
@@ -2567,7 +3576,8 @@ function animate() {
   }
 
   const distFromOrigin = camera.position.distanceTo(controls.target);
-  if (distFromOrigin >= 95000) {
+  // Лимит сердечка увеличен в 6 раз (2 280 000 единиц глубины космоса)
+  if (distFromOrigin >= 2280000) {
     heartOverlay.classList.remove('hidden');
   } else {
     heartOverlay.classList.add('hidden');
@@ -2669,21 +3679,83 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// ==================== SETTINGS (inline) ====================
+// ==================== УПРАВЛЕНИЕ ВИЗУАЛОМ И РЕЖИМАМИ (НОВЫЙ / СТАРЫЙ) ====================
+window.__setRetroVisualMode = function(isRetro) {
+  if (isRetro) {
+    // Старый визуал: отключение тонмаппинга и PBR-света
+    renderer.toneMapping = THREE.NoToneMapping;
+    ambientLight.color.setHex(0xffffff);
+    ambientLight.intensity = 0.5;
+    sunLight.intensity = 3.0;
+    if (typeof galaxyBackLight !== 'undefined') galaxyBackLight.visible = false;
+    if (typeof rimSpaceLight !== 'undefined') rimSpaceLight.visible = false;
+    if (typeof sunCorona !== 'undefined') sunCorona.visible = false;
+    if (typeof sun !== 'undefined') {
+      sun.material = new THREE.MeshBasicMaterial({ color: 0xffbb33 });
+    }
+    planets.forEach(p => {
+      const pName = p.planet.userData.name || '';
+      let c = 0x888888;
+      if (pName.includes('Меркурий')) c = 10066329;
+      else if (pName.includes('Венера')) c = 14924662;
+      else if (pName.includes('Земля')) c = 2845872;
+      else if (pName.includes('Марс')) c = 12922928;
+      else if (pName.includes('Юпитер')) c = 13013524;
+      else if (pName.includes('Сатурн')) c = 14065198;
+      else if (pName.includes('Уран')) c = 3250069;
+      else if (pName.includes('Нептун')) c = 2845872;
+      p.planet.material = new THREE.MeshBasicMaterial({ color: c });
+    });
+  } else {
+    // Новый детализированный PBR-визуал (по умолчанию)
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    ambientLight.color.setHex(0x141829);
+    ambientLight.intensity = 0.8;
+    sunLight.intensity = 4.5;
+    if (typeof galaxyBackLight !== 'undefined') galaxyBackLight.visible = true;
+    if (typeof rimSpaceLight !== 'undefined') rimSpaceLight.visible = true;
+    if (typeof sunCorona !== 'undefined') sunCorona.visible = true;
+    if (typeof sun !== 'undefined') {
+      sun.material = new THREE.MeshBasicMaterial({ map: createSunPlasmaTexture(), color: 0xfffae0 });
+    }
+    planets.forEach(p => {
+      const pName = p.planet.userData.name || '';
+      if (pName.includes('Меркурий')) {
+        p.planet.material = new THREE.MeshStandardMaterial({ color: 0xa8a59b, bumpMap: createCraterMap('#888', '#222', true), bumpScale: 0.08, roughness: 0.9, metalness: 0.12 });
+      } else if (pName.includes('Венера')) {
+        p.planet.material = new THREE.MeshStandardMaterial({ color: 0xe3bb76, roughness: 0.4, metalness: 0.05 });
+      } else if (pName.includes('Земля')) {
+        p.planet.material = new THREE.MeshStandardMaterial({ map: earthData.map, roughnessMap: earthData.roughnessMap, metalness: 0.15, roughness: 0.65 });
+      } else if (pName.includes('Марс')) {
+        p.planet.material = new THREE.MeshStandardMaterial({ color: 0xbf4b24, bumpMap: createCraterMap('#d14924', '#551505', true), bumpScale: 0.06, roughness: 0.88, metalness: 0.08 });
+      } else if (pName.includes('Юпитер')) {
+        p.planet.material = new THREE.MeshStandardMaterial({ map: createGasGiantTexture(['#4a2c16', '#87532a', '#d4a373', '#faedcd', '#bc6c25', '#dda15e']), roughness: 0.45, metalness: 0.05 });
+      } else if (pName.includes('Сатурн')) {
+        p.planet.material = new THREE.MeshStandardMaterial({ map: createGasGiantTexture(['#bfa378', '#dfcb9f', '#9f8558', '#ebd8aa', '#8c734b']), roughness: 0.48, metalness: 0.05 });
+      } else if (pName.includes('Уран')) {
+        p.planet.material = new THREE.MeshStandardMaterial({ color: 0x4b70dd, roughness: 0.4, metalness: 0.1 });
+      } else if (pName.includes('Нептун')) {
+        p.planet.material = new THREE.MeshStandardMaterial({ color: 0x2753a7, roughness: 0.35, metalness: 0.15 });
+      }
+    });
+  }
+};
+
+// Инициализация визуального режима из localStorage (по умолчанию retroVisual = false)
 (function () {
   var KEY = 'spaceSettings_v1';
-  var S = { zoom: 0.8, horiz: 0.8, vert: 1, vertOn: true, smooth: 5, quality: 1, rot: true, rain: true, neb: true, land: false };
-  try { var d = JSON.parse(localStorage.getItem(KEY)); if (d) for (var k in S) if (d[k] !== undefined) S[k] = d[k]; } catch (e) {}
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
-  var isM = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  var st = document.createElement('style');
-  st.textContent = '#sgear{position:fixed;top:16px;left:16px;z-index:9400;width:52px;height:52px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:#0a0a0e;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(0,0,0,.5);transition:transform .2s;}';
-  st.textContent += '#sgear:hover{transform:scale(1.07);}';
-  st.textContent += '#sgear:active{transform:scale(.9);}';
-  st.textContent += '#spanel{position:fixed;top:78px;left:16px;z-index:9450;width:min(360px,92vw);max-height:78vh;overflow-y:auto;background:linear-gradient(170deg,#121216,#070709);border:1px solid rgba(255,255,255,.13);border-radius:18px;padding:20px 22px;color:#e8e6e1;font-family:Georgia,serif;display:none;box-shadow:0 24px 60px rgba(0,0,0,.7);animation:sIn2 .35s cubic-bezier(.2,.9,.3,1.15);}';
-  st.textContent += '#spanel.open{display:block;}';
-  st.textContent += '@keyframes sIn2{from{transform:translateX(-24px);opacity:0}}';
-  // __G1__
+  var S = { zoom: 0.8, horiz: 0.8, vert: 1, vertOn: true, smooth: 5, quality: 1, rot: true, rain: true, neb: true, land: false, retroVisual: false };
+  try {
+    var d = JSON.parse(localStorage.getItem(KEY));
+    if (d) {
+      for (var k in S) if (d[k] !== undefined) S[k] = d[k];
+    }
+  } catch (e) {}
+
+  if (S.retroVisual) {
+    setTimeout(function() { window.__setRetroVisualMode(true); }, 50);
+  }
 })();
 
 

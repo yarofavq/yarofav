@@ -5,10 +5,32 @@ var KEY = 'spaceProSet_v1';
 var DEF = {
   zsens: 50,
   smooth: 50,
-  quality: 2, fx: true, mblur: false, vsync: true, fs: false,
+  quality: 2, fx: true, mblur: false, vsync: true, fs: false, retroVisual: false,
   showStars: true, showHud: true, land: false,
   vol: 70, music: 50, sfx: 70, ui: 60
 };
+
+function renderRetroToggle(container) {
+  var row = document.createElement('div');
+  row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);';
+  var lbl = document.createElement('span');
+  lbl.textContent = 'СТАРЫЙ ВИЗУАЛ';
+  lbl.style.cssText = 'font-weight:600;font-size:12px;letter-spacing:1px;color:#e2e8f0;';
+  var chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.checked = !!S.retroVisual;
+  chk.style.cssText = 'cursor:pointer;width:18px;height:18px;accent-color:#38bdf8;';
+  chk.addEventListener('change', function() {
+    S.retroVisual = chk.checked;
+    save();
+    if (typeof window.__setRetroVisualMode === 'function') {
+      window.__setRetroVisualMode(S.retroVisual);
+    }
+  });
+  row.appendChild(lbl);
+  row.appendChild(chk);
+  container.appendChild(row);
+}
 var S = {};
 for (var k in DEF) S[k] = DEF[k];
 try { var d = JSON.parse(localStorage.getItem(KEY)); if (d) for (var k2 in DEF) if (d[k2] !== undefined) S[k2] = d[k2]; } catch (e) {}
@@ -209,6 +231,16 @@ var frames = 0, lastT = performance.now();
     hud.textContent = 'FPS ' + fps + ' | ping ' + ping + ' ms';
   }
 })();
+if (typeof window.__setRetroVisualMode === 'function') {
+  window.__setRetroVisualMode(!!S.retroVisual);
+}
+var panelEl = document.getElementById('spPanel');
+if (panelEl) {
+  renderRetroToggle(panelEl);
+}
+if (typeof window.__setRetroVisualMode === 'function') {
+  window.__setRetroVisualMode(!!S.retroVisual);
+}
 apply();
 window.__spSetReady = true;
 console.log('[settings] ready');
