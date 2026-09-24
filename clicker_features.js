@@ -302,7 +302,7 @@
     window.cssAdd('.ck-comet-flash{position:fixed;inset:0;background:rgba(250,204,21,.18);pointer-events:none;z-index:9590;animation:ckCometFlash .6s ease-out forwards;}');
     window.cssAdd('@keyframes ckCometFlash{0%{opacity:1;}100%{opacity:0;}}');
     /* Стили Престиж-тиров и Эволюций диска */
-    window.cssAdd('.ck-prestige-tag{font-size:11px;font-weight:900;letter-spacing:1px;padding:2px 8px;border-radius:6px;display:inline-block;margin-top:4px;}');
+    window.cssAdd('.ck-prestige-tag{display:none!important;visibility:hidden!important;opacity:0!important;}');
     window.cssAdd('.ck-tier-1{box-shadow:0 0 50px rgba(56,189,248,.85),0 0 100px rgba(168,85,247,.5)!important;border:2px solid #38bdf8!important;}');
     window.cssAdd('.ck-tier-1::before{background:conic-gradient(from 0deg,#38bdf8,#a855f7,#ec4899,#38bdf8)!important;animation-duration:6s!important;}');
     window.cssAdd('.ck-tier-2{box-shadow:0 0 70px rgba(244,63,94,.9),0 0 130px rgba(234,179,8,.7)!important;border:3px solid #f43f5e!important;}');
@@ -333,10 +333,11 @@
     /* Стили Сезонного Пропуска */
     window.cssAdd('#ck-passbtn{background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 0 16px rgba(245,158,11,.45);}');
     window.cssAdd('#ck-pass-modal{position:fixed;inset:0;z-index:9482;background:rgba(2,2,14,.92);display:flex;align-items:center;justify-content:center;font-family:Segoe UI,sans-serif;backdrop-filter:blur(16px);}');
-    window.cssAdd('#ck-pass-box{width:min(680px,95vw);max-height:88vh;overflow-y:auto!important;overflow-x:hidden!important;background:radial-gradient(ellipse at 50% 10%, #2e1704 0%, #0c0802 85%);border:2px solid #f59e0b;border-radius:24px;padding:22px;color:#fff;box-sizing:border-box;box-shadow:0 24px 90px rgba(0,0,0,.9),0 0 55px rgba(245,158,11,.45);position:relative;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}');
-    window.cssAdd('#ck-pass-box::-webkit-scrollbar{width:6px;}');
-    window.cssAdd('#ck-pass-box::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#f59e0b,#78350f);border-radius:6px;}');
-    window.cssAdd('#ck-pass-box::-webkit-scrollbar-track{background:rgba(12,8,2,0.6);border-radius:6px;}');
+    window.cssAdd('#ck-pass-box{width:min(680px,95vw);max-height:88vh;overflow:hidden!important;background:radial-gradient(ellipse at 50% 10%, #2e1704 0%, #0c0802 85%);border:2px solid #f59e0b;border-radius:24px;padding:22px;color:#fff;box-sizing:border-box;box-shadow:0 24px 90px rgba(0,0,0,.9),0 0 55px rgba(245,158,11,.45);position:relative;display:flex;flex-direction:column;}');
+    window.cssAdd('.ck-pass-levels{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;overflow-y:auto!important;overflow-x:hidden!important;max-height:54vh;padding-right:6px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}');
+    window.cssAdd('.ck-pass-levels::-webkit-scrollbar{width:6px;}');
+    window.cssAdd('.ck-pass-levels::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#f59e0b,#78350f);border-radius:6px;box-shadow:0 0 8px rgba(245,158,11,0.6);}');
+    window.cssAdd('.ck-pass-levels::-webkit-scrollbar-track{background:rgba(12,8,2,0.7);border-radius:6px;}');
     window.cssAdd('#ck-pass-box h2{animation:ckSeasonTitleGlow 2.5s ease-in-out infinite alternate;text-shadow:0 0 20px #f59e0b;}');
     window.cssAdd('@keyframes ckSeasonTitleGlow{0%{filter:brightness(1) drop-shadow(0 0 6px #f59e0b);}100%{filter:brightness(1.3) drop-shadow(0 0 18px #fbbf24);}}');
     window.cssAdd('.ck-pass-header{position:relative;overflow:hidden;background:linear-gradient(135deg, rgba(45,26,6,0.85), rgba(20,12,3,0.95))!important;border:1.5px solid #d97706!important;box-shadow:0 0 25px rgba(245,158,11,0.25)!important;}');
@@ -355,15 +356,23 @@
     window.cssAdd('.ck-pass-header{display:flex;align-items:center;justify-content:space-between;background:rgba(30,20,5,.7);border:1px solid #78350f;border-radius:14px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap;gap:10px;}');
     window.cssAdd('.ck-pass-xp-bar{width:100%;height:8px;background:#1e1405;border-radius:4px;overflow:hidden;border:1px solid rgba(251,191,36,.3);margin-top:8px;}');
     window.cssAdd('.ck-pass-xp-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);transition:width .2s;}');
+    window.cssAdd('.ck-pass-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}');
+    window.cssAdd('#ck-pass-claim-all{background:linear-gradient(135deg,#10b981,#047857);border:1px solid rgba(52,211,153,.5);border-radius:8px;padding:8px 14px;font-weight:900;font-size:11px;color:#fff;cursor:pointer;transition:all .18s;box-shadow:0 0 12px rgba(16,185,129,.3);letter-spacing:.6px;}');
+    window.cssAdd('#ck-pass-claim-all:hover:not(:disabled){transform:translateY(-1px) scale(1.03);filter:brightness(1.15);box-shadow:0 0 18px rgba(16,185,129,.5);}');
+    window.cssAdd('#ck-pass-claim-all:disabled{opacity:.4;cursor:default;filter:grayscale(1);box-shadow:none;}');
     window.cssAdd('.ck-pass-buy-prem{background:linear-gradient(135deg,#f59e0b,#b45309);border:none;border-radius:8px;padding:8px 14px;font-weight:900;font-size:11px;color:#000;cursor:pointer;transition:transform .15s;}');
     window.cssAdd('.ck-pass-buy-prem:hover{filter:brightness(1.15);transform:scale(1.03);}');
     window.cssAdd('.ck-pass-buy-prem:disabled{opacity:.5;cursor:default;filter:grayscale(1);}');
-    window.cssAdd('.ck-pass-levels{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}');
     window.cssAdd('.ck-pass-row{display:grid;grid-template-columns:55px 1fr 1fr;gap:8px;align-items:center;background:rgba(20,14,4,.75);border:1px solid #451a03;border-radius:12px;padding:8px 12px;}');
-    window.cssAdd('.ck-pass-lvl-badge{font-weight:900;font-size:13px;color:#fbbf24;text-align:center;}');
-    window.cssAdd('.ck-pass-reward-card{display:flex;align-items:center;justify-content:space-between;background:rgba(12,8,2,.8);border:1px solid #291203;border-radius:8px;padding:6px 10px;font-size:11.5px;}');
-    window.cssAdd('.ck-pass-reward-card.prem{border-color:#b45309;background:rgba(69,26,3,.3);}');
-    window.cssAdd('.ck-pass-claim{background:#d97706;border:none;border-radius:6px;padding:4px 8px;font-weight:800;font-size:10px;color:#000;cursor:pointer;}');
+    window.cssAdd('.ck-pass-lvl-badge{font-weight:900;font-size:12px;color:#fbbf24;text-align:center;}');
+    window.cssAdd('.ck-pass-reward-card{display:flex;align-items:center;justify-content:space-between;background:rgba(12,8,2,.8);border:1px solid #291203;border-radius:8px;padding:6px 10px;font-size:11px;}');
+    window.cssAdd('.ck-pass-reward-card.prem{position:relative;border:1.5px solid rgba(245,158,11,0.65)!important;background:linear-gradient(135deg,rgba(70,30,5,0.7),rgba(25,12,2,0.85))!important;box-shadow:inset 0 0 16px rgba(245,158,11,0.18), 0 0 12px rgba(245,158,11,0.25)!important;backdrop-filter:blur(6px);transition:all .2s ease;}');
+    window.cssAdd('.ck-pass-reward-card.prem:hover{border-color:#ffd76a!important;box-shadow:inset 0 0 20px rgba(251,191,36,0.3), 0 0 18px rgba(245,158,11,0.45)!important;transform:scale(1.02);}');
+    window.cssAdd('.ck-pass-prem-badge{font-size:8.5px;font-weight:900;letter-spacing:1px;color:#0a0701;background:linear-gradient(135deg,#ffd76a,#f59e0b);padding:1px 5px;border-radius:4px;box-shadow:0 0 6px rgba(251,191,36,0.5);margin-right:6px;flex:none;}');
+    window.cssAdd('.ck-pass-prem-text{color:#ffd76a!important;font-weight:800;text-shadow:0 0 8px rgba(251,191,36,0.4);display:flex;align-items:center;min-width:0;flex:1;}');
+    window.cssAdd('.ck-pass-claim{background:#d97706;border:none;border-radius:6px;padding:5px 9px;font-weight:800;font-size:10px;color:#000;cursor:pointer;transition:transform .15s;}');
+    window.cssAdd('.ck-pass-claim.prem-btn:not(:disabled){background:linear-gradient(135deg,#fde047,#f59e0b 60%,#b45309)!important;box-shadow:0 0 12px rgba(251,191,36,0.6)!important;color:#180d02!important;font-weight:900!important;}');
+    window.cssAdd('.ck-pass-claim.prem-btn:not(:disabled):hover{transform:scale(1.08)!important;filter:brightness(1.15)!important;box-shadow:0 0 18px rgba(253,224,71,0.85)!important;}');
     window.cssAdd('.ck-pass-claim:disabled{opacity:.35;cursor:default;}');
     window.cssAdd('#ck-close-pass{width:100%;background:#b3283c;border:none;border-radius:10px;padding:11px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
     /* Стили Мутаций Планет */
@@ -503,6 +512,22 @@
     } else if (type === 'perm_gold') {
       FEAT.stats.permGoldBonus = (FEAT.stats.permGoldBonus || 0) + meta.val;
       if (window.ckToast) window.ckToast('НАГРАДА: +' + meta.val + '% дохода навсегда!');
+    } else if (type === 'clicks') {
+      CK.clicks = (CK.clicks || 0) + meta.val;
+      if (window.ckToast) window.ckToast('НАГРАДА: +' + (window.fmtNum ? window.fmtNum(meta.val) : meta.val) + ' кликов!');
+    } else if (type === 'mega_mult') {
+      if (meta.mult) CK.mult = (CK.mult || 1) + meta.mult;
+      if (window.__CKEX && meta.mega) window.__CKEX.megaCount = (window.__CKEX.megaCount || 0) + meta.mega;
+      if (window.ckToast) window.ckToast('НАГРАДА: +' + (meta.mega || 0) + ' МЕГА!');
+    } else if (type === 'super_reward') {
+      if (meta.mult) CK.mult = (CK.mult || 1) + meta.mult;
+      if (window.__CKEX && meta.superCnt) window.__CKEX.superCount = (window.__CKEX.superCount || 0) + meta.superCnt;
+      if (meta.permGold) FEAT.stats.permGoldBonus = (FEAT.stats.permGoldBonus || 0) + meta.permGold;
+      if (window.ckToast) window.ckToast('НАГРАДА: +' + meta.superCnt + ' СУПЕР!');
+    } else if (type === 'multi_reward') {
+      if (Array.isArray(meta.items)) {
+        meta.items.forEach(function (sub) { grantReward(sub.type, sub); });
+      }
     }
     if (window.sfxBuy) window.sfxBuy();
     if (window.ckSave) window.ckSave();
@@ -2245,9 +2270,12 @@
     });
   }
 
-  /* Блок 8: Сезонный Пропуск (30 Дней, Free и Premium) */
-  var SEASON_LEVELS_COUNT = 30;
-  var XP_PER_LEVEL = 1000;
+  /* Блок 8: Сезонный Пропуск (100 Уровней) */
+  var SEASON_LEVELS_COUNT = 100;
+
+  function getXpForLevel(lvl) {
+    return Math.floor(1200 + (lvl * 350) + Math.pow(lvl, 1.65) * 45);
+  }
 
   function initSeasonData() {
     FEAT.season = FEAT.season || {};
@@ -2258,38 +2286,140 @@
       FEAT.season.claimedFree = {};
       FEAT.season.claimedPrem = {};
     }
-    // Сброс сезона через 30 дней
-    var elapsed = Date.now() - FEAT.season.start;
-    if (elapsed > 30 * 86400 * 1000) {
-      FEAT.season.start = Date.now();
-      FEAT.season.xp = 0;
-      FEAT.season.premium = false;
-      FEAT.season.claimedFree = {};
-      FEAT.season.claimedPrem = {};
-      saveState();
+  }
+
+  function getSeasonLevelData() {
+    initSeasonData();
+    var currentXp = Number(FEAT.season.xp) || 0;
+    var lvl = 1;
+    while (lvl < SEASON_LEVELS_COUNT) {
+      var needed = getXpForLevel(lvl);
+      if (currentXp >= needed) {
+        currentXp -= needed;
+        lvl++;
+      } else {
+        break;
+      }
     }
+    var reqForNext = getXpForLevel(lvl);
+    return {
+      level: lvl,
+      curLevelXp: lvl >= SEASON_LEVELS_COUNT ? reqForNext : currentXp,
+      neededXp: reqForNext,
+      progressPct: lvl >= SEASON_LEVELS_COUNT ? 100 : Math.min(100, Math.floor((currentXp / reqForNext) * 100))
+    };
   }
 
   function getSeasonLevel() {
-    initSeasonData();
-    return Math.min(SEASON_LEVELS_COUNT, Math.floor(FEAT.season.xp / XP_PER_LEVEL) + 1);
+    return getSeasonLevelData().level;
   }
 
   function getSeasonRewards(lvl) {
-    var freeRew = { label: '+10K кликов', type: 'clicks', val: 10000 };
-    var premRew = { label: '+2x Множитель', type: 'mult', val: 2 };
+    var LOW_BOOSTS = ['frenzy', 'surge', 'novaflask', 'gold'];
+    var HIGH_BOOSTS = ['hyperion', 'voidflask', 'pstorm', 'chrono', 'abyss', 'supernova', 'singularity', 'aether', 'godtear'];
+    var BOOST_NAMES = {
+      frenzy: 'Frenzy', surge: 'Auto Surge', novaflask: 'Nova Flask', gold: 'Gold Rush',
+      hyperion: 'Hyperion Draft', voidflask: 'Void Elixir', pstorm: 'Photon Storm',
+      chrono: 'Chrono Field', abyss: 'Эликсир Бездны', supernova: 'Сверхновая',
+      singularity: 'Сингулярность', aether: 'Астральный Нектар', godtear: 'Слеза Демиурга'
+    };
+    var ITEM_NAMES = { shard: 'Осколок', core: 'Ядро', prism: 'Призма', nova: 'Нова', void: 'Пустота' };
 
-    if (lvl % 5 === 0) {
-      freeRew = { label: '1 Ядро', type: 'item', id: 'core', cnt: 1 };
-      premRew = { label: '1 Пустота', type: 'item', id: 'void', cnt: 1 };
-    } else if (lvl % 3 === 0) {
-      freeRew = { label: 'Gold Rush (15м)', type: 'boost', id: 'gold', dur: 900 };
-      premRew = { label: '+10x Множитель', type: 'mult', val: 10 };
-    } else if (lvl === 30) {
-      freeRew = { label: '3 Новы', type: 'item', id: 'nova', cnt: 3 };
-      premRew = { label: 'Слеза Демиурга', type: 'boost', id: 'godtear', dur: 180 };
+    if (lvl === 100) {
+      return {
+        free: { label: 'Пустота x3 + 500M кликов', type: 'multi_reward', items: [{ type: 'item', id: 'void', cnt: 3 }, { type: 'clicks', val: 5e8 }] },
+        prem: { label: 'Финал: 1 СУПЕР + 2 МЕГА + 10% дохода', type: 'multi_reward', items: [{ type: 'super_reward', mult: 0, superCnt: 1, permGold: 10 }, { type: 'mega_mult', mult: 0, mega: 2 }] }
+      };
     }
-    return { free: freeRew, prem: premRew };
+
+    if (lvl < 50) {
+      var mod = lvl % 5;
+      if (mod === 0) {
+        var chkClicks = Math.floor(8000 * Math.pow(1.06, lvl));
+        var premCores = Math.max(1, Math.floor(lvl / 15) + 1);
+        return {
+          free: { label: '+' + (window.fmtNum ? window.fmtNum(chkClicks) : chkClicks) + ' кликов', type: 'clicks', val: chkClicks },
+          prem: { label: '+' + premCores + ' ' + (premCores > 1 ? 'Ядра' : 'Ядро') + ' + 1% дохода', type: 'multi_reward', items: [{ type: 'item', id: 'core', cnt: premCores }, { type: 'perm_gold', val: 1 }] }
+        };
+      } else if (mod === 1) {
+        var sCnt = (lvl % 6 === 0) ? 2 : 1;
+        return {
+          free: { label: '+' + sCnt + ' Осколок', type: 'item', id: 'shard', cnt: sCnt },
+          prem: { label: 'Эликсир ' + BOOST_NAMES['gold'] + ' (4м) + 3 Осколка', type: 'multi_reward', items: [{ type: 'boost', id: 'gold', dur: 240 }, { type: 'item', id: 'shard', cnt: 3 }] }
+        };
+      } else if (mod === 2) {
+        var clkVal = Math.floor(3000 + (lvl * 400));
+        var premClk = clkVal * 3;
+        return {
+          free: { label: '+' + (window.fmtNum ? window.fmtNum(clkVal) : clkVal) + ' кликов', type: 'clicks', val: clkVal },
+          prem: { label: '+' + (window.fmtNum ? window.fmtNum(premClk) : premClk) + ' кликов + 2% дохода', type: 'multi_reward', items: [{ type: 'clicks', val: premClk }, { type: 'perm_gold', val: 2 }] }
+        };
+      } else if (mod === 3) {
+        var lbId = LOW_BOOSTS[lvl % LOW_BOOSTS.length];
+        var evenMinutes = (lvl % 2 === 0) ? 4 : 2;
+        var pBoostId = (lvl >= 25) ? 'hyperion' : 'novaflask';
+        return {
+          free: { label: 'Буст ' + BOOST_NAMES[lbId] + ' (' + evenMinutes + 'м)', type: 'boost', id: lbId, dur: evenMinutes * 60 },
+          prem: { label: 'Буст ' + BOOST_NAMES[pBoostId] + ' (6м) + 1 Ядро', type: 'multi_reward', items: [{ type: 'boost', id: pBoostId, dur: 360 }, { type: 'item', id: 'core', cnt: 1 }] }
+        };
+      } else {
+        var clkLow = Math.floor(1500 + (lvl * 250));
+        return {
+          free: { label: '+' + (window.fmtNum ? window.fmtNum(clkLow) : clkLow) + ' кликов', type: 'clicks', val: clkLow },
+          prem: { label: 'Буст ' + BOOST_NAMES['surge'] + ' (6м) + 2 Осколка', type: 'multi_reward', items: [{ type: 'boost', id: 'surge', dur: 360 }, { type: 'item', id: 'shard', cnt: 2 }] }
+        };
+      }
+    }
+
+    var highLvl = lvl - 50;
+    var hMod = lvl % 5;
+
+    if (lvl === 50) {
+      return {
+        free: { label: 'Рубеж 50: 1 Ядро и 5M кликов', type: 'multi_reward', items: [{ type: 'item', id: 'core', cnt: 1 }, { type: 'clicks', val: 5e6 }] },
+        prem: { label: 'Рубеж 50: 2 Призмы + 2 МЕГА + 5% дохода', type: 'multi_reward', items: [{ type: 'item', id: 'prism', cnt: 2 }, { type: 'mega_mult', mult: 0, mega: 2 }, { type: 'perm_gold', val: 5 }] }
+      };
+    }
+
+    if (hMod === 0) {
+      var rareItems = ['core', 'prism', 'nova', 'void'];
+      var rIdx = Math.min(3, Math.floor((lvl - 50) / 14));
+      var rItem = rareItems[rIdx];
+      var rCnt = (rItem === 'void' || rItem === 'nova') ? 1 : 2;
+      var premItem = (lvl >= 85) ? 'void' : (lvl >= 70 ? 'nova' : 'prism');
+      return {
+        free: { label: '+' + rCnt + ' ' + ITEM_NAMES[rItem], type: 'item', id: rItem, cnt: rCnt },
+        prem: { label: '+1 ' + ITEM_NAMES[premItem] + ' + 1 МЕГА + 3% дохода', type: 'multi_reward', items: [{ type: 'item', id: premItem, cnt: 1 }, { type: 'mega_mult', mult: 0, mega: 1 }, { type: 'perm_gold', val: 3 }] }
+      };
+    } else if (hMod === 1) {
+      var hbId = HIGH_BOOSTS[highLvl % HIGH_BOOSTS.length];
+      var evenMinHigh = 6 + ((highLvl % 4) * 2);
+      var premMin = 10 + ((highLvl % 3) * 4);
+      return {
+        free: { label: 'Буст ' + BOOST_NAMES[hbId] + ' (' + evenMinHigh + 'м)', type: 'boost', id: hbId, dur: evenMinHigh * 60 },
+        prem: { label: 'Эликсир ' + BOOST_NAMES['supernova'] + ' (' + premMin + 'м) + 4% дохода', type: 'multi_reward', items: [{ type: 'boost', id: 'supernova', dur: premMin * 60 }, { type: 'perm_gold', val: 4 }] }
+      };
+    } else if (hMod === 2) {
+      var bigClicks = Math.floor(2e6 * Math.pow(1.08, highLvl));
+      var premClicks = bigClicks * 3;
+      var pPrismCnt = Math.max(1, Math.floor(highLvl / 18) + 1);
+      return {
+        free: { label: '+' + (window.fmtNum ? window.fmtNum(bigClicks) : bigClicks) + ' кликов', type: 'clicks', val: bigClicks },
+        prem: { label: '+' + pPrismCnt + ' ' + (pPrismCnt > 1 ? 'Призмы' : 'Призма') + ' + ' + (window.fmtNum ? window.fmtNum(premClicks) : premClicks) + ' кликов', type: 'multi_reward', items: [{ type: 'item', id: 'prism', cnt: pPrismCnt }, { type: 'clicks', val: premClicks }] }
+      };
+    } else if (hMod === 3) {
+      var evenMinSing = (lvl % 2 === 0) ? 8 : 6;
+      return {
+        free: { label: '+2 Ядра', type: 'item', id: 'core', cnt: 2 },
+        prem: { label: 'Нектар ' + BOOST_NAMES['singularity'] + ' (12м) + 1 Нова', type: 'multi_reward', items: [{ type: 'boost', id: 'singularity', dur: 720 }, { type: 'item', id: 'nova', cnt: 1 }] }
+      };
+    } else {
+      var synthItem = (lvl >= 80) ? 'nova' : 'core';
+      return {
+        free: { label: '+1 ' + ITEM_NAMES[synthItem], type: 'item', id: synthItem, cnt: 1 },
+        prem: { label: '+1 Пустота + 1 МЕГА', type: 'multi_reward', items: [{ type: 'item', id: 'void', cnt: 1 }, { type: 'mega_mult', mult: 0, mega: 1 }] }
+      };
+    }
   }
 
   function buildSeasonPassUI(acts) {
@@ -2305,7 +2435,7 @@
 
     var box = document.createElement('div');
     box.id = 'ck-pass-box';
-    box.innerHTML = '<h2>СЕЗОННЫЙ ПРОПУСК (30 ДНЕЙ)</h2>' +
+    box.innerHTML = '<h2>СЕЗОННЫЙ ПРОПУСК (100 УРОВНЕЙ)</h2>' +
       '<div id="ck-pass-head" class="ck-pass-header"></div>' +
       '<div id="ck-pass-list" class="ck-pass-levels"></div>';
 
@@ -2329,31 +2459,74 @@
     var headEl = box.querySelector('#ck-pass-head');
     var listEl = box.querySelector('#ck-pass-list');
 
-    var curLvl = getSeasonLevel();
-    var curXp = FEAT.season.xp % XP_PER_LEVEL;
-    var daysLeft = Math.max(0, 30 - Math.floor((Date.now() - FEAT.season.start) / (86400 * 1000)));
+    var lvlData = getSeasonLevelData();
+    var curLvl = lvlData.level;
+    var curXp = lvlData.curLevelXp;
+    var neededXp = lvlData.neededXp;
+    var daysLeft = Math.max(0, 45 - Math.floor((Date.now() - FEAT.season.start) / (86400 * 1000)));
     var hasPrem = !!FEAT.season.premium;
-    var availableMega = getAvailableMegaSP();
+    var availableMega = (window.__CKEX && window.__CKEX.megaCount) ? window.__CKEX.megaCount : 0;
+
+    var hasAnyUnclaimed = false;
+    for (var cl = 1; cl <= curLvl; cl++) {
+      if (!FEAT.season.claimedFree[cl]) { hasAnyUnclaimed = true; break; }
+      if (hasPrem && !FEAT.season.claimedPrem[cl]) { hasAnyUnclaimed = true; break; }
+    }
 
     headEl.innerHTML = '<div style="flex:1;min-width:200px;">' +
-        '<div style="font-size:13px;font-weight:800;color:#fde047;">Уровень ' + curLvl + ' / 30 · Осталось ' + daysLeft + ' дн.</div>' +
-        '<div style="font-size:11px;color:#cbd5e1;margin-top:2px;">XP: ' + curXp + ' / ' + XP_PER_LEVEL + ' (даётся за клики и реберфы)</div>' +
-        '<div class="ck-pass-xp-bar"><div class="ck-pass-xp-fill" style="width:' + Math.min(100, (curXp / XP_PER_LEVEL) * 100) + '%"></div></div>' +
+        '<div style="font-size:13px;font-weight:800;color:#fde047;">Уровень ' + curLvl + ' / 100 · Осталось ' + daysLeft + ' дн.</div>' +
+        '<div style="font-size:11px;color:#cbd5e1;margin-top:2px;">Опыт: ' + (window.fmtNum ? window.fmtNum(curXp) : curXp) + ' / ' + (window.fmtNum ? window.fmtNum(neededXp) : neededXp) + ' XP (прогрессивная сложность)</div>' +
+        '<div class="ck-pass-xp-bar"><div class="ck-pass-xp-fill" style="width:' + lvlData.progressPct + '%"></div></div>' +
       '</div>' +
-      '<button id="ck-pass-prem-btn" class="ck-pass-buy-prem" ' + (hasPrem ? 'disabled' : '') + '>' +
-        (hasPrem ? '✓ ПРЕМИУМ АКТИВЕН' : 'КУПИТЬ ПРЕМИУМ (3 МЕГА)') +
-      '</button>';
+      '<div class="ck-pass-head-actions">' +
+        '<button id="ck-pass-claim-all" ' + (hasAnyUnclaimed ? '' : 'disabled') + '>ЗАБРАТЬ ВСЕ</button>' +
+        '<button id="ck-pass-prem-btn" class="ck-pass-buy-prem" ' + (hasPrem ? 'disabled' : '') + '>' +
+          (hasPrem ? 'ПРЕМИУМ АКТИВЕН' : 'КУПИТЬ ПРЕМИУМ (5 МЕГА)') +
+        '</button>' +
+      '</div>';
 
     var premBtn = headEl.querySelector('#ck-pass-prem-btn');
     premBtn.addEventListener('click', function () {
-      if (hasPrem || availableMega < 3) return;
-      FEAT.megaSpentOnSkills = (Number(FEAT.megaSpentOnSkills) || 0) + 3;
+      if (hasPrem || availableMega < 5) {
+        if (!hasPrem && window.ckToast) window.ckToast('Нужно 5 МЕГА очков!');
+        return;
+      }
+      if (window.__CKEX) window.__CKEX.megaCount -= 5;
       FEAT.season.premium = true;
       saveState();
       if (window.sfxBuy) window.sfxBuy();
       if (window.ckToast) window.ckToast('ПРЕМИУМ ПРОПУСК АКТИВИРОВАН!');
       renderSeasonPassModal(box);
     });
+
+    var claimAllBtn = headEl.querySelector('#ck-pass-claim-all');
+    if (claimAllBtn) {
+      claimAllBtn.addEventListener('click', function () {
+        var claimedCount = 0;
+        var origToast = window.ckToast;
+        window.ckToast = null;
+        for (var lk = 1; lk <= curLvl; lk++) {
+          var rewsObj = getSeasonRewards(lk);
+          if (!FEAT.season.claimedFree[lk]) {
+            FEAT.season.claimedFree[lk] = true;
+            grantReward(rewsObj.free.type, rewsObj.free);
+            claimedCount++;
+          }
+          if (hasPrem && !FEAT.season.claimedPrem[lk]) {
+            FEAT.season.claimedPrem[lk] = true;
+            grantReward(rewsObj.prem.type, rewsObj.prem);
+            claimedCount++;
+          }
+        }
+        window.ckToast = origToast;
+        saveState();
+        if (claimedCount > 0) {
+          if (window.sfxBuy) window.sfxBuy();
+          if (window.ckToast) window.ckToast('Собрано наград: ' + claimedCount);
+        }
+        renderSeasonPassModal(box);
+      });
+    }
 
     var rowsH = '';
     for (var l = 1; l <= SEASON_LEVELS_COUNT; l++) {
@@ -2364,7 +2537,7 @@
 
       var isCur = curLvl === l;
       rowsH += '<div class="ck-pass-row ' + (isCur ? 'current-lvl' : '') + '">' +
-        '<div class="ck-pass-lvl-badge" style="' + (isCur ? 'color:#ffd76a;text-shadow:0 0 10px #fbbf24;transform:scale(1.1);' : '') + '">УР.' + l + (isCur ? ' ★' : '') + '</div>' +
+        '<div class="ck-pass-lvl-badge">УР.' + l + '</div>' +
         '<div class="ck-pass-reward-card">' +
           '<span>' + rews.free.label + '</span>' +
           '<button class="ck-pass-claim" data-claim-free="' + l + '" ' + ((!isUnlocked || isFreeClaimed) ? 'disabled' : '') + '>' +
@@ -2372,8 +2545,8 @@
           '</button>' +
         '</div>' +
         '<div class="ck-pass-reward-card prem">' +
-          '<span style="color:#fde047;">' + rews.prem.label + '</span>' +
-          '<button class="ck-pass-claim" data-claim-prem="' + l + '" ' + ((!isUnlocked || !hasPrem || isPremClaimed) ? 'disabled' : '') + '>' +
+          '<div class="ck-pass-prem-text"><span class="ck-pass-prem-badge">VIP</span><span>' + rews.prem.label + '</span></div>' +
+          '<button class="ck-pass-claim prem-btn" data-claim-prem="' + l + '" ' + ((!isUnlocked || !hasPrem || isPremClaimed) ? 'disabled' : '') + '>' +
             (isPremClaimed ? '✓' : 'ВЗЯТЬ') +
           '</button>' +
         '</div>' +
@@ -2733,15 +2906,7 @@
     var discName = document.getElementById('ck-disc-name');
     if (discName) {
       var tag = discName.querySelector('.ck-prestige-tag');
-      if (!tag) {
-        tag = document.createElement('div');
-        tag.className = 'ck-prestige-tag';
-        discName.appendChild(tag);
-      }
-      tag.textContent = tier.name;
-      tag.style.color = tier.tagCol;
-      tag.style.background = tier.bgCol;
-      tag.style.border = '1px solid ' + tier.tagCol;
+      if (tag && tag.parentNode) tag.parentNode.removeChild(tag);
     }
   }
 

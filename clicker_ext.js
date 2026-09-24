@@ -195,7 +195,7 @@ function gkSpd(){return 1+GK.spd*0.25;}
 var nucBtn=document.createElement('button');nucBtn.id='ck-nucbtn';nucBtn.textContent='ЯДРА';
 var acts3=document.getElementById('ck-actions');
 if(acts3)acts3.appendChild(nucBtn);
-function nucOk(){return (window.CK.rebirths||0)>=50;}
+function nucOk(){return !!(window.CK && (window.CK.rebirths||0)>=50);}
 setInterval(function(){nucBtn.disabled=!nucOk();},900);nucBtn.disabled=!nucOk();
 var nuc=document.createElement('div');nuc.id='ck-nuc';nuc.className='clicker-ui hidden';
 var nbox=document.createElement('div');nbox.id='ck-nuc-box';

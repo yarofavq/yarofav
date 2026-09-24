@@ -226,7 +226,7 @@ var CK_COLS = [
 ['#fff6b8', '#ffc233', '#8a5a00'],
 ['#e9d5ff', '#9333ea', '#3b0764']
 ];
-var CK = { clicks: 0, mult: 1, rebirths: 0, lv: [], laser: false, earth: false, gold: false, critM: false, warp: false, boost: {}, inv: [], mc: 0 };
+var CK = { clicks: 0, mult: 1, rebirths: 0, lv: [], laser: false, earth: false, gold: false, critM: false, warp: false, boost: {}, inv: [], mc: 0, bossCoins: 0, bHpLv: 0, bDmgLv: 0, bShieldLv: 0, bVampLv: 0, bCritLv: 0 };
 var CK_UPG = [];
 var i;
 for (i = 0; i < 360; i++) CK.lv.push(0);
@@ -318,7 +318,7 @@ function ckSave() {
   try {
     localStorage.setItem(CK_KEY, JSON.stringify({
       v: 1, clicks: CK.clicks, mult: CK.mult, rebirths: CK.rebirths,
-      lv: CK.lv, laser: CK.laser, earth: CK.earth, gold: CK.gold, critM: CK.critM, warp: CK.warp, boost: CK.boost, inv: CK.inv, mc: CK.mc, offVault: !!CK.offVault, ts: Date.now()
+      lv: CK.lv, laser: CK.laser, earth: CK.earth, gold: CK.gold, critM: CK.critM, warp: CK.warp, boost: CK.boost, inv: CK.inv, mc: CK.mc, offVault: !!CK.offVault, bossCoins: CK.bossCoins, bHpLv: CK.bHpLv, bDmgLv: CK.bDmgLv, bShieldLv: CK.bShieldLv, bVampLv: CK.bVampLv, bCritLv: CK.bCritLv, ts: Date.now()
     }));
   } catch (e) {}
   ckLbPush(false);
@@ -339,6 +339,12 @@ function ckLoad() {
   CK.inv = (raw.inv && raw.inv.length) ? raw.inv.slice(0, 2000) : [];
   CK.mc = Number(raw.mc) || 0;
   CK.offVault = !!raw.offVault;
+  CK.bossCoins = Number(raw.bossCoins) || 0;
+  CK.bHpLv = Number(raw.bHpLv) || 0;
+  CK.bDmgLv = Number(raw.bDmgLv) || 0;
+  CK.bShieldLv = Number(raw.bShieldLv) || 0;
+  CK.bVampLv = Number(raw.bVampLv) || 0;
+  CK.bCritLv = Number(raw.bCritLv) || 0;
   if (raw.lv && raw.lv.length) {
     for (var x = 0; x < 360 && x < raw.lv.length; x++) CK.lv[x] = Number(raw.lv[x]) || 0;
   }
@@ -362,7 +368,10 @@ cssAdd('@keyframes ckPulse{0%,100%{box-shadow:0 0 14px #3a86ff;}50%{box-shadow:0
 cssAdd('.clicker-ui.hidden{display:none!important;}');
 cssAdd('#clicker-overlay{position:fixed;inset:0;z-index:9450;background:rgba(2,2,14,.9);display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;}');
 cssAdd('#clicker-panel{width:min(1060px,96vw);height:min(640px,92vh);background:linear-gradient(160deg,#0b1026,#141a3a);border:2px solid #3a86ff;border-radius:18px;display:flex;overflow:hidden;}');
-cssAdd('#clicker-left{flex:1.35;display:flex;flex-direction:column;align-items:center;padding:14px;gap:10px;min-width:0;}');
+cssAdd('#clicker-left{flex:1.35;display:flex;flex-direction:column;align-items:center;padding:14px 10px;gap:10px;min-width:0;height:100%;max-height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;box-sizing:border-box;}');
+cssAdd('#clicker-left::-webkit-scrollbar{width:6px;}');
+cssAdd('#clicker-left::-webkit-scrollbar-track{background:rgba(8,12,30,0.5);border-radius:10px;}');
+cssAdd('#clicker-left::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#38bdf8,#818cf8);border-radius:10px;box-shadow:0 0 8px rgba(56,189,248,0.5);}');
 cssAdd('#clicker-right{width:300px;border-left:2px solid #26306a;background:rgba(0,0,20,.5);display:flex;flex-direction:column;}');
 cssAdd('#clicker-right h3{margin:0;padding:10px;color:#9fb8ff;text-align:center;font-size:15px;border-bottom:1px solid #26306a;}');
 cssAdd('#ck-uplist{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;}');
@@ -380,7 +389,7 @@ cssAdd('#ck-disc-name{pointer-events:none;color:#fff;font-weight:bold;font-size:
 cssAdd('#ck-prbar{width:86%;height:16px;border-radius:9px;background:#0a0f2a;border:1px solid #33407f;overflow:hidden;}');
 cssAdd('#ck-prfill{height:100%;width:0%;background:linear-gradient(90deg,#37e08a,#3a86ff,#b04dff);transition:width .2s;}');
 cssAdd('#ck-stats{color:#cfe0ff;font-size:14px;text-align:center;line-height:1.55;}');
-cssAdd('.ck-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}');
+cssAdd('.ck-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;flex-shrink:0;}');
 cssAdd('.ck-actions button{font-family:inherit;font-weight:bold;border:none;border-radius:9px;padding:9px 14px;cursor:pointer;color:#fff;}');
 cssAdd('#ck-shopbtn{background:linear-gradient(135deg,#c7921e,#8a5a00);}');
 cssAdd('.ck-float.crit{color:#ffd23f;font-size:21px;text-shadow:0 0 10px #ffb700;}');
@@ -446,8 +455,103 @@ cssAdd('#ck-lbbtn{background:linear-gradient(135deg,#5eead4,#38bdf8 50%,#2563eb)
 cssAdd('@keyframes ckLbF{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
 cssAdd('#ck-invbtn{background:linear-gradient(135deg,#f0abfc,#c026d3 50%,#7e22ce);background-size:200% 200%;animation:ckInvF 2.9s ease infinite;box-shadow:0 0 16px rgba(210,110,255,.5),inset 0 1px 0 rgba(255,255,255,.3);}');
 cssAdd('@keyframes ckInvF{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}');
-cssAdd('#ck-boostbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}');
-cssAdd('.ck-bchip{border:1px solid;border-radius:20px;padding:4px 10px;font-size:11.5px;font-weight:bold;background:rgba(0,0,0,.35);}');
+cssAdd('#ck-boostbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;max-width:92%;margin:0 auto;}');
+cssAdd('.ck-bchip{border:1px solid;border-radius:20px;padding:4px 10px;font-size:11.5px;font-weight:bold;background:rgba(0,0,0,.35);transition:all .2s;}');
+cssAdd('.ck-boss-battle-wrap{display:flex;flex-direction:column;align-items:center;width:100%;gap:6px;margin-bottom:8px;}');
+cssAdd('.ck-hp-row{display:flex;justify-content:space-between;width:86%;font-size:11px;font-weight:900;letter-spacing:1px;font-family:Consolas,monospace;}');
+cssAdd('.ck-hp-bar{width:86%;height:10px;background:rgba(10,15,30,.85);border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 0 6px rgba(0,0,0,.8);}');
+cssAdd('#ck-boss-escape-btn{background:linear-gradient(135deg,#991b1b 0%,#ef4444 50%,#7f1d1d 100%);border:2px solid #fca5a5;border-radius:24px;color:#fff;font-family:Consolas,monospace;font-size:12px;font-weight:900;letter-spacing:2px;padding:8px 26px;cursor:pointer;margin:10px auto 4px;box-shadow:0 0 20px rgba(239,68,68,0.7),inset 0 0 8px rgba(255,255,255,0.4);transition:all .18s;outline:none;display:inline-block;text-transform:uppercase;}');
+cssAdd('#ck-boss-escape-btn:hover{transform:translateY(-2px) scale(1.05);filter:brightness(1.25);box-shadow:0 0 32px rgba(239,68,68,1),inset 0 0 12px #fff;}');
+cssAdd('#ck-boss-escape-btn:active{transform:scale(0.94);}');
+cssAdd('.ck-boss-explode-anim{animation:ckBossSuckIn 1.5s cubic-bezier(0.3,0,0.2,1) forwards!important;pointer-events:none!important;}');
+cssAdd('@keyframes ckBossSuckIn{0%{transform:scale(1);filter:brightness(1.5);}20%{transform:scale(1.15) rotate(-5deg);filter:brightness(3);}35%{transform:scale(0.9) translate(60px,-10px) rotate(45deg);opacity:0.9;}70%{transform:scale(0.35) translate(160px,-20px) rotate(380deg) skewX(25deg);opacity:0.6;}100%{transform:scale(0) translate(210px,-25px) rotate(720deg);opacity:0;}}');
+cssAdd('.ck-blackhole-rift{position:absolute;top:50%;left:calc(50% + 240px);width:150px;height:150px;transform:translate(-50%,-50%);pointer-events:none;z-index:95;animation:ckBhSpawn 1.65s ease-in-out forwards;}');
+cssAdd('.ck-bh-core-black{position:absolute;inset:28px;border-radius:50%;background:#020005;box-shadow:0 0 45px var(--r-col,#c084fc),0 0 90px var(--r-glow,#f43f5e),inset 0 0 25px #000;z-index:4;}');
+cssAdd('.ck-bh-accretion{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;border-top:6px solid var(--r-t1,#fb7185);border-right:6px solid var(--r-t2,#c084fc);border-bottom:6px solid var(--r-t3,#38bdf8);filter:blur(1.5px) drop-shadow(0 0 22px var(--r-col,#e879f9));animation:ckBhSpin 0.35s linear infinite;}');
+cssAdd('.ck-bh-halo{position:absolute;inset:-18px;border-radius:50%;background:radial-gradient(circle,var(--r-halo,rgba(192,132,252,0.3)) 25%,transparent 80%);animation:ckBhPulse 1s infinite alternate;}');
+cssAdd('.rift-ice{--r-col:#38bdf8;--r-glow:#0284c7;--r-t1:#bae6fd;--r-t2:#38bdf8;--r-t3:#0369a1;--r-halo:rgba(56,189,248,0.45);}');
+cssAdd('.rift-ion{--r-col:#2dd4bf;--r-glow:#0d9488;--r-t1:#99f6e4;--r-t2:#2dd4bf;--r-t3:#115e59;--r-halo:rgba(45,212,191,0.45);}');
+cssAdd('.rift-gold{--r-col:#facc15;--r-glow:#ca8a04;--r-t1:#fef08a;--r-t2:#eab308;--r-t3:#854d0e;--r-halo:rgba(250,204,21,0.5);}');
+cssAdd('.rift-storm{--r-col:#fb923c;--r-glow:#ea580c;--r-t1:#ffedd5;--r-t2:#f97316;--r-t3:#9a3412;--r-halo:rgba(251,146,60,0.5);}');
+cssAdd('.rift-blood{--r-col:#f43f5e;--r-glow:#dc2626;--r-t1:#ffe4e6;--r-t2:#ef4444;--r-t3:#881337;--r-halo:rgba(244,63,94,0.55);}');
+cssAdd('.rift-bio{--r-col:#34d399;--r-glow:#059669;--r-t1:#a7f3d0;--r-t2:#10b981;--r-t3:#064e3b;--r-halo:rgba(52,211,153,0.5);}');
+cssAdd('.rift-acid{--r-col:#eab308;--r-glow:#84cc16;--r-t1:#fef08a;--r-t2:#a3e635;--r-t3:#4d7c0f;--r-halo:rgba(163,230,53,0.5);}');
+cssAdd('.rift-metal{--r-col:#cbd5e1;--r-glow:#64748b;--r-t1:#ffffff;--r-t2:#94a3b8;--r-t3:#334155;--r-halo:rgba(203,213,225,0.45);}');
+cssAdd('.rift-sun{--r-col:#f97316;--r-glow:#ef4444;--r-t1:#ffedd5;--r-t2:#fde047;--r-t3:#dc2626;--r-halo:rgba(249,115,22,0.6);}');
+cssAdd('.rift-singularity{--r-col:#c084fc;--r-glow:#9333ea;--r-t1:#f3e8ff;--r-t2:#ec4899;--r-t3:#3b0764;--r-halo:rgba(192,132,252,0.6);}');
+cssAdd('@keyframes ckBhPulse{0%{transform:scale(0.92);opacity:0.6;}100%{transform:scale(1.15);opacity:1;}}');
+cssAdd('@keyframes ckBhSpin{0%{transform:rotate(0deg) scaleY(0.65);}100%{transform:rotate(360deg) scaleY(0.65);}}');
+cssAdd('@keyframes ckBhSpawn{0%{transform:translate(-50%,-50%) scale(0);opacity:0;}18%{transform:translate(-50%,-50%) scale(1.2);opacity:1;}82%{transform:translate(-50%,-50%) scale(1);opacity:1;}100%{transform:translate(-50%,-50%) scale(0);opacity:0;}}');
+cssAdd('#ck-boss-shop-btn{font-family:Courier New,monospace;font-size:13px;font-weight:bold;letter-spacing:1px;background:linear-gradient(135deg,#e11d48,#7c3aed 50%,#2563eb);box-shadow:0 0 16px rgba(225,29,72,.5);border:1px solid rgba(255,255,255,.3);}');
+cssAdd('#ck-boss-shop-modal{position:fixed;inset:0;z-index:99999;background:rgba(2,2,14,.92);display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;}');
+cssAdd('#ck-boss-shop-box{width:min(660px,95vw);max-height:88vh;overflow-y:auto;background:linear-gradient(175deg,#12081f,#090312);border:2px solid #a855f7;border-radius:20px;padding:22px;color:#fff;box-sizing:border-box;box-shadow:0 30px 95px rgba(0,0,0,.9),0 0 45px rgba(168,85,247,.35);}');
+cssAdd('#ck-boss-shop-box h2{margin:0 0 12px;text-align:center;letter-spacing:2px;font-size:20px;font-weight:bold;color:#fde047;}');
+cssAdd('.ck-bshop-wallet{background:rgba(30,12,50,.6);border:1px solid #7c3aed;border-radius:12px;padding:10px 16px;text-align:center;font-size:13px;font-weight:bold;color:#dfe6ff;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;}');
+cssAdd('.ck-bshop-wallet b{color:#ffd76a;font-size:16px;}');
+cssAdd('.ck-bshop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:14px;}');
+cssAdd('.ck-bshop-card{background:#111634;border:1px solid rgba(168,85,247,.4);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;transition:all .18s;}');
+cssAdd('.ck-bshop-card:hover{border-color:#e879f9;box-shadow:0 6px 20px rgba(168,85,247,.3);transform:translateY(-2px);}');
+cssAdd('.ck-bshop-title{font-size:13px;font-weight:bold;color:#ffd76a;letter-spacing:.8px;text-transform:uppercase;}');
+cssAdd('.ck-bshop-desc{font-size:11.5px;color:#cbd5e1;line-height:1.4;}');
+cssAdd('.ck-bshop-stat{font-size:11.5px;color:#93c5fd;font-weight:bold;}');
+cssAdd('.ck-bshop-btn{background:linear-gradient(135deg,#ec4899,#8b5cf6);border:none;border-radius:9px;padding:9px 12px;font-weight:bold;font-size:12px;color:#fff;cursor:pointer;font-family:inherit;letter-spacing:.6px;transition:all .16s;}');
+cssAdd('.ck-bshop-btn:hover:not(:disabled){filter:brightness(1.15);transform:scale(1.02);box-shadow:0 0 16px rgba(236,72,153,.5);}');
+cssAdd('.ck-bshop-btn:disabled{opacity:.4;cursor:default;filter:grayscale(1);}');
+cssAdd('#ck-close-bshop{width:100%;background:#b3283c;border:none;border-radius:10px;padding:11px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
+cssAdd('.ck-debris-item{position:absolute;pointer-events:none;z-index:96;will-change:transform,opacity;animation:ckDebrisVortex 1.55s cubic-bezier(0.18,0.85,0.22,1) forwards;}');
+cssAdd('@keyframes ckDebrisVortex{0%{transform:translate(0,0) scale(1) rotate(0deg);opacity:1;}25%{transform:translate(var(--bx),var(--by)) scale(1.3) rotate(var(--br));opacity:1;}60%{transform:translate(calc(var(--bx)*0.35 + 170px),calc(var(--by)*0.35 - 20px)) scale(0.65) rotate(calc(var(--br)*2));opacity:0.85;}100%{transform:translate(240px,-20px) scale(0) rotate(calc(var(--br)*4));opacity:0;}}');
+cssAdd('.debris-fang{width:11px;height:18px;background:linear-gradient(180deg,#fff,#ffd76a 40%,#ef4444);clip-path:polygon(50% 100%,0 0,100% 0);filter:drop-shadow(0 0 6px #ff3344);}');
+cssAdd('.debris-crystal{width:14px;height:20px;background:linear-gradient(135deg,#fff,#fde047 35%,#a855f7 85%);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);box-shadow:0 0 12px #fde047;}');
+cssAdd('.debris-magma{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle,#ffffff,#ff2233 60%,#450a0a);box-shadow:0 0 14px #ff2233;}');
+cssAdd('.debris-horn{width:15px;height:28px;background:linear-gradient(180deg,#fff,#ef4444 30%,#180306);clip-path:polygon(30% 0%,90% 40%,60% 100%,0% 70%);filter:drop-shadow(0 0 8px #dc2626);}');
+cssAdd('.ck-hp-fill-player{height:100%;background:linear-gradient(90deg,#10b981,#34d399);transition:width .15s;}');
+cssAdd('.ck-hp-fill-boss{height:100%;background:linear-gradient(90deg,#ef4444,#dc2626);transition:width .15s;}');
+cssAdd('.ck-boss-disc{background:radial-gradient(circle at 35% 30%,#ff7b7b 0%,#ff2a2a 20%,#b91c1c 45%,#450a0a 72%,#050002 100%)!important;border:3.5px solid #ff2233!important;box-shadow:0 0 80px #dc2626,0 0 160px rgba(239,68,68,0.8),inset -20px -26px 65px #000,inset 16px 16px 40px rgba(255,255,255,0.5)!important;animation:ckBossPulse 1.6s infinite alternate!important;overflow:visible!important;}');
+cssAdd('.ck-boss-disc::before{display:none!important;}');
+cssAdd('@keyframes ckBossPulse{0%{filter:drop-shadow(0 0 25px #dc2626) brightness(1);transform:scale(1);}100%{filter:drop-shadow(0 0 65px #ff2233) brightness(1.28);transform:scale(1.045);}}');
+cssAdd('.ck-boss-face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:10;animation:ckBossBreathe 2.4s ease-in-out infinite alternate;}');
+cssAdd('@keyframes ckBossBreathe{0%{transform:scale(0.96) translateY(3px);}100%{transform:scale(1.04) translateY(-4px);}}');
+cssAdd('.ck-boss-corona{position:absolute;inset:-36px;border-radius:50%;background:radial-gradient(circle,rgba(255,68,68,0.45) 30%,rgba(220,38,38,0.25) 60%,transparent 80%);animation:ckBossCorona 1.4s ease-in-out infinite alternate;pointer-events:none;}');
+cssAdd('@keyframes ckBossCorona{0%{transform:scale(0.92);opacity:0.7;}100%{transform:scale(1.16);opacity:1;filter:hue-rotate(-20deg);}}');
+cssAdd('.ck-boss-cracks{position:absolute;inset:10px;border-radius:50%;background:radial-gradient(circle at 50% 50%,transparent 40%,rgba(254,240,138,0.15) 70%,rgba(239,68,68,0.3) 100%);pointer-events:none;}');
+cssAdd('.ck-boss-horns-outer{position:absolute;top:-68px;width:205px;height:96px;display:flex;justify-content:space-between;pointer-events:none;z-index:2;}');
+cssAdd('.ck-boss-horn-lg{position:relative;width:40px;height:105px;background:linear-gradient(180deg,#fff 0%,#ff3344 18%,#b91c1c 50%,#450a0a 82%,#140204 100%);clip-path:polygon(50% 0%,96% 28%,100% 75%,75% 100%,22% 95%,0% 68%,8% 25%);filter:drop-shadow(0 0 20px #ff2233);box-shadow:inset 0 0 12px #fff;}');
+cssAdd('.ck-boss-horn-lg::before{content:"";position:absolute;top:15%;left:20%;right:20%;height:45%;background:linear-gradient(180deg,#ffd76a,transparent);clip-path:polygon(50% 0%,100% 100%,0% 100%);opacity:0.9;filter:drop-shadow(0 0 4px #ffd76a);}');
+cssAdd('.ck-boss-horn-lg.left{transform:rotate(-42deg) scaleX(-1);}');
+cssAdd('.ck-boss-horn-lg.right{transform:rotate(42deg);}');
+cssAdd('.ck-boss-horns-inner{position:absolute;top:-46px;width:115px;height:60px;display:flex;justify-content:space-between;pointer-events:none;z-index:3;}');
+cssAdd('.ck-boss-horn-sm{width:22px;height:62px;background:linear-gradient(180deg,#fff 0%,#ffd76a 22%,#f97316 52%,#7f1d1d 100%);clip-path:polygon(50% 0%,100% 35%,80% 100%,20% 100%,0% 35%);filter:drop-shadow(0 0 15px #f97316);}');
+cssAdd('.ck-boss-horn-sm.left{transform:rotate(-22deg) scaleX(-1);}');
+cssAdd('.ck-boss-horn-sm.right{transform:rotate(22deg);}');
+cssAdd('.ck-boss-crown{position:absolute;top:-12px;width:82px;height:28px;background:linear-gradient(180deg,#ffffff,#fde047 40%,#dc2626);clip-path:polygon(0% 100%,14% 15%,32% 65%,50% 0%,68% 65%,86% 15%,100% 100%);filter:drop-shadow(0 0 15px #ffd76a);z-index:4;}');
+cssAdd('.ck-boss-rune{position:absolute;top:18px;width:24px;height:32px;background:linear-gradient(180deg,#fff,#ffd76a 30%,#ef4444 85%);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);box-shadow:0 0 25px #ffd76a,0 0 50px #dc2626;animation:ckRunePulse 0.85s infinite alternate;z-index:5;}');
+cssAdd('@keyframes ckRunePulse{0%{transform:scale(0.85);filter:brightness(1);}100%{transform:scale(1.28);filter:brightness(1.7);}}');
+cssAdd('.ck-boss-brows{display:flex;gap:44px;margin-top:22px;z-index:4;}');
+cssAdd('.ck-boss-brow{width:48px;height:12px;background:linear-gradient(180deg,#ff5252,#7f1d1d);border-radius:6px;box-shadow:0 0 18px #dc2626;}');
+cssAdd('.ck-boss-brow.left{transform:rotate(26deg);}');
+cssAdd('.ck-boss-brow.right{transform:rotate(-26deg);}');
+cssAdd('.ck-boss-eyes{display:flex;gap:46px;margin-top:6px;position:relative;z-index:4;}');
+cssAdd('.ck-boss-eye{width:44px;height:28px;background:radial-gradient(circle at 50% 50%,#550c0c,#050002);border:2.5px solid #ff2233;box-shadow:0 0 28px #ef4444, inset 0 0 16px #f87171;position:relative;display:flex;align-items:center;justify-content:center;animation:ckBossBlink 4.2s infinite;overflow:hidden;}');
+cssAdd('.ck-boss-eye.left{border-radius:65% 35% 65% 35%;transform:rotate(15deg);}');
+cssAdd('.ck-boss-eye.right{border-radius:35% 65% 35% 65%;transform:rotate(-15deg);}');
+cssAdd('.ck-boss-pupil{width:9px;height:24px;background:linear-gradient(180deg,#ffffff,#fde047 35%,#ef4444 90%);border-radius:50%;box-shadow:0 0 18px #fde047;position:relative;will-change:transform;pointer-events:none;}');
+cssAdd('.ck-boss-eye-glow{position:absolute;bottom:-10px;width:38px;height:16px;background:radial-gradient(ellipse at center,#dc2626,transparent 70%);filter:blur(3px);opacity:0.9;}');
+cssAdd('.ck-boss-mouth{width:114px;height:48px;border:3px solid #ff1a2a;border-radius:12px 12px 50px 50px;background:radial-gradient(ellipse at 50% 25%,#991b1b 0%,#200407 65%,#000 100%);margin-top:14px;box-shadow:0 0 35px rgba(220,38,38,0.9), inset 0 0 25px #000;position:relative;overflow:hidden;animation:ckBossMouthSnap 3.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;transform-origin:top center;z-index:4;}');
+cssAdd('@keyframes ckBossMouthSnap{0%,68%,100%{height:48px;transform:translateY(0) scaleY(1);}70%{height:56px;transform:translateY(-2px) scaleY(1.15);}72%{height:26px;transform:translateY(3px) scaleY(0.65);}74%{height:36px;transform:translateY(0) scaleY(0.85);}75.5%{height:24px;transform:translateY(3px) scaleY(0.6);}77.5%{height:34px;transform:translateY(0) scaleY(0.8);}79%{height:24px;transform:translateY(3px) scaleY(0.6);}82%{height:44px;transform:translateY(1px) scaleY(0.92);}86%{height:48px;transform:translateY(0) scaleY(1);}}');
+cssAdd('.ck-boss-teeth-top{position:absolute;top:0;left:6px;right:6px;height:16px;display:flex;justify-content:space-around;align-items:flex-start;z-index:3;}');
+cssAdd('.ck-boss-teeth-bot{position:absolute;bottom:0;left:8px;right:8px;height:18px;display:flex;justify-content:space-around;align-items:flex-end;z-index:3;}');
+cssAdd('.ck-boss-fang{width:9px;height:15px;background:linear-gradient(180deg,#ffffff 0%,#fde047 30%,#ea580c 75%,#7f1d1d 100%);clip-path:polygon(50% 100%, 0% 0%, 100% 0%);filter:drop-shadow(0 0 5px rgba(239,68,68,0.9));box-shadow:inset 0 0 4px #fff;}');
+cssAdd('.ck-boss-fang.lg{height:19px;width:11px;background:linear-gradient(180deg,#ffffff 0%,#fef08a 25%,#ef4444 80%,#450a0a 100%);filter:drop-shadow(0 0 8px #ff2233);}');
+cssAdd('.ck-boss-fang.up{clip-path:polygon(50% 0%, 0% 100%, 100% 100%);background:linear-gradient(0deg,#ffffff 0%,#fde047 30%,#ea580c 75%,#7f1d1d 100%);}');
+cssAdd('.ck-boss-fang.up.lg{height:20px;width:12px;background:linear-gradient(0deg,#ffffff 0%,#fef08a 25%,#ef4444 80%,#450a0a 100%);filter:drop-shadow(0 0 8px #ff2233);}');
+cssAdd('.ck-boss-lava-tongue{position:absolute;bottom:0px;left:26%;right:26%;height:14px;background:radial-gradient(ellipse at center,#ffffff,#ffedd5 30%,#f97316 70%,#991b1b);border-radius:50% 50% 0 0;filter:drop-shadow(0 0 10px #ea580c);animation:ckTonguePulse 1s infinite alternate;z-index:1;}');
+cssAdd('@keyframes ckTonguePulse{0%{transform:scale(0.85);opacity:0.8;}100%{transform:scale(1.18);opacity:1;}}');
+cssAdd('.ck-boss-hit{animation:ckBossShake .18s ease-out!important;}');
+cssAdd('@keyframes ckBossShake{0%,100%{transform:translate(0,0) scale(1);}25%{transform:translate(-6px,4px) scale(0.96);}75%{transform:translate(6px,-4px) scale(0.96);}}');
+cssAdd('.ck-float-dmg{position:absolute;pointer-events:none;color:#ef4444;font-weight:900;font-size:22px;text-shadow:0 0 10px #dc2626;animation:ckUpDmg .65s ease-out forwards;z-index:9999;font-family:Consolas,monospace;}');
+cssAdd('@keyframes ckUpDmg{0%{transform:translateY(0) scale(0.8);opacity:1;}100%{transform:translateY(-60px) scale(1.2);opacity:0;}}');
+cssAdd('.ck-boost-toggle-btn{background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #38bdf8;border-radius:16px;color:#38bdf8;padding:3px 9px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .18s;box-shadow:0 0 8px rgba(56,189,248,.25);}');
+cssAdd('.ck-boost-toggle-btn:hover{filter:brightness(1.2);transform:scale(1.05);background:#0284c7;color:#fff;}');
 cssAdd('.ck-toast{position:fixed;left:50%;top:13%;transform:translateX(-50%);z-index:9600;background:linear-gradient(135deg,#141a3a,#0b1026);border:1px solid #3a86ff;border-radius:12px;padding:10px 18px;color:#dfe6ff;font-family:Courier New,monospace;font-weight:bold;font-size:14px;box-shadow:0 0 22px rgba(58,134,255,.6);pointer-events:none;animation:ckToast 3.2s forwards;}');
 cssAdd('@keyframes ckToast{0%{opacity:0;transform:translate(-50%,-10px);}10%{opacity:1;transform:translate(-50%,0);}80%{opacity:1;}100%{opacity:0;transform:translate(-50%,-14px);}}');
 cssAdd('#ck-invbtn{background:linear-gradient(135deg,#6a1fb5,#3a1a6b);}');
@@ -788,6 +892,9 @@ cssAdd('.ck-prof-l{width:74px;color:#94a3b8;font-size:11px;font-weight:800;lette
 cssAdd('.ck-prof-v{flex:1;font-weight:800;font-size:14px;word-break:break-all;color:#f8fafc;letter-spacing:.3px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;}');
 cssAdd('.ck-prof-badge-admin{background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(217,119,6,.4));border:1px solid #fbbf24;color:#fde047;font-size:10px;font-weight:900;padding:3px 8px;border-radius:8px;letter-spacing:1px;box-shadow:0 0 12px rgba(251,191,36,.35);text-transform:uppercase;}');
 cssAdd('.ck-prof-badge-player{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.4);color:#38bdf8;font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;letter-spacing:1px;text-transform:uppercase;}');
+cssAdd('.ck-prof-lvl-badge{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:900;font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid #a855f7;box-shadow:0 0 10px rgba(168,85,247,.4);letter-spacing:1px;}');
+cssAdd('.ck-prof-xp-bar{width:100%;height:8px;background:rgba(8,12,28,.8);border-radius:4px;overflow:hidden;border:1px solid rgba(168,85,247,.4);margin-top:6px;}');
+cssAdd('.ck-prof-xp-fill{height:100%;background:linear-gradient(90deg,#6366f1,#a855f7,#ec4899);transition:width .25s;}');
 cssAdd('#ck-prof-copy{background:linear-gradient(135deg,#0284c7,#2563eb);border:1px solid rgba(125,211,252,.5);border-radius:10px;color:#fff;padding:8px 14px;font-weight:800;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:.8px;flex:none;box-shadow:0 4px 14px rgba(2,132,199,.4);transition:all .18s;}');
 cssAdd('#ck-prof-copy:hover{transform:translateY(-1px) scale(1.05);filter:brightness(1.15);box-shadow:0 6px 20px rgba(56,189,248,.6);}');
 cssAdd('#ck-prof-copy:active{transform:scale(.95);}');
@@ -816,16 +923,45 @@ function ckToast(msg) {
   document.body.appendChild(t);
   setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3200);
 }
+var ckBoostCollapsed = true;
 function ckBoostRender() {
   if (!boostBar) return;
-  var h = '', now = Date.now();
+  var now = Date.now();
+  var activeList = [];
   for (var i = 0; i < CK_BOOSTS.length; i++) {
     var b = CK_BOOSTS[i];
     var sec = Math.max(0, Math.round(((CK.boost[b.id] || 0) - now) / 1000));
-    if (sec > 0) h += '<span class="ck-bchip" style="border-color:' + b.col + ';color:' + b.col + '">' + b.n + ' ' + ckFmtTime(sec) + '</span>';
+    if (sec > 0) {
+      activeList.push({ b: b, sec: sec });
+    }
+  }
+  if (!activeList.length) {
+    boostBar.innerHTML = '';
+    boostBar.style.display = 'none';
+    return;
+  }
+  boostBar.style.display = '';
+  var hasCollapse = activeList.length > 2;
+  var h = '';
+  for (var k = 0; k < activeList.length; k++) {
+    var it = activeList[k];
+    var isHidden = hasCollapse && ckBoostCollapsed && k >= 2;
+    h += '<span class="ck-bchip" style="border-color:' + it.b.col + ';color:' + it.b.col + ';' + (isHidden ? 'display:none;' : '') + '">' + it.b.n + ' ' + ckFmtTime(it.sec) + '</span>';
+  }
+  if (hasCollapse) {
+    var hiddenCnt = activeList.length - 2;
+    var toggleTxt = ckBoostCollapsed ? ('▶ Ещё ' + hiddenCnt) : '▲ Свернуть';
+    h += '<button id="ck-boost-collapse-toggle" class="ck-boost-toggle-btn">' + toggleTxt + '</button>';
   }
   boostBar.innerHTML = h;
-  boostBar.style.display = h ? '' : 'none';
+  var tBtn = boostBar.querySelector('#ck-boost-collapse-toggle');
+  if (tBtn) {
+    tBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      ckBoostCollapsed = !ckBoostCollapsed;
+      ckBoostRender();
+    });
+  }
 }
 function el(tag, id, cls, txt) {
   var e = document.createElement(tag);
@@ -834,8 +970,25 @@ function el(tag, id, cls, txt) {
   if (txt) e.textContent = txt;
   return e;
 }
-var openBtn = el('button', 'clicker-open-btn', '', 'КЛИКЕР');
-document.body.appendChild(openBtn);
+function ckEnsureOpenBtn() {
+  var b = document.getElementById('clicker-open-btn');
+  var isOpen = overlay && !overlay.classList.contains('hidden');
+  if (!b && document.body) {
+    b = el('button', 'clicker-open-btn', '', 'КЛИКЕР');
+    b.style.display = isOpen ? 'none' : 'block';
+    b.style.zIndex = '99999';
+    document.body.appendChild(b);
+  } else if (b) {
+    b.style.display = isOpen ? 'none' : 'block';
+  }
+  var hb = document.getElementById('help-book-btn');
+  if (hb) {
+    hb.style.display = isOpen ? 'none' : 'block';
+  }
+  return b;
+}
+var openBtn = ckEnsureOpenBtn();
+setInterval(ckEnsureOpenBtn, 1000);
 var overlay = el('div', 'clicker-overlay', 'clicker-ui hidden');
 var panel = el('div', 'clicker-panel');
 var left = el('div', 'clicker-left');
@@ -855,11 +1008,38 @@ var lbBtn = el('button', 'ck-lbbtn', '', 'ЛИДЕРБОРД');
 var invBtn = el('button', 'ck-invbtn', '', 'ИНВЕНТАРЬ');
 rebBtn.disabled = true;
 var closeBtn = el('button', 'ck-closebtn', '', 'X');
+var bossShopBtn = el('button', 'ck-boss-shop-btn', '', 'МАГАЗИН БОССОВ');
 actions.appendChild(shopBtn);
 actions.appendChild(earthBtn);
 actions.appendChild(rebBtn);
 actions.appendChild(lbBtn);
 actions.appendChild(invBtn);
+actions.appendChild(bossShopBtn);
+
+function ckPlaceBossShopBtn() {
+  if (!actions || !bossShopBtn) return;
+  var btns = actions.querySelectorAll('button');
+  for (var i = 0; i < btns.length; i++) {
+    var txt = btns[i].textContent ? btns[i].textContent.trim() : '';
+    if (txt === 'ПРЕМИУМ') {
+      if (btns[i].nextSibling !== bossShopBtn) {
+        btns[i].parentNode.insertBefore(bossShopBtn, btns[i].nextSibling);
+      }
+      if (btns[i].offsetWidth > 0) {
+        bossShopBtn.style.width = btns[i].offsetWidth + 'px';
+        bossShopBtn.style.minWidth = btns[i].offsetWidth + 'px';
+        bossShopBtn.style.maxWidth = btns[i].offsetWidth + 'px';
+        bossShopBtn.style.height = btns[i].offsetHeight + 'px';
+        bossShopBtn.style.minHeight = btns[i].offsetHeight + 'px';
+      }
+      return;
+    }
+  }
+}
+setInterval(ckPlaceBossShopBtn, 250);
+
+cssAdd('#ck-boss-shop-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:0!important;margin:0!important;vertical-align:top!important;border:2px outset #888!important;background:linear-gradient(180deg,#c084fc 0%,#7c3aed 100%)!important;color:#000!important;font-family:inherit!important;font-size:8.5px!important;font-weight:inherit!important;line-height:1!important;padding:0 1px!important;cursor:pointer!important;box-shadow:none!important;box-sizing:border-box!important;text-shadow:none!important;white-space:nowrap!important;overflow:hidden!important;letter-spacing:-0.2px!important;}');
+cssAdd('#ck-boss-shop-btn:active{border-style:inset!important;}');
 var player = el('div', 'ck-player');
 player.className = ckMusicOn ? 'ck-on' : '';
 var pInfo = el('div', 'ck-player-info');
@@ -929,8 +1109,40 @@ for (var hi = 0; hi < HCONF.length; hi++) {
   })(HCONF[hi], hi);
 }
 player.appendChild(hangs);
-var ckPT=0, ckPTKEY='spaceClicker_pt', ckUIDKEY='spaceClicker_uid';
+var ckPT=0, ckPTKEY='spaceClicker_pt', ckUIDKEY='spaceClicker_uid', ckACCXP_KEY='spaceClicker_acc_xp';
 try{ckPT=Number(localStorage.getItem(ckPTKEY))||0;}catch(e0){}
+function ckGetAccXp() {
+  return Number(localStorage.getItem(ckACCXP_KEY)) || 0;
+}
+function ckGetAccLevelData() {
+  var totalXp = ckGetAccXp();
+  var lvl = 1;
+  while (true) {
+    var req = Math.floor(1000 * Math.pow(lvl, 1.45));
+    if (totalXp >= req) {
+      totalXp -= req;
+      lvl++;
+    } else {
+      return {
+        level: lvl,
+        curXp: totalXp,
+        reqXp: req,
+        pct: Math.min(100, Math.floor((totalXp / req) * 100))
+      };
+    }
+  }
+}
+function ckAddAccXp(amount) {
+  if (!amount || amount <= 0) return;
+  var prevLvl = ckGetAccLevelData().level;
+  var cur = ckGetAccXp() + amount;
+  try { localStorage.setItem(ckACCXP_KEY, String(cur)); } catch (e) {}
+  var nextLvl = ckGetAccLevelData().level;
+  if (nextLvl > prevLvl) {
+    ckToast('НОВЫЙ УРОВЕНЬ АККАУНТА: ' + nextLvl + '!');
+    sfxRebirth();
+  }
+}
 function ckUid(){var u='';try{u=localStorage.getItem(ckUIDKEY)||'';}catch(e1){}if(!u){var cs='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',i2;for(i2=0;i2<10;i2++)u+=cs.charAt(Math.floor(Math.random()*cs.length));try{localStorage.setItem(ckUIDKEY,u);}catch(e2){}}return u;}
 function ckFmtPT(s3){var d=Math.floor(s3/86400),h=Math.floor((s3%86400)/3600),m=Math.floor((s3%3600)/60);s3=s3%60;if(d>0)return d+'д '+h+'ч '+m+'м';if(h>0)return h+'ч '+m+'м '+s3+'с';if(m>0)return m+'м '+s3+'с';return s3+'с';}
 setInterval(function(){if(!document.hidden)ckPT++;},1000);
@@ -1007,7 +1219,15 @@ function ckProfRender(){
       pava.appendChild(img);
     }
   }
-  pbody2.innerHTML = '<div class="ck-prof-row"><span class="ck-prof-l">НИК</span><span class="ck-prof-v">' + ckEsc(nick) + (isVIP ? ' <span class="ck-prof-badge-admin">★ АДМИН</span>' : '') + '</span></div>' + '<div class="ck-prof-row"><span class="ck-prof-l">ID</span><span class="ck-prof-v"><span style="color:#93c5fd;font-family:Consolas,monospace;">' + uid + '</span></span><button id="ck-prof-copy">КОПИРОВАТЬ</button></div>' + '<div class="ck-prof-row"><span class="ck-prof-l">В ИГРЕ</span><span class="ck-prof-v" id="ck-prof-pt" style="color:#fde047;">' + ckFmtPT(ckPT) + '</span></div>' + '<div class="ck-prof-row"><span class="ck-prof-l">СТАТУС</span><span class="ck-prof-v">' + (isVIP ? '<span class="ck-prof-badge-admin">ROOT OVERRIDE</span>' : '<span class="ck-prof-badge-player">PLAYER</span>') + '</span></div>';
+  var acc = ckGetAccLevelData();
+  pbody2.innerHTML = '<div class="ck-prof-row"><span class="ck-prof-l">НИК</span><span class="ck-prof-v">' + ckEsc(nick) + (isVIP ? ' <span class="ck-prof-badge-admin">★ АДМИН</span>' : '') + '</span></div>' +
+    '<div class="ck-prof-row"><span class="ck-prof-l">УРОВЕНЬ</span><span class="ck-prof-v" style="flex-direction:column;align-items:flex-start;">' +
+      '<div style="display:flex;align-items:center;gap:8px;width:100%;"><span class="ck-prof-lvl-badge">LVL ' + acc.level + '</span><span style="font-size:11px;color:#c084fc;font-family:Consolas,monospace;">' + fmtNum(acc.curXp) + ' / ' + fmtNum(acc.reqXp) + ' XP</span></div>' +
+      '<div class="ck-prof-xp-bar"><div class="ck-prof-xp-fill" style="width:' + acc.pct + '%"></div></div>' +
+    '</span></div>' +
+    '<div class="ck-prof-row"><span class="ck-prof-l">ID</span><span class="ck-prof-v"><span style="color:#93c5fd;font-family:Consolas,monospace;">' + uid + '</span></span><button id="ck-prof-copy">КОПИРОВАТЬ</button></div>' +
+    '<div class="ck-prof-row"><span class="ck-prof-l">В ИГРЕ</span><span class="ck-prof-v" id="ck-prof-pt" style="color:#fde047;">' + ckFmtPT(ckPT) + '</span></div>' +
+    '<div class="ck-prof-row"><span class="ck-prof-l">СТАТУС</span><span class="ck-prof-v">' + (isVIP ? '<span class="ck-prof-badge-admin">ROOT OVERRIDE</span>' : '<span class="ck-prof-badge-player">PLAYER</span>') + '</span></div>';
   var cb2=document.getElementById('ck-prof-copy');
   if(cb2)cb2.addEventListener('click',function(){
     try{
@@ -1051,6 +1271,7 @@ adminActs.appendChild(btnWipeSelf);
   }
   var box=document.createElement('div');box.id='ck-give-box';box.style.cssText='border-top:1px solid #4b5563;margin-top:12px;padding-top:10px;max-height:48vh;overflow-y:auto;';
   var h=document.createElement('div');h.style.cssText='text-align:center;font:900 13px monospace;color:#fca5a5;margin-bottom:6px;';h.textContent='ВЫДАЧА РЕСУРСОВ';box.appendChild(h);
+  box.appendChild(row('Опыт профиля (число/10K/1M)',function(v){var n=num(v);if(n>0){ckAddAccXp(n);gs();ckToast('Выдано опыта: +'+n);}}));
   box.appendChild(row('Клики (число/100K/1B)',function(v){var n=num(v);if(n>0){CK.clicks=(CK.clicks||0)+n;gs();ckToast('Выдано кликов: +'+n);}}));
   box.appendChild(row('Перерождения (+2x к множ)',function(v){var n=num(v);if(n>0){CK.rebirths=(CK.rebirths||0)+n;CK.mult=(CK.mult||1)+2*n;gs();ckToast('Выдано реберфов: +'+n);}}));
   box.appendChild(row('ИКСЫ (множитель)',function(v){var n=num(v);if(n>0){CK.mult=(CK.mult||1)+n;gs();ckToast('Множитель: +'+n);}}));
@@ -1061,6 +1282,11 @@ adminActs.appendChild(btnWipeSelf);
 
   var fastRow=document.createElement('div');fastRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;';
   function mkQ(lbl,bg,fn){var b=document.createElement('button');b.textContent=lbl;b.style.cssText='padding:7px 5px;border:none;border-radius:6px;font:bold 10.5px Consolas;color:#fff;background:'+bg+';cursor:pointer;';b.addEventListener('click',fn);fastRow.appendChild(b);}
+  mkQ('ВЫЗВАТЬ БОССА','linear-gradient(135deg,#dc2626,#991b1b)',function(){
+    adminModal.classList.add('hidden');
+    ckStartBossBattle();
+  });
+
   mkQ('ВСЕ ПИТОМЦЫ','linear-gradient(135deg,#10b981,#059669)',function(){
     if(window.__CK_FEAT){
       window.__CK_FEAT.pets=window.__CK_FEAT.pets||{};
@@ -2087,12 +2313,433 @@ function renderUpgrades() {
   ckTabApply();
   ckAutoScroll();
 }
+var ckBossActive = false;
+var ckPlayerHp = 100;
+var ckBossHp = 1000;
+var ckBossMaxHp = 1000;
+var ckClicksUntilBoss = 10000;
+var ckBossAttackTimer = null;
+
+var CK_BOSSES = [
+  { name: 'Левиафан Нептуна', hp: 300, dmg: 8, col: '#38bdf8', riftName: 'КРИО-ВОРОНКА', riftTheme: 'rift-ice', bg: 'radial-gradient(circle at 35% 30%,#7dd3fc 0%,#0284c7 45%,#082f49 85%,#000 100%)', coins: 15, rew: { xp: 500, clk: 5e5, mult: 2, item: 'shard', bst: 'frenzy' }, rewTxt: '+15 Монет Босса · +500 XP · +500K кликов · Осколок' },
+  { name: 'Циклон Урана', hp: 500, dmg: 10, col: '#2dd4bf', riftName: 'ИОННЫЙ РАЗЛОМ', riftTheme: 'rift-ion', bg: 'radial-gradient(circle at 35% 30%,#a7f3d0 0%,#0d9488 45%,#042f2e 85%,#000 100%)', coins: 25, rew: { xp: 800, clk: 2e6, mult: 3, item: 'shard', bst: 'surge' }, rewTxt: '+25 Монет Босса · +800 XP · +2M кликов · Осколок' },
+  { name: 'Титан Колец Сатурна', hp: 800, dmg: 12, col: '#facc15', riftName: 'ЗОЛОТОЕ КОЛЬЦО', riftTheme: 'rift-gold', bg: 'radial-gradient(circle at 35% 30%,#fef08a 0%,#ca8a04 45%,#451a03 85%,#000 100%)', coins: 40, rew: { xp: 1200, clk: 1e7, mult: 5, item: 'core', bst: 'gold' }, rewTxt: '+40 Монет Босса · +1200 XP · +10M кликов · Ядро' },
+  { name: 'Око Бури Юпитера', hp: 1200, dmg: 14, col: '#fb923c', riftName: 'ГРАВИ-СМЕРЧ', riftTheme: 'rift-storm', bg: 'radial-gradient(circle at 35% 30%,#fed7aa 0%,#ea580c 45%,#431407 85%,#000 100%)', coins: 65, rew: { xp: 1800, clk: 5e7, mult: 8, item: 'core', bst: 'novaflask' }, rewTxt: '+65 Монет Босса · +1800 XP · +50M кликов · Ядро' },
+  { name: 'Пожиратель Марса', hp: 1800, dmg: 16, col: '#f43f5e', riftName: 'КРОВАВЫЙ ЗЕВ', riftTheme: 'rift-blood', bg: 'radial-gradient(circle at 35% 30%,#fecdd3 0%,#e11d48 45%,#4c0519 85%,#000 100%)', coins: 100, rew: { xp: 2500, clk: 2e8, mult: 12, item: 'prism', bst: 'quasar' }, rewTxt: '+100 Монет Босса · +2500 XP · +200M кликов · Призма' },
+  { name: 'Древний Гея-Страж', hp: 2500, dmg: 18, col: '#34d399', riftName: 'ИЗУМРУДНЫЙ ПОРТАЛ', riftTheme: 'rift-bio', bg: 'radial-gradient(circle at 35% 30%,#bbf7d0 0%,#059669 45%,#022c22 85%,#000 100%)', coins: 160, rew: { xp: 3500, clk: 1e9, mult: 18, item: 'prism', bst: 'hyperion' }, rewTxt: '+160 Монет Босса · +3500 XP · +1B кликов · Призма' },
+  { name: 'Серный Владыка Венеры', hp: 3500, dmg: 20, col: '#eab308', riftName: 'КИСЛОТНЫЙ ВИХРЬ', riftTheme: 'rift-acid', bg: 'radial-gradient(circle at 35% 30%,#fef9c3 0%,#d97706 45%,#451a03 85%,#000 100%)', coins: 250, rew: { xp: 5000, clk: 5e9, mult: 25, item: 'nova', bst: 'pstorm' }, rewTxt: '+250 Монет Босса · +5000 XP · +5B кликов · Нова' },
+  { name: 'Железный Колосс Меркурия', hp: 5000, dmg: 22, col: '#cbd5e1', riftName: 'СТАЛЬНОЙ РАЗРЫВ', riftTheme: 'rift-metal', bg: 'radial-gradient(circle at 35% 30%,#f1f5f9 0%,#64748b 45%,#0f172a 85%,#000 100%)', coins: 400, rew: { xp: 7500, clk: 2e10, mult: 35, item: 'nova', bst: 'chrono' }, rewTxt: '+400 Монет Босса · +7500 XP · +20B кликов · Нова' },
+  { name: 'Гелиос-Архидемон Солнца', hp: 7500, dmg: 25, col: '#f97316', riftName: 'ПРОТУБЕРАНЕЦ СВЕРХНОВОЙ', riftTheme: 'rift-sun', bg: 'radial-gradient(circle at 35% 30%,#ffedd5 0%,#ea580c 45%,#7c2d12 85%,#000 100%)', coins: 650, rew: { xp: 12000, clk: 1e11, mult: 50, item: 'void', bst: 'abyss' }, rewTxt: '+650 Монет Босса · +12000 XP · +100B кликов · Пустота' },
+  { name: 'Абсолют Сингулярности', hp: 12000, dmg: 30, col: '#c084fc', riftName: 'БЕЗДНА СИНГУЛЯРНОСТИ', riftTheme: 'rift-singularity', bg: 'radial-gradient(circle at 35% 30%,#f3e8ff 0%,#9333ea 45%,#2e1065 85%,#000 100%)', coins: 1200, rew: { xp: 25000, clk: 1e12, mult: 100, item: 'void', bst: 'godtear' }, rewTxt: '+1200 Монет Босса · +25000 XP · +1T кликов · Пустота' }
+];
+
+var bossHud = null;
+var bossEscapeWrap = null;
+function ckEnsureBossHud() {
+  if (bossHud) return bossHud;
+  bossHud = el('div', 'ck-boss-hud', 'ck-boss-battle-wrap');
+  bossHud.style.display = 'none';
+  bossHud.innerHTML = '<div class="ck-hp-row"><span style="color:#34d399;">ТВОЕ HP: <b id="ck-php-txt">100/100</b></span><span style="color:#f87171;">БОСС: <b id="ck-bhp-txt">1000/1000</b></span></div>' +
+    '<div class="ck-hp-bar"><div id="ck-php-fill" class="ck-hp-fill-player" style="width:100%;"></div></div>' +
+    '<div class="ck-hp-bar"><div id="ck-bhp-fill" class="ck-hp-fill-boss" style="width:100%;"></div></div>';
+
+  bossEscapeWrap = el('div', 'ck-boss-escape-wrap', '');
+  bossEscapeWrap.style.display = 'none';
+  bossEscapeWrap.style.width = '100%';
+  bossEscapeWrap.style.textAlign = 'center';
+  bossEscapeWrap.innerHTML = '<button id="ck-boss-escape-btn">СБЕЖАТЬ</button>';
+
+  var escBtn = bossEscapeWrap.querySelector('#ck-boss-escape-btn');
+  if (escBtn) {
+    escBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (!ckBossActive) return;
+      ckTriggerBossEscape();
+    });
+  }
+
+  var d = document.getElementById('ck-disc');
+  if (d && d.parentNode) {
+    d.parentNode.insertBefore(bossHud, d);
+    d.parentNode.insertBefore(bossEscapeWrap, d.nextSibling);
+  }
+  return bossHud;
+}
+
+function ckGetMaxPlayerHp() { return 100 + (CK.bHpLv || 0) * 25; }
+function ckGetPlayerBossDamage() {
+  var baseDmg = 1 + (CK.bDmgLv || 0) * 2;
+  var isCrit = Math.random() * 100 < ((CK.bCritLv || 0) * 8);
+  return isCrit ? (baseDmg * 3) : baseDmg;
+}
+function ckGetBossIncomingDamage(rawDmg) {
+  var shieldPct = Math.min(75, (CK.bShieldLv || 0) * 8);
+  return Math.max(1, Math.round(rawDmg * (1 - shieldPct / 100)));
+}
+
+function ckUpdateBossUI() {
+  var pTxt = document.getElementById('ck-php-txt');
+  var bTxt = document.getElementById('ck-bhp-txt');
+  var pFill = document.getElementById('ck-php-fill');
+  var bFill = document.getElementById('ck-bhp-fill');
+  var maxP = (typeof ckGetMaxPlayerHp === 'function') ? ckGetMaxPlayerHp() : 100;
+  if (pTxt) pTxt.textContent = ckPlayerHp + '/' + maxP;
+  if (bTxt) bTxt.textContent = ckBossHp + '/' + ckBossMaxHp;
+  if (pFill) pFill.style.width = Math.max(0, Math.min(100, (ckPlayerHp / maxP) * 100)) + '%';
+  if (bFill) bFill.style.width = Math.max(0, Math.min(100, (ckBossHp / ckBossMaxHp) * 100)) + '%';
+}
+
+function ckBossEyeTrack(clientX, clientY) {
+  if (!ckBossActive) return;
+  var pupils = document.querySelectorAll('#ck-boss-face .ck-boss-pupil');
+  if (!pupils || !pupils.length) return;
+  pupils.forEach(function (pupil) {
+    var eye = pupil.parentElement;
+    if (!eye) return;
+    var rect = eye.getBoundingClientRect();
+    var eyeCenterX = rect.left + rect.width / 2;
+    var eyeCenterY = rect.top + rect.height / 2;
+    var dx = clientX - eyeCenterX;
+    var dy = clientY - eyeCenterY;
+    var isLeft = eye.classList.contains('left');
+    var tilt = (isLeft ? 15 : -15) * (Math.PI / 180);
+    var rotDx = dx * Math.cos(-tilt) - dy * Math.sin(-tilt);
+    var rotDy = dx * Math.sin(-tilt) + dy * Math.cos(-tilt);
+    var angle = Math.atan2(rotDy, rotDx);
+    var dist = Math.min(11, Math.hypot(rotDx, rotDy) * 0.065);
+    var moveX = Math.cos(angle) * dist;
+    var moveY = Math.sin(angle) * dist * 0.55;
+    pupil.style.transform = 'translate(' + moveX.toFixed(1) + 'px,' + moveY.toFixed(1) + 'px)';
+  });
+}
+
+window.addEventListener('mousemove', function (e) {
+  if (ckBossActive) ckBossEyeTrack(e.clientX, e.clientY);
+}, { passive: true });
+
+window.addEventListener('touchmove', function (e) {
+  if (ckBossActive && e.touches && e.touches[0]) {
+    ckBossEyeTrack(e.touches[0].clientX, e.touches[0].clientY);
+  }
+}, { passive: true });
+
+window.addEventListener('touchstart', function (e) {
+  if (ckBossActive && e.touches && e.touches[0]) {
+    ckBossEyeTrack(e.touches[0].clientX, e.touches[0].clientY);
+  }
+}, { passive: true });
+
+function ckSpawnBossExplosion(isVictory, onComplete) {
+  var d = document.getElementById('ck-disc');
+  if (!d) {
+    if (onComplete) onComplete();
+    return;
+  }
+  var stg = (typeof ckStage === 'function') ? ckStage() : 0;
+  var bConf = CK_BOSSES[stg] || CK_BOSSES[0];
+  var oldFace = document.getElementById('ck-boss-face');
+  if (oldFace) oldFace.style.display = 'none';
+  d.style.setProperty('background', 'transparent', 'important');
+  d.style.setProperty('box-shadow', 'none', 'important');
+  d.style.setProperty('border-color', 'transparent', 'important');
+  discName.innerHTML = '';
+  var bh = document.createElement('div');
+  bh.className = 'ck-blackhole-rift ' + (bConf.riftTheme || 'rift-singularity');
+  bh.innerHTML = '<div class="ck-bh-halo"></div><div class="ck-bh-accretion"></div><div class="ck-bh-core-black"></div>';
+  d.appendChild(bh);
+  var types = ['debris-fang', 'debris-crystal', 'debris-magma', 'debris-horn'];
+  var debrisCount = 48;
+  for (var i = 0; i < debrisCount; i++) {
+    var deb = document.createElement('div');
+    var tClass = types[i % types.length];
+    deb.className = 'ck-debris-item ' + tClass;
+    deb.style.left = (d.offsetWidth / 2) + 'px';
+    deb.style.top = (d.offsetHeight / 2) + 'px';
+    if (tClass === 'debris-magma' || tClass === 'debris-crystal') {
+      deb.style.background = 'radial-gradient(circle,#ffffff,' + bConf.col + ' 70%,#000)';
+      deb.style.boxShadow = '0 0 14px ' + bConf.col;
+    }
+    var burstAngle = (Math.PI * 2 / debrisCount) * i + (Math.random() * 0.4 - 0.2);
+    var burstDist = 70 + Math.random() * 110;
+    var bx = Math.cos(burstAngle) * burstDist;
+    var by = Math.sin(burstAngle) * burstDist;
+    var rot = (Math.random() * 720 - 360).toFixed(0) + 'deg';
+    deb.style.setProperty('--bx', bx.toFixed(1) + 'px');
+    deb.style.setProperty('--by', by.toFixed(1) + 'px');
+    deb.style.setProperty('--br', rot);
+    d.appendChild(deb);
+  }
+  setTimeout(function() {
+    document.querySelectorAll('.ck-blackhole-rift, .ck-debris-item').forEach(function(el) {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+    d.style.removeProperty('background');
+    d.style.removeProperty('box-shadow');
+    d.style.removeProperty('border-color');
+    if (onComplete) onComplete();
+  }, 1550);
+}
+
+function ckTriggerBossEscape() {
+  if (!ckBossActive) return;
+  var stg = (typeof ckStage === 'function') ? ckStage() : 0;
+  var bConf = (typeof CK_BOSSES !== 'undefined' && CK_BOSSES[stg]) ? CK_BOSSES[stg] : { name: 'БОСС', riftName: 'РАЗЛОМ' };
+  ckBossActive = false;
+  if (ckBossAttackTimer) clearInterval(ckBossAttackTimer);
+  sfxRebirth();
+  ckToast('ТЫ СБЕЖАЛ! ' + bConf.name.toUpperCase() + ' ЗАТЯНУТ В ' + bConf.riftName + '!');
+  ckSpawnBossExplosion(false, function() {
+    ckEndBossBattleCleanup(false);
+  });
+}
+
+cssAdd('#ck-boss-shop-btn{position:relative;overflow:hidden;width:100%;max-width:320px;margin:6px auto 0;padding:10px 20px;border-radius:12px;border:1px solid rgba(192,132,252,0.55);background:linear-gradient(135deg,#1f0a2e 0%,#4c1d95 38%,#b91c1c 75%,#200407 100%);color:#f8fafc;font-family:inherit;font-size:12px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;display:block;box-shadow:0 6px 20px rgba(0,0,0,0.6),0 0 22px rgba(147,51,234,0.4),inset 0 1px 0 rgba(255,255,255,0.45);transition:all .22s cubic-bezier(0.16,1,0.3,1);outline:none;text-shadow:0 1px 4px rgba(0,0,0,0.8);}');
+cssAdd('#ck-boss-shop-btn::before{content:"";position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent);transform:skewX(-25deg);animation:ckBossShopShimmer 3.2s infinite;}');
+cssAdd('@keyframes ckBossShopShimmer{0%,65%{left:-100%;}100%{left:220%;}}');
+cssAdd('#ck-boss-shop-btn:hover{transform:translateY(-2px);border-color:#f472b6;filter:brightness(1.18);box-shadow:0 10px 28px rgba(0,0,0,0.7),0 0 32px rgba(236,72,153,0.65),inset 0 1px 0 #fff;}');
+cssAdd('#ck-boss-shop-btn:active{transform:scale(0.97);}');
+cssAdd('#ck-boss-shop-modal{position:fixed;inset:0;z-index:99999;background:rgba(2,2,14,.92);display:flex;align-items:center;justify-content:center;font-family:Courier New,monospace;}');
+cssAdd('#ck-boss-shop-box{width:min(660px,95vw);max-height:88vh;overflow-y:auto;background:linear-gradient(175deg,#12081f,#090312);border:2px solid #a855f7;border-radius:20px;padding:22px;color:#fff;box-sizing:border-box;box-shadow:0 30px 95px rgba(0,0,0,.9),0 0 45px rgba(168,85,247,.35);}');
+cssAdd('#ck-boss-shop-box h2{margin:0 0 12px;text-align:center;letter-spacing:2px;font-size:20px;font-weight:bold;color:#fde047;}');
+cssAdd('.ck-bshop-wallet{background:rgba(30,12,50,.6);border:1px solid #7c3aed;border-radius:12px;padding:10px 16px;text-align:center;font-size:13px;font-weight:bold;color:#dfe6ff;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;}');
+cssAdd('.ck-bshop-wallet b{color:#ffd76a;font-size:16px;}');
+cssAdd('.ck-bshop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:14px;}');
+cssAdd('.ck-bshop-card{background:#111634;border:1px solid rgba(168,85,247,.4);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;transition:all .18s;}');
+cssAdd('.ck-bshop-card:hover{border-color:#e879f9;box-shadow:0 6px 20px rgba(168,85,247,.3);transform:translateY(-2px);}');
+cssAdd('.ck-bshop-title{font-size:13px;font-weight:bold;color:#ffd76a;letter-spacing:.8px;text-transform:uppercase;}');
+cssAdd('.ck-bshop-desc{font-size:11.5px;color:#cbd5e1;line-height:1.4;}');
+cssAdd('.ck-bshop-stat{font-size:11.5px;color:#93c5fd;font-weight:bold;}');
+cssAdd('.ck-bshop-btn{background:linear-gradient(135deg,#ec4899,#8b5cf6);border:none;border-radius:9px;padding:9px 12px;font-weight:bold;font-size:12px;color:#fff;cursor:pointer;font-family:inherit;letter-spacing:.6px;transition:all .16s;}');
+cssAdd('.ck-bshop-btn:hover:not(:disabled){filter:brightness(1.15);transform:scale(1.02);box-shadow:0 0 16px rgba(236,72,153,.5);}');
+cssAdd('.ck-bshop-btn:disabled{opacity:.4;cursor:default;filter:grayscale(1);}');
+cssAdd('#ck-close-bshop{width:100%;background:#b3283c;border:none;border-radius:10px;padding:11px;font-weight:bold;color:#fff;cursor:pointer;font-family:inherit;margin-top:6px;}');
+
+var bossShopModal = el('div', 'ck-boss-shop-modal', 'clicker-ui hidden');
+var bShopBox = el('div', 'ck-boss-shop-box');
+bShopBox.appendChild(el('h2', '', '', 'МАГАЗИН БОССОВ'));
+var bWallet = el('div', 'ck-bshop-wallet');
+bShopBox.appendChild(bWallet);
+var bShopGrid = el('div', 'ck-bshop-grid');
+bShopBox.appendChild(bShopGrid);
+var bShopClose = el('button', 'ck-close-bshop', '', 'ЗАКРЫТЬ');
+bShopBox.appendChild(bShopClose);
+bossShopModal.appendChild(bShopBox);
+document.body.appendChild(bossShopModal);
+
+var BSHOP_ITEMS = [
+  { id: 'hp', name: 'Титаническая Стойкость', desc: '+25 к максимальному HP в битве с боссами', baseCost: 30, scale: 1.45, key: 'bHpLv', getStat: function(l){ return 'HP: ' + (100 + l * 25); } },
+  { id: 'dmg', name: 'Рассекающий Клинок', desc: '+2 урона за каждый клик по боссу', baseCost: 40, scale: 1.5, key: 'bDmgLv', getStat: function(l){ return 'Урон за клик: ' + (1 + l * 2); } },
+  { id: 'shield', name: 'Силовой Щит Бездны', desc: '-8% входящего урона от боссов (макс 75%)', baseCost: 50, scale: 1.55, key: 'bShieldLv', max: 9, getStat: function(l){ return 'Защита: -' + Math.min(75, l * 8) + '% урона'; } },
+  { id: 'vamp', name: 'Вампирический Захват', desc: 'Восстанавливает +1 HP за каждый удар по боссу', baseCost: 60, scale: 1.6, key: 'bVampLv', max: 5, getStat: function(l){ return 'Вампиризм: +' + l + ' HP/удар'; } },
+  { id: 'crit', name: 'Фатальный Сокрушитель', desc: '+8% шанс нанести тройной урон (x3) по боссу', baseCost: 75, scale: 1.65, key: 'bCritLv', max: 8, getStat: function(l){ return 'Крит шанс: ' + (l * 8) + '% (x3 урон)'; } }
+];
+
+function ckBossShopCost(item) {
+  var curLv = Number(CK[item.key]) || 0;
+  return Math.ceil(item.baseCost * Math.pow(item.scale, curLv));
+}
+
+function ckRenderBossShop() {
+  bWallet.innerHTML = 'Твои Монеты Боссов: <b>' + (CK.bossCoins || 0) + '</b>';
+  bShopGrid.innerHTML = '';
+  BSHOP_ITEMS.forEach(function(item) {
+    var curLv = Number(CK[item.key]) || 0;
+    var cost = ckBossShopCost(item);
+    var isMax = item.max && curLv >= item.max;
+    var canBuy = !isMax && (CK.bossCoins || 0) >= cost;
+    var card = el('div', '', 'ck-bshop-card');
+    card.innerHTML = '<div class="ck-bshop-title">' + item.name + '</div>' +
+      '<div class="ck-bshop-desc">' + item.desc + '</div>' +
+      '<div class="ck-bshop-stat">' + item.getStat(curLv) + ' (ур. ' + curLv + (item.max ? ('/' + item.max) : '') + ')</div>' +
+      '<button class="ck-bshop-btn" ' + (canBuy ? '' : 'disabled') + '>' + (isMax ? 'МАКСИМУМ' : ('КУПИТЬ ЗА ' + cost + ' МОНЕТ')) + '</button>';
+    var btn = card.querySelector('button');
+    if (btn && !isMax) {
+      btn.addEventListener('click', function() {
+        var curCost = ckBossShopCost(item);
+        if ((CK.bossCoins || 0) < curCost) return;
+        CK.bossCoins -= curCost;
+        CK[item.key] = (Number(CK[item.key]) || 0) + 1;
+        sfxBuy();
+        ckSave();
+        ckToast('УЛУЧШЕНО: ' + item.name + '!');
+        ckRenderBossShop();
+      });
+    }
+    bShopGrid.appendChild(card);
+  });
+}
+
+function ckOpenBossShopModal() {
+  var m = document.getElementById('ck-boss-shop-modal');
+  if (m) {
+    m.classList.remove('hidden');
+    ckRenderBossShop();
+  }
+}
+
+function ckCloseBossShopModal() {
+  var m = document.getElementById('ck-boss-shop-modal');
+  if (m) m.classList.add('hidden');
+}
+
+if (typeof bossShopBtn !== 'undefined' && bossShopBtn) bossShopBtn.addEventListener('click', ckOpenBossShopModal);
+bShopClose.addEventListener('click', ckCloseBossShopModal);
+bossShopModal.addEventListener('click', function(e) {
+  if (e.target === bossShopModal) ckCloseBossShopModal();
+});
+
+document.addEventListener('click', function(e) {
+  var t = e.target;
+  if (t && (t.id === 'ck-boss-shop-btn' || t.closest('#ck-boss-shop-btn'))) {
+    e.stopPropagation();
+    ckOpenBossShopModal();
+  }
+});
+
+function ckEndBossBattleCleanup(victory) {
+  var hud = ckEnsureBossHud();
+  if (hud) hud.style.display = 'none';
+  if (bossEscapeWrap) bossEscapeWrap.style.display = 'none';
+  disc.classList.remove('ck-boss-disc');
+  var oldFace = document.getElementById('ck-boss-face');
+  if (oldFace && oldFace.parentNode) oldFace.parentNode.removeChild(oldFace);
+  ckClicksUntilBoss = 10000;
+  render(true);
+}
+
+function ckEndBossBattle(victory) {
+  ckBossActive = false;
+  if (ckBossAttackTimer) clearInterval(ckBossAttackTimer);
+  var stg = (typeof ckStage === 'function') ? ckStage() : 0;
+  var bConf = CK_BOSSES[stg] || CK_BOSSES[0];
+  if (victory) {
+    sfxRebirth();
+    ckSpawnBossExplosion(true, function() {
+      var rw = bConf.rew;
+      ckAddAccXp(rw.xp || 500);
+      if (rw.clk) CK.clicks = (CK.clicks || 0) + rw.clk;
+      if (rw.mult) CK.mult = (CK.mult || 1) + rw.mult;
+      if (rw.item && CK.inv && CK.inv.length < 2000) CK.inv.push(rw.item);
+      if (rw.bst) ckBoostGrant(rw.bst, 600);
+      ckSave();
+      ckToast('ПОБЕДА НАД ' + bConf.name.toUpperCase() + '! НАГРАДА: ' + bConf.rewTxt);
+      ckEndBossBattleCleanup(true);
+    });
+  } else {
+    ckToast('ТЫ ПРОИГРАЛ БОССУ! ВОССТАНОВЛЕНИЕ...');
+    ckEndBossBattleCleanup(false);
+  }
+}
+
+function ckStartBossBattle() {
+  var stg = (typeof ckStage === 'function') ? ckStage() : 0;
+  var bConf = CK_BOSSES[stg] || CK_BOSSES[0];
+  var accLvl = (typeof ckGetAccLevelData === 'function') ? ckGetAccLevelData().level : 1;
+  var calcHp = bConf.hp;
+  if (accLvl >= 25) {
+    var bonusMult = 1 + (accLvl - 24) * 0.25;
+    calcHp = Math.round(bConf.hp * bonusMult);
+  }
+  ckBossActive = true;
+  ckPlayerHp = 100;
+  ckBossHp = calcHp;
+  ckBossMaxHp = calcHp;
+  var hud = ckEnsureBossHud();
+  if (hud) hud.style.display = 'flex';
+  if (bossEscapeWrap) bossEscapeWrap.style.display = 'block';
+  disc.classList.add('ck-boss-disc');
+  disc.style.setProperty('background', bConf.bg, 'important');
+  disc.style.setProperty('border-color', bConf.col, 'important');
+  disc.style.setProperty('box-shadow', '0 0 75px ' + bConf.col + ', inset -18px -24px 60px #000', 'important');
+  ckUpdateBossUI();
+
+  var oldFace = document.getElementById('ck-boss-face');
+  if (oldFace && oldFace.parentNode) oldFace.parentNode.removeChild(oldFace);
+  var face = document.createElement('div');
+  face.id = 'ck-boss-face';
+  face.className = 'ck-boss-face';
+  face.innerHTML = '<div class="ck-boss-corona" style="background:radial-gradient(circle,' + bConf.col + ' 30%,transparent 75%)"></div>' +
+    '<div class="ck-boss-horns-outer"><div class="ck-boss-horn-lg left"></div><div class="ck-boss-horn-lg right"></div></div>' +
+    '<div class="ck-boss-horns-inner"><div class="ck-boss-horn-sm left"></div><div class="ck-boss-horn-sm right"></div></div>' +
+    '<div class="ck-boss-crown"></div>' +
+    '<div class="ck-boss-rune" style="box-shadow:0 0 25px ' + bConf.col + '"></div>' +
+    '<div class="ck-boss-brows"><div class="ck-boss-brow left"></div><div class="ck-boss-brow right"></div></div>' +
+    '<div class="ck-boss-eyes">' +
+      '<div class="ck-boss-eye left"><div class="ck-boss-pupil"></div><div class="ck-boss-eye-glow" style="background:radial-gradient(ellipse at center,' + bConf.col + ',transparent 70%)"></div></div>' +
+      '<div class="ck-boss-eye right"><div class="ck-boss-pupil"></div><div class="ck-boss-eye-glow" style="background:radial-gradient(ellipse at center,' + bConf.col + ',transparent 70%)"></div></div>' +
+    '</div>' +
+    '<div class="ck-boss-cracks"></div>' +
+    '<div class="ck-boss-mouth">' +
+      '<div class="ck-boss-teeth-top">' +
+        '<div class="ck-boss-fang"></div><div class="ck-boss-fang lg"></div><div class="ck-boss-fang"></div><div class="ck-boss-fang"></div><div class="ck-boss-fang lg"></div><div class="ck-boss-fang"></div>' +
+      '</div>' +
+      '<div class="ck-boss-lava-tongue"></div>' +
+      '<div class="ck-boss-teeth-bot">' +
+        '<div class="ck-boss-fang up"></div><div class="ck-boss-fang up lg"></div><div class="ck-boss-fang up"></div><div class="ck-boss-fang up"></div><div class="ck-boss-fang up lg"></div><div class="ck-boss-fang up"></div>' +
+      '</div>' +
+    '</div>';
+  disc.appendChild(face);
+
+  discName.innerHTML = '';
+  ckToast('ПОЯВИЛСЯ БОСС: ' + bConf.name.toUpperCase() + ' (' + bConf.hp + ' HP)!');
+  sfxRebirth();
+
+  if (ckBossAttackTimer) clearInterval(ckBossAttackTimer);
+  ckBossAttackTimer = setInterval(function () {
+    if (!ckBossActive) { clearInterval(ckBossAttackTimer); return; }
+    var dmg = bConf.dmg || 10;
+    ckPlayerHp = Math.max(0, ckPlayerHp - dmg);
+    ckUpdateBossUI();
+    var ov = document.getElementById('clicker-overlay');
+    if (ov && ov.animate) ov.animate([{ boxShadow: 'inset 0 0 90px ' + bConf.col }, { boxShadow: 'inset 0 0 0px transparent' }], { duration: 400 });
+    if (ckPlayerHp <= 0) {
+      ckEndBossBattle(false);
+    }
+  }, 4500);
+}
+
 var floatCount = 0;
 disc.addEventListener('click', function (ev) {
+  if (ckBossActive) {
+    var pDmg = (typeof ckGetPlayerBossDamage === 'function') ? ckGetPlayerBossDamage() : 1;
+    ckBossHp = Math.max(0, ckBossHp - pDmg);
+    if (CK.bVampLv && CK.bVampLv > 0) {
+      var maxHpCap = ckGetMaxPlayerHp();
+      ckPlayerHp = Math.min(maxHpCap, ckPlayerHp + CK.bVampLv);
+    }
+    ckUpdateBossUI();
+    sfxClick();
+    disc.classList.remove('ck-boss-hit');
+    void disc.offsetWidth;
+    disc.classList.add('ck-boss-hit');
+
+    var dEl = el('div', '', 'ck-float-dmg', '-' + pDmg + ' HP');
+    dEl.style.left = (ev.clientX - 16) + 'px';
+    dEl.style.top = (ev.clientY - 30) + 'px';
+    overlay.appendChild(dEl);
+    setTimeout(function () { if (dEl.parentNode) dEl.parentNode.removeChild(dEl); }, 650);
+
+    if (ckBossHp <= 0) {
+      ckEndBossBattle(true);
+    }
+    return;
+  }
+
+  ckClicksUntilBoss--;
+  if (ckClicksUntilBoss <= 0) {
+    ckClicksUntilBoss = 10000;
+    var curAccLvl = (typeof ckGetAccLevelData === 'function') ? ckGetAccLevelData().level : 1;
+    if (curAccLvl >= 10 && Math.random() < 0.10) {
+      ckStartBossBattle();
+      return;
+    }
+  }
+
   var gain = ckPower();
   var isCrit = Math.random() * 100 < ckCrit();
   if (isCrit) gain *= ckCritMul();
   CK.clicks += gain;
+  ckAddAccXp(isCrit ? 3 : 1);
   sfxClick();
   var evs = ckManualClick();
   for (var ei = 0; ei < evs.length; ei++) {
@@ -2124,12 +2771,49 @@ uplist.addEventListener('click', function (ev) {
   if (CK.clicks < cost) return;
   CK.clicks -= cost;
   CK.lv[x]++;
+  ckAddAccXp(5);
   sfxBuy();
   ckSave();
   render(true);
 });
-openBtn.addEventListener('click', function () { overlay.classList.remove('hidden'); window.__uiPaused = true; render(true); ckSave(); ckMusicPlay(); ckBoostRender(); });
-closeBtn.addEventListener('click', function () { overlay.classList.add('hidden'); shop.classList.add('hidden'); window.__uiPaused = false; ckMusicPause(); });
+function ckRequestMobilePortraitFullscreen() {
+  try {
+    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || ('ontouchstart' in window) || (window.innerWidth <= 820);
+    var isPortrait = window.innerHeight > window.innerWidth;
+    if (isMobile && isPortrait && !document.fullscreenElement && !document.webkitFullscreenElement) {
+      var el = document.documentElement;
+      if (el.requestFullscreen) { el.requestFullscreen().catch(function(){}); }
+      else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
+    }
+  } catch (e) {}
+}
+
+openBtn.addEventListener('click', function () {
+  ckRequestMobilePortraitFullscreen();
+  overlay.classList.remove('hidden');
+  var ob = document.getElementById('clicker-open-btn'); if (ob) ob.style.display = 'none';
+  var hb = document.getElementById('help-book-btn'); if (hb) hb.style.display = 'none';
+  var hp = document.getElementById('help-panel'); if (hp) hp.classList.add('hidden');
+  window.__uiPaused = true;
+  render(true);
+  ckSave();
+  ckMusicPlay();
+  ckBoostRender();
+});
+
+window.addEventListener('touchstart', function () {
+  if (overlay && !overlay.classList.contains('hidden')) {
+    ckRequestMobilePortraitFullscreen();
+  }
+}, { passive: true, once: false });
+closeBtn.addEventListener('click', function () {
+  overlay.classList.add('hidden');
+  shop.classList.add('hidden');
+  var ob = document.getElementById('clicker-open-btn'); if (ob) ob.style.display = 'block';
+  var hb = document.getElementById('help-book-btn'); if (hb) hb.style.display = 'block';
+  window.__uiPaused = false;
+  ckMusicPause();
+});
 pPlay.addEventListener('click', function () {
   ckMusicOn = !ckMusicOn;
   try { localStorage.setItem(CK_MUSIC_KEY, ckMusicOn ? '1' : '0'); } catch (e) {}
@@ -2164,6 +2848,7 @@ rebBtn.addEventListener('click', function () {
   if (CK.clicks < 1e14) return;
   CK.mult += 2;
   CK.rebirths++;
+  ckAddAccXp(250);
   sfxRebirth();
   CK.clicks = 0;
   CK.lv = [];
@@ -2583,16 +3268,31 @@ cssAdd('@keyframes ckPnFlow{0%,100%{background-position:0% 50%}50%{background-po
 var panelEl = document.getElementById('clicker-panel');
 ['o1', 'o2', 'o3'].forEach(function (c) { panelEl.appendChild(el('div', '', 'ck-orb ' + c)); });
 // sparks removed for performance
-var helpBtn = el('button', 'help-book-btn', '');
-helpBtn.innerHTML = "<svg viewBox='0 0 24 24' width='28' height='28' fill='none' stroke='#ffe9a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'></path><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'></path><path d='M9 7h7M9 11h5'></path></svg>";
-var helpPanel = el('div', 'help-panel', 'hidden');
-var hpMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-helpPanel.innerHTML = '<h3>УПРАВЛЕНИЕ</h3>'
-  + (hpMobile
-    ? '<div class=hp-sec><b>ТЕЛЕФОН</b><br>Вращение камеры - палец<br>Полёт - удержание пальцем<br>События - тап по объекту<br>Лазер - красная кнопка слева</div>'
-    : '<div class=hp-sec><b>КОМПЬЮТЕР</b><br>Вращение камеры - мышь (ЛКМ)<br>Полёт - зажать ЛКМ или колесо<br>События - клик по объекту<br>Лазер - ПКМ (если куплен)</div>');
-document.body.appendChild(helpBtn);
-document.body.appendChild(helpPanel);
+function ckEnsureHelpBtn() {
+  var hb = document.getElementById('help-book-btn');
+  var hp = document.getElementById('help-panel');
+  if (!hb && document.body) {
+    hb = el('button', 'help-book-btn', '');
+    hb.innerHTML = "<svg viewBox='0 0 24 24' width='28' height='28' fill='none' stroke='#ffe9a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'></path><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'></path><path d='M9 7h7M9 11h5'></path></svg>";
+    hb.style.zIndex = '99999';
+    document.body.appendChild(hb);
+  }
+  if (!hp && document.body) {
+    hp = el('div', 'help-panel', 'hidden');
+    var hpMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    hp.innerHTML = '<h3>УПРАВЛЕНИЕ</h3>'
+      + (hpMobile
+        ? '<div class=hp-sec><b>ТЕЛЕФОН</b><br>Вращение камеры - палец<br>Полёт - удержание пальцем<br>События - тап по объекту<br>Лазер - красная кнопка слева</div>'
+        : '<div class=hp-sec><b>КОМПЬЮТЕР</b><br>Вращение камеры - мышь (ЛКМ)<br>Полёт - зажать ЛКМ или колесо<br>События - клик по объекту<br>Лазер - ПКМ (если куплен)</div>');
+    hp.style.zIndex = '99999';
+    document.body.appendChild(hp);
+  }
+  return { hb: hb, hp: hp };
+}
+var helpInit = ckEnsureHelpBtn();
+var helpBtn = helpInit.hb;
+var helpPanel = helpInit.hp;
+setInterval(ckEnsureHelpBtn, 1000);
 var helpOpen = false;
 helpBtn.addEventListener('click', function () {
   helpOpen = !helpOpen;
